@@ -1,3 +1,4 @@
+import * as React from "react"
 import {
     Button,
     ButtonGroup,
@@ -8,22 +9,37 @@ import {
     Image,
     Spacer,
     Text,
-    theme
-} from "@chakra-ui/react";
-import {ColorModeSwitcher} from "./ColorModeSwitcher.tsx";
+    theme,
+} from "@chakra-ui/react"
+import {ColorModeSwitcher} from "./ColorModeSwitcher"
+import PersonaAppContainer from "./Model/Persona/PersonaAppContainer";
+import RoomAppContainer from "./Model/Room/RoomAppContainer";
+import BotAppContainer from "./Model/Bot/BotAppContainer";
 
-function App() {
+export default function App() {
+    const roomContainer = (<RoomAppContainer />)
+    const personaContainer = (<PersonaAppContainer />)
+    const botContainer = (<BotAppContainer />)
+
+    const [usingContainer, setUsingContainer] = React.useState<React.ReactElement>(roomContainer)
+
     return (
         <ChakraProvider theme={theme}>
-            <Container maxWidth="container.xl" minHeight="100vh" maxHeight='100vh'>
+            <Container minWidth="container.xl" maxWidth="container.xl" minHeight="100vh" maxHeight='100vh'>
                 <Flex minHeight="48px">
                     <Center>
                         <Image borderRadius='full' boxSize='32px' src="icon.png"></Image>
                         <Text marginLeft="6px" fontSize="xl">YumeAI</Text>
                         <ButtonGroup marginLeft={'16px'} size='md' variant={'ghost'} spacing={'2'}>
-                            <Button>채팅</Button>
-                            <Button>페르소나</Button>
-                            <Button>봇</Button>
+                            <Button onClick={() => {
+                                setUsingContainer(roomContainer)
+                            }}>채팅</Button>
+                            <Button onClick={() => {
+                                setUsingContainer(personaContainer)
+                            }}>페르소나</Button>
+                            <Button onClick={() => {
+                                setUsingContainer(botContainer)
+                            }}>봇</Button>
                         </ButtonGroup>
                     </Center>
                     <Spacer/>
@@ -31,10 +47,8 @@ function App() {
                         <ColorModeSwitcher justifySelf="flex-end"/>
                     </Center>
                 </Flex>
+                {usingContainer}
             </Container>
-
         </ChakraProvider>
     )
 }
-
-export default App

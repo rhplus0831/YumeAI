@@ -19,7 +19,7 @@ export default function PersonaSelectBox({persona, onSelected}: {
 
     return (
         <>
-            {persona !== null ? <PersonaBox persona={persona} setSelectedPersona={() => {setOpen(true)}} selectButtonText={'변경'}></PersonaBox> : <Button onClick={() => {setOpen(true)}}>봇 선택</Button>}
+            {persona !== null ? <PersonaBox persona={persona} setSelectedPersona={() => {setOpen(true)}} selectButtonText={'변경'}></PersonaBox> : <Button onClick={() => {setOpen(true)}}>페르소나 선택</Button>}
             <BaseSelectModal displayName={"페르소나"} endpoint={"persona/"} createBox={(persona: Persona) => (
                 <PersonaBox persona={persona} setSelectedPersona={(persona: Persona | null) => {
                     if (persona === null) return

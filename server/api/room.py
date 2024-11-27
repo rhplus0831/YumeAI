@@ -6,7 +6,7 @@ from sqlalchemy import Engine
 from sqlmodel import Session, select
 
 from api import common
-from database.sql_model import RoomBase, Room, Conversation, Bot, Persona
+from database.sql_model import RoomBase, Room, Conversation, Bot, Persona, Prompt
 
 router = APIRouter(prefix="/room", tags=["room"])
 engine: Engine
@@ -17,6 +17,7 @@ class RoomUpdate(BaseModel):
     name: str | None = None
     bot_id: int | None = None
     persona_id: int | None = None
+    prompt_id: int | None = None
 
 
 class RoomGet(BaseModel):
@@ -24,6 +25,7 @@ class RoomGet(BaseModel):
     name: str
     bot: Optional[Bot] = None
     persona: Optional[Persona] = None
+    prompt: Optional[Prompt] = None
 
 
 common.validate_update_model(RoomBase, RoomUpdate)

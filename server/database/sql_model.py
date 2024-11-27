@@ -42,10 +42,20 @@ class FirstMessage(FirstMessageBase, table=True):
     bot: Bot = Relationship(back_populates="firstMessages")
 
 
+class PromptBase(SQLModel):
+    name: str
+    prompt: str
+
+
+class Prompt(PromptBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+
 class RoomBase(SQLModel):
     name: str
     bot_id: Optional[int] = Field(foreign_key="bot.id", default=None)
     persona_id: Optional[int] = Field(foreign_key="persona.id", default=None)
+    prompt_id: Optional[int] = Field(foreign_key="prompt.id", default=None)
 
 
 class Room(RoomBase, table=True):
@@ -53,6 +63,7 @@ class Room(RoomBase, table=True):
 
     bot: Optional[Bot] = Relationship()
     persona: Optional[Persona] = Relationship()
+    prompt: Optional[Prompt] = Relationship()
 
 
 class Conversation(SQLModel, table=True):

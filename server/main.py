@@ -7,13 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 from starlette.responses import JSONResponse
 
-from api import room, persona, common, message, image, bot
+from api import room, persona, common, message, image, bot, prompt
 from api.bot import BotUpdate, BotGet
 from api.common import ClientErrorException
 from api.persona import PersonaUpdate
+from api.prompt import PromptUpdate
 from api.room import RoomUpdate, RoomGet
 from database.sql import get_engine
-from database.sql_model import Persona, PersonaBase, Room, RoomBase, BotBase, Bot
+from database.sql_model import Persona, PersonaBase, Room, RoomBase, BotBase, Bot, Prompt, PromptBase
 
 engine = get_engine(create_meta=False)
 
@@ -78,3 +79,7 @@ app.include_router(bot.router)
 
 image.engine = engine
 app.include_router(image.router)
+
+prompt.engine = engine
+common.insert_crud(prompt.router, PromptBase, Prompt, PromptUpdate, engine)
+app.include_router(prompt.router)

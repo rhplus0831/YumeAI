@@ -1,4 +1,3 @@
-import React from "react";
 import {Button, Center, Flex, Spacer, Text} from "@chakra-ui/react";
 import {getAPIServer} from "../../Configure";
 import Persona from "./Persona";

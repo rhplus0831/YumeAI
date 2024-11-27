@@ -15,11 +15,13 @@ import {ColorModeSwitcher} from "./ColorModeSwitcher"
 import PersonaAppContainer from "./Model/Persona/PersonaAppContainer";
 import RoomAppContainer from "./Model/Room/RoomAppContainer";
 import BotAppContainer from "./Model/Bot/BotAppContainer";
+import PromptAppContainer from "./Model/Prompt/PromptAppContainer.tsx";
 
 export default function App() {
-    const roomContainer = (<RoomAppContainer />)
-    const personaContainer = (<PersonaAppContainer />)
-    const botContainer = (<BotAppContainer />)
+    const roomContainer = (<RoomAppContainer/>)
+    const personaContainer = (<PersonaAppContainer/>)
+    const botContainer = (<BotAppContainer/>)
+    const promptContainer = (<PromptAppContainer/>)
 
     const [usingContainer, setUsingContainer] = React.useState<React.ReactElement>(roomContainer)
 
@@ -40,6 +42,9 @@ export default function App() {
                             <Button onClick={() => {
                                 setUsingContainer(botContainer)
                             }}>봇</Button>
+                            <Button onClick={() => {
+                                setUsingContainer(promptContainer)
+                            }}>프롬프트</Button>
                         </ButtonGroup>
                     </Center>
                     <Spacer/>

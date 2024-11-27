@@ -7,6 +7,8 @@ import PersonaSelectBox from "../Persona/PersonaSelectBox";
 import Bot from "../Bot/Bot";
 import AutoSubmitEditable from "../Base/AutoSubmitEditable";
 import BaseData from "../Base/BaseData.ts";
+import PromptSelectBox from "../Prompt/PromptSelectBox.tsx";
+import Prompt from "../Prompt/Prompt.ts";
 
 export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited}: {
     selectedRoom: Room | null,
@@ -66,6 +68,23 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited}: {
                               } catch { /* empty */
                               }
                           }}></BotSelectBox>
+            <Text>프롬프트</Text>
+            <PromptSelectBox prompt={selectedRoom !== null && selectedRoom.prompt !== undefined ? selectedRoom.prompt : null}
+                          onSelected={async (prompt: Prompt, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
+                              if (selectedRoom === null) return
+                              try {
+                                  onEdited(await notifyFetch(getAPIServer() + 'room/' + selectedRoom.id, {
+                                      method: 'PUT',
+                                      headers: {
+                                          "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({
+                                          'prompt_id': prompt.id,
+                                      })
+                                  }, '봇 선택중...') as Room)
+                              } catch { /* empty */
+                              }
+                          }}></PromptSelectBox>
         </Box>
     )
 }

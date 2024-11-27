@@ -112,6 +112,7 @@ export async function notifyFetch(url: string, props: UseSendingAlertProps, extr
             return data
         } else {
             let result = {}
+            let received = false
             const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader()
             while (true) {
                 const {value, done} = await reader.read();
@@ -120,16 +121,24 @@ export async function notifyFetch(url: string, props: UseSendingAlertProps, extr
                 console.log(jsonValue)
                 if (Object.prototype.hasOwnProperty.call(jsonValue, 'status') && jsonValue['status'] == 'progress') {
                     props.setAlertDescription?.(jsonValue['message'])
+                } else if (Object.prototype.hasOwnProperty.call(jsonValue, 'status') && jsonValue['status'] == 'error') {
+                    // noinspection ExceptionCaughtLocallyJS
+                    throw new Error(jsonValue['message'])
                 } else {
                     result = jsonValue
+                    received = true
                 }
+            }
+            if (!received) {
+                // noinspection ExceptionCaughtLocallyJS
+                throw new Error("서버가 응답을 제대로 하지 않았거나 그 전에 연결이 끊어졌습니다.")
             }
             props.onClose?.()
             return result
         }
     } catch (err: unknown) {
         console.log(err)
-        if(err instanceof Error) {
+        if (err instanceof Error) {
             throwError(props, err.message)
         }
     }

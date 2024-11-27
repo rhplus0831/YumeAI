@@ -1,5 +1,4 @@
 import {Center, Grid, GridItem, Text} from "@chakra-ui/react";
-import * as React from "react";
 import Message, {MessageRole} from "./Message";
 import Room from "../Room";
 import YumeAvatar from "../../Base/YumeAvatar.tsx";
@@ -8,11 +7,11 @@ import {getAPIServer} from "../../../Configure";
 export default function MessageBox({room, message}: { room: Room | null, message: Message }) {
     const getAvatarSrc = () => {
         if (message.role === MessageRole.User) {
-            if (room?.persona?.profileImageId !== undefined) {
+            if (room?.persona?.profileImageId) {
                 return getAPIServer() + 'image/' + room.persona.profileImageId
             }
         } else {
-            if (room?.bot?.profileImageId !== undefined) {
+            if (room?.bot?.profileImageId) {
                 return getAPIServer() + 'image/' + room.bot.profileImageId
             }
         }
@@ -21,7 +20,7 @@ export default function MessageBox({room, message}: { room: Room | null, message
 
     const getName = () => {
         if (message.role === MessageRole.User) {
-            if (room?.persona !== undefined) {
+            if (room?.persona) {
                 if (room.persona.displayName.trim() !== '') {
                     return room.persona.displayName
                 } else {
@@ -29,7 +28,7 @@ export default function MessageBox({room, message}: { room: Room | null, message
                 }
             }
         } else {
-            if (room?.bot !== undefined) {
+            if (room?.bot) {
                 if (room.bot.displayName.trim() !== '') {
                     return room.bot.displayName
                 } else {

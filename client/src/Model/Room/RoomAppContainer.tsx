@@ -37,6 +37,13 @@ export default function RoomAppContainer() {
                                  onEdited={(data: Room) => {
                                      console.log("onEdited", data);
                                      changeSelectedRoom(data)
+                                 }}
+                                 onRemoved={(data: Room) => {
+                                     const newRooms = rooms.filter((item: Room) => {
+                                         return item.id != data.id;
+                                     })
+                                     setSelectedRoom(null)
+                                     setRooms(newRooms)
                                  }}></RoomSidebar>
                 </GridItem>
                 <GridItem w='100%' h={'inherit'} maxH={'inherit'}>

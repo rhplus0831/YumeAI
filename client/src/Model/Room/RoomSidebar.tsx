@@ -1,5 +1,19 @@
 import React from "react";
-import {Box, Button, Text} from "@chakra-ui/react";
+import {
+    Box,
+    Button,
+    HStack,
+    Modal,
+    ModalBody,
+    ModalCloseButton,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
+    ModalOverlay,
+    Text,
+    useDisclosure,
+    VStack
+} from "@chakra-ui/react";
 import Room from "./Room";
 import BotSelectBox from "../Bot/BotSelectBox";
 import {getAPIServer} from "../../Configure";
@@ -9,11 +23,14 @@ import AutoSubmitEditable from "../Base/AutoSubmitEditable";
 import BaseData from "../Base/BaseData.ts";
 import PromptSelectBox from "../Prompt/PromptSelectBox.tsx";
 import Prompt from "../Prompt/Prompt.ts";
+import {notifyFetch, useSendingAlert} from "../../Base/SendingAlert/useSendingAlert";
+import SendingAlert from "../../Base/SendingAlert/SendingAlert.tsx";
 
-export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited}: {
+export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, onRemoved}: {
     selectedRoom: Room | null,
     setSelectedRoom: React.Dispatch<React.SetStateAction<Room | null>>,
     onEdited: (data: Room) => void
+    onRemoved: (data: Room) => void
 }) {
     const [name, setName] = React.useState("");
 
@@ -21,6 +38,9 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited}: {
         if (selectedRoom === null) return
         setName(selectedRoom.name)
     }, [selectedRoom])
+
+    const modalProps = useDisclosure()
+    const sendingAlertProp = useSendingAlert()
 
     return (
         <Box display={selectedRoom !== null ? "block" : "none"}>
@@ -69,22 +89,57 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited}: {
                               }
                           }}></BotSelectBox>
             <Text>프롬프트</Text>
-            <PromptSelectBox prompt={selectedRoom !== null && selectedRoom.prompt !== undefined ? selectedRoom.prompt : null}
-                          onSelected={async (prompt: Prompt, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
-                              if (selectedRoom === null) return
-                              try {
-                                  onEdited(await notifyFetch(getAPIServer() + 'room/' + selectedRoom.id, {
-                                      method: 'PUT',
-                                      headers: {
-                                          "Content-Type": "application/json",
-                                      },
-                                      body: JSON.stringify({
-                                          'prompt_id': prompt.id,
-                                      })
-                                  }, '봇 선택중...') as Room)
-                              } catch { /* empty */
-                              }
-                          }}></PromptSelectBox>
+            <PromptSelectBox
+                prompt={selectedRoom !== null && selectedRoom.prompt !== undefined ? selectedRoom.prompt : null}
+                onSelected={async (prompt: Prompt, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
+                    if (selectedRoom === null) return
+                    try {
+                        onEdited(await notifyFetch(getAPIServer() + 'room/' + selectedRoom.id, {
+                            method: 'PUT',
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                'prompt_id': prompt.id,
+                            })
+                        }, '봇 선택중...') as Room)
+                    } catch { /* empty */
+                    }
+                }}></PromptSelectBox>
+            <br/>
+            <Button colorScheme={'red'} onClick={() => {
+                modalProps.onOpen()
+            }}>나가기</Button>
+            <SendingAlert {...sendingAlertProp}></SendingAlert>
+            <Modal {...modalProps}>
+                <ModalOverlay/>
+                <ModalContent>
+                    <ModalHeader><b>정말로 방을 나가시겠습니까?</b></ModalHeader>
+                    <ModalCloseButton/>
+                    <ModalBody pb={6}>
+                        방을 한번 나가면 돌아올 수 없습니다!<br/>
+                        정말로 나가시겠습니까?
+                    </ModalBody>
+                    <ModalFooter>
+                        <VStack width={"auto"}>
+                            <HStack>
+                                <Button onClick={modalProps.onClose} colorScheme='blue' mr={3}>
+                                    아뇨?
+                                </Button>
+                                <Button onClick={() => {
+                                    if (selectedRoom == null) return;
+                                    modalProps.onClose()
+                                    notifyFetch(getAPIServer() + `room/${selectedRoom?.id}`, sendingAlertProp, {method: 'DELETE'}, '방에서 나가는 중입니다...').then(() => {
+                                        onRemoved(selectedRoom)
+                                    })
+                                }} colorScheme='red' mr={3}>
+                                    나갈래
+                                </Button>
+                            </HStack>
+                        </VStack>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </Box>
     )
 }

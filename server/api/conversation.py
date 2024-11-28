@@ -1,8 +1,6 @@
 import datetime
-import enum
 import json
 import os
-import uuid
 from typing import Sequence
 
 from fastapi import APIRouter
@@ -14,25 +12,14 @@ from starlette.responses import StreamingResponse
 
 import configure
 from api import common, prompt
-from database.sql_model import Room, Conversation
+from database.sql_model import ConversationBase, Room, Conversation
 
 engine: Engine
 room_not_exist_model: BaseModel | None = None
 
 
-class MessageRole(str, enum.Enum):
-    USER = 'user'
-    ASSISTANT = 'assistant'
-
-
-class Message(BaseModel):
-    text: str
-    key: str
-    role: MessageRole
-
-
-class MessagesResponse(BaseModel):
-    messages: Sequence[Message]
+class ConversationsResponse(BaseModel):
+    conversations: Sequence[ConversationBase]
 
 
 def get_room_or_404(room_id: int, session: Session) -> Room:
@@ -40,24 +27,13 @@ def get_room_or_404(room_id: int, session: Session) -> Room:
 
 
 def register(router: APIRouter):
-    @router.get('/{id}/message', responses={200: {'model': MessagesResponse}, 404: {'model': room_not_exist_model}})
-    async def list_messages(id: int):
+    @router.get('/{id}/conversation', responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
+    async def list_conversations(id: int):
         with Session(engine) as session:
             room = get_room_or_404(id, session)
             statement = select(Conversation).where(Conversation.room_id == room.id)
             conversations = session.exec(statement).all()
-
-        messages = []
-        for conversation in conversations:
-            # TODO: Remove name placeholder
-            user_message = Message(text=conversation.user_message, key=uuid.uuid4().hex,
-                                   role=MessageRole.USER)
-            assistant_message = Message(text=conversation.assistant_message, key=uuid.uuid4().hex,
-                                        role=MessageRole.ASSISTANT)
-            messages.append(user_message)
-            messages.append(assistant_message)
-
-        return {"messages": messages}
+        return {"conversations": conversations}
 
     class SendMessageArgument(BaseModel):
         text: str
@@ -142,24 +118,11 @@ def register(router: APIRouter):
             session.commit()
             session.refresh(conversation)
 
-            yield json.dumps({
-                "messages": [
-                    {
-                        'text': conversation.user_message,
-                        'key': uuid.uuid4().hex,
-                        'role': MessageRole.USER
-                    },
-                    {
-                        'text': conversation.assistant_message,
-                        'key': uuid.uuid4().hex,
-                        'role': MessageRole.ASSISTANT
-                    }
-                ]
-            }).encode('utf-8')
+            yield conversation.model_dump_json()
         finally:
             session.close()
 
-    @router.post("/{id}/send", responses={200: {'model': MessagesResponse}, 404: {'model': room_not_exist_model}})
+    @router.post("/{id}/conversation/send", responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
     async def send_message(id: int, argument: SendMessageArgument) -> StreamingResponse:
         session = Session(engine)
         try:

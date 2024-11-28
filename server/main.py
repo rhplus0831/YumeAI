@@ -6,8 +6,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 from starlette.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from api import room, persona, common, message, image, bot, prompt
+from api import room, persona, common, message, image, bot, prompt, conversation
 from api.bot import BotUpdate, BotGet
 from api.common import ClientErrorException
 from api.persona import PersonaUpdate
@@ -39,13 +40,20 @@ async def debugging_delay(request: Request, call_next):
     return response
 
 
+@app.exception_handler(StarletteHTTPException)
+async def custom_404_handler(request: Request, exc: StarletteHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"status": "error", "message": exc.detail}
+    )
+
 @app.exception_handler(ClientErrorException)
 async def handle_client_error(request: Request, error: ClientErrorException):
-    return JSONResponse(status_code=error.status_code, content={"detail": error.detail})
+    return JSONResponse(status_code=error.status_code, content={"status": "error", "detail": error.detail})
 
 
 origins = [
-    "http://localhost:3000",
+    "http://localhost:831",
 ]
 
 app.add_middleware(
@@ -61,9 +69,9 @@ room.room_not_exist_model = common.insert_crud(room.router, RoomBase, Room, Room
                                                handle_delete_side_effect=room.room_delete_side_effect,
                                                get_model=RoomGet)
 
-message.engine = engine
-message.room_not_exist_model = room.room_not_exist_model
-message.register(room.router)
+conversation.engine = engine
+conversation.room_not_exist_model = room.room_not_exist_model
+conversation.register(room.router)
 
 app.include_router(room.router)
 

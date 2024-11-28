@@ -66,15 +66,16 @@ class Room(RoomBase, table=True):
     prompt: Optional[Prompt] = Relationship()
 
 
-class Conversation(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-
+class ConversationBase(SQLModel):
     room_id: int = Field(foreign_key="room.id", index=True)
-    room: Room = Relationship()
 
     created_at: datetime.datetime = Field(default=datetime.datetime.now(), index=True)
     user_message: str
     assistant_message: str
+
+class Conversation(ConversationBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    room: Room = Relationship()
 
 
 class Image(SQLModel, table=True):

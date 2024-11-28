@@ -1,35 +1,41 @@
 import {Box, Button, Card, CardBody, Flex, Grid, GridItem, Input, Stack, StackDivider} from "@chakra-ui/react";
 import * as React from "react";
-import MessageBox from "./MessageBox";
 import SendingAlert from "../../../Base/SendingAlert/SendingAlert";
 import {notifyFetch, useSendingAlert} from "../../../Base/SendingAlert/useSendingAlert";
 import {getAPIServer} from "../../../Configure";
 import Room from "../Room";
-import Message, {MessageRole} from "./Message";
+import Conversation from "./Conversation.ts";
 import ScrollToBottom from 'react-scroll-to-bottom';
+import ConversationBox from "./ConversationBox.tsx";
 
-export default function MessageList({room}: { room: Room | null }) {
+export default function ConversationList({room}: { room: Room | null }) {
     const [userMessage, setUserMessage] = React.useState<string>("");
-    const [messages, setMessages] = React.useState<Message[]>([]);
+    const [conversations, setConversations] = React.useState<Conversation[]>([]);
     const [currentRoomId, setCurrentRoomId] = React.useState(-1);
 
     let sending = false
     const sendingAlertProp = useSendingAlert()
 
     const sendMessage = async () => {
-        if (room === null) {
+        if (!room) {
             return
         }
         if (sending) {
             return
         }
         sending = true;
-        const sendTemp: Message[] = [{"role": MessageRole.User, "text": userMessage, "key": "sending"} as Message]
+        const sendTemp: Conversation[] = [{
+            "room_id": room.id,
+            "created_at": new Date(),
+            "user_message": userMessage,
+            "assistant_message": null,
+            "id": -1
+        } as Conversation]
         // keep in temp variable because react state is async
-        const tempMessages = messages.slice(0).concat(sendTemp)
-        setMessages(tempMessages)
+        const tempMessages = conversations.slice(0).concat(sendTemp)
+        setConversations(tempMessages)
         try {
-            const data = await notifyFetch(getAPIServer() + 'room/' + room.id + '/message', sendingAlertProp, {
+            const data = await notifyFetch(getAPIServer() + 'room/' + room.id + '/conversation/send', sendingAlertProp, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -37,10 +43,10 @@ export default function MessageList({room}: { room: Room | null }) {
                 body: JSON.stringify({"text": userMessage})
             }, "메시지를 보내고 있습니다...", true)
             //서버에서 유저가 보낸 메시지를 포함한 응답을 다시 보내주기 때문에 한줄 자름
-            setMessages(tempMessages.slice(0, -1).concat(data.messages));
+            setConversations(tempMessages.slice(0, -1).concat(data.messages));
             setUserMessage("")
         } catch {
-            setMessages(tempMessages.slice(0, -1))
+            setConversations(tempMessages.slice(0, -1))
         }
         sending = false;
     }
@@ -48,7 +54,7 @@ export default function MessageList({room}: { room: Room | null }) {
     React.useEffect(() => {
         if (room === null) {
             setCurrentRoomId(-1)
-            setMessages([])
+            setConversations([])
             return;
         }
         if (room.id === currentRoomId) {
@@ -56,7 +62,7 @@ export default function MessageList({room}: { room: Room | null }) {
         }
         setCurrentRoomId(room.id)
 
-        async function getMessageList() {
+        async function getConversationList() {
             if (room === null) {
                 return
             }
@@ -65,15 +71,16 @@ export default function MessageList({room}: { room: Room | null }) {
             }
             sending = true;
             try {
-                const data = await notifyFetch(getAPIServer() + 'room/' + room.id + '/message', sendingAlertProp, {
+                const data = await notifyFetch(getAPIServer() + 'room/' + room.id + '/conversation', sendingAlertProp, {
                     method: "GET"
                 }, "기존 메시지를 받아오고 있습니다...")
-                setMessages(data.messages)
-            } catch { /* empty */ }
+                setConversations(data.conversations)
+            } catch { /* empty */
+            }
             sending = false;
         }
 
-        getMessageList().then()
+        getConversationList().then()
     }, [room])
 
     return (
@@ -84,8 +91,8 @@ export default function MessageList({room}: { room: Room | null }) {
                         <Card variant={"unstyled"} flex="1" overflowY="auto">
                             <CardBody>
                                 <Stack divider={<StackDivider/>} spacing='4'>
-                                    {messages.map(message => (
-                                        <MessageBox room={room} message={message} key={message.key}></MessageBox>
+                                    {conversations.map(conversation => (
+                                        <ConversationBox room={room} conversation={conversation}/>
                                     ))}
                                 </Stack>
                             </CardBody>

@@ -1,5 +1,5 @@
 import RoomList from "./RoomList";
-import MessageList from "./Message/MessageList";
+import ConversationList from "./Conversation/ConversationList.tsx";
 import * as React from "react";
 import {Box, Grid, GridItem} from "@chakra-ui/react";
 import RoomSidebar from "./RoomSidebar";
@@ -47,7 +47,7 @@ export default function RoomAppContainer() {
                                  }}></RoomSidebar>
                 </GridItem>
                 <GridItem w='100%' h={'inherit'} maxH={'inherit'}>
-                    <MessageList room={selectedRoom}></MessageList>
+                    <ConversationList room={selectedRoom}></ConversationList>
                 </GridItem>
             </Grid>
         </Box>

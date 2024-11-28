@@ -83,7 +83,7 @@ export function useSendingAlert(props: UseSendingAlertProps = {}) {
     }
 }
 
-export async function notifyFetch(url: string, props: UseSendingAlertProps, extra: RequestInit, progressMessage: string, isStreaming: boolean = false) {
+export async function notifyFetch(url: string, props: UseSendingAlertProps, extra: RequestInit, progressMessage: string, isStreaming: boolean = false, streamingReceiver?: (data: unknown) => void) {
     props.setAlertStatus?.("loading")
     props.setAlertTitle?.("통신중")
     props.setAlertDescription?.(progressMessage)
@@ -117,16 +117,35 @@ export async function notifyFetch(url: string, props: UseSendingAlertProps, extr
             while (true) {
                 const {value, done} = await reader.read();
                 if (done) break;
-                const jsonValue = JSON.parse(value!)
-                console.log(jsonValue)
-                if (Object.prototype.hasOwnProperty.call(jsonValue, 'status') && jsonValue['status'] == 'progress') {
-                    props.setAlertDescription?.(jsonValue['message'])
-                } else if (Object.prototype.hasOwnProperty.call(jsonValue, 'status') && jsonValue['status'] == 'error') {
-                    // noinspection ExceptionCaughtLocallyJS
-                    throw new Error(jsonValue['message'])
-                } else {
-                    result = jsonValue
-                    received = true
+                if (!value) continue;
+                let buffer = value
+                let boundary = value.indexOf('\n');
+                if (boundary === -1) {
+                    boundary = buffer.length;
+                }
+                while (boundary !== -1) {
+                    const jsonString = buffer.substring(0, boundary);
+                    console.log(jsonString)
+                    const jsonValue = JSON.parse(jsonString)
+                    if (Object.prototype.hasOwnProperty.call(jsonValue, 'status')) {
+                        if (jsonValue['status'] == 'progress') {
+                            props.setAlertDescription?.(jsonValue['message'])
+                        } else if (jsonValue['status'] == 'error') {
+                            // noinspection ExceptionCaughtLocallyJS
+                            throw new Error(jsonValue['message'])
+                        } else if (jsonValue['status'] == 'stream') {
+                            if (streamingReceiver) {
+                                streamingReceiver(jsonValue)
+                            }
+                        }
+                    } else {
+                        result = jsonValue
+                        received = true
+                    }
+                    // 처리한 부분을 버퍼에서 제거
+                    buffer = buffer.substring(boundary + 1);
+                    // 다음 JSON의 경계를 찾습니다.
+                    boundary = buffer.indexOf('\n');
                 }
             }
             if (!received) {

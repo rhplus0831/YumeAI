@@ -27,7 +27,8 @@ def get_room_or_404(room_id: int, session: Session) -> Room:
 
 
 def register(router: APIRouter):
-    @router.get('/{id}/conversation', responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
+    @router.get('/{id}/conversation',
+                responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
     async def list_conversations(id: int):
         with Session(engine) as session:
             room = get_room_or_404(id, session)
@@ -106,11 +107,20 @@ def register(router: APIRouter):
                                                          max_tokens=512,
                                                          top_p=1,
                                                          frequency_penalty=0,
-                                                         presence_penalty=0)
+                                                         presence_penalty=0, stream=True)
+
+            collected_messages = []
+            async for chunk in response:
+                chunk_message = chunk.choices[0].delta.content or ""
+                collected_messages.append(chunk_message)
+                yield json.dumps({
+                    "status": 'stream',
+                    "message": chunk_message
+                }) + "\n"
 
             conversation = Conversation()
             conversation.user_message = argument.text
-            conversation.assistant_message = response.choices[0].message.content
+            conversation.assistant_message = ''.join(collected_messages)
             conversation.room_id = room.id
             conversation.created_at = datetime.datetime.now()
 
@@ -122,7 +132,8 @@ def register(router: APIRouter):
         finally:
             session.close()
 
-    @router.post("/{id}/conversation/send", responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
+    @router.post("/{id}/conversation/send",
+                 responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
     async def send_message(id: int, argument: SendMessageArgument) -> StreamingResponse:
         session = Session(engine)
         try:

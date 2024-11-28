@@ -27,7 +27,7 @@ export default function MessageBox({message, name, profileImageId}: { message: s
                 </Text>
             </GridItem>
             <GridItem area={'message'}>
-                <Text>
+                <Text whiteSpace={"pre-wrap"}>
                     {message}
                 </Text>
             </GridItem>

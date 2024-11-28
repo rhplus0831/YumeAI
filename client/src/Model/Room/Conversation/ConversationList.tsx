@@ -1,4 +1,4 @@
-import {Box, Button, Card, CardBody, Flex, Grid, GridItem, Input, Stack, StackDivider} from "@chakra-ui/react";
+import {Box, Button, Card, CardBody, Flex, Grid, GridItem, Stack, StackDivider} from "@chakra-ui/react";
 import * as React from "react";
 import SendingAlert from "../../../Base/SendingAlert/SendingAlert";
 import {notifyFetch, useSendingAlert} from "../../../Base/SendingAlert/useSendingAlert";
@@ -7,6 +7,7 @@ import Room from "../Room";
 import Conversation from "./Conversation.ts";
 import ScrollToBottom from 'react-scroll-to-bottom';
 import ConversationBox from "./ConversationBox.tsx";
+import {AutoResizeTextarea} from "../../../Base/AutoResizeTextarea.tsx";
 
 export default function ConversationList({room}: { room: Room | null }) {
     const [userMessage, setUserMessage] = React.useState<string>("");
@@ -34,6 +35,19 @@ export default function ConversationList({room}: { room: Room | null }) {
         // keep in temp variable because react state is async
         const tempConversations = conversations.slice(0).concat(sendTemp)
         setConversations(tempConversations)
+
+        interface StreamingProp {
+            message: string
+        }
+
+        const receiver = (data: unknown) => {
+            if (sendTemp[0].assistant_message == null) {
+                sendTemp[0].assistant_message = ""
+            }
+            sendTemp[0].assistant_message += (data as StreamingProp).message
+            setConversations(tempConversations.slice(0, -1).concat(sendTemp));
+        }
+
         try {
             const data = await notifyFetch(getAPIServer() + 'room/' + room.id + '/conversation/send', sendingAlertProp, {
                 method: "POST",
@@ -41,7 +55,7 @@ export default function ConversationList({room}: { room: Room | null }) {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({"text": userMessage})
-            }, "메시지를 보내고 있습니다...", true)
+            }, "메시지를 보내고 있습니다...", true, receiver)
             //서버에서 유저가 보낸 메시지를 포함한 응답을 다시 보내주기 때문에 한줄 자름
             setConversations(tempConversations.slice(0, -1).concat(data));
             setUserMessage("")
@@ -103,14 +117,18 @@ export default function ConversationList({room}: { room: Room | null }) {
             <GridItem>
                 <Box>
                     <SendingAlert {...sendingAlertProp}></SendingAlert>
-                    <Flex flexDirection="row" justifyContent="end" marginTop="16px">
-                        <Input id="chatbox-input" value={userMessage} onChange={(event) => {
-                            setUserMessage(event.target.value)
-                        }} placeholder="여기에 보낼 메시지를 입력하세요"></Input>
-                        <Button onClick={sendMessage}>
-                            보내기!
-                        </Button>
-                    </Flex>
+                    <Grid templateColumns={'1fr 6em'} templateRows={'1fr'} marginTop="16px">
+                        <GridItem>
+                            <AutoResizeTextarea id="chatbox-input" value={userMessage} onChange={(event) => {
+                                setUserMessage(event.target.value)
+                            }} placeholder="여기에 보낼 메시지를 입력하세요"/>
+                        </GridItem>
+                        <GridItem>
+                            <Button h={"100%"} onClick={sendMessage}>
+                                보내기!
+                            </Button>
+                        </GridItem>
+                    </Grid>
                 </Box>
             </GridItem>
         </Grid>

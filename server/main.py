@@ -8,7 +8,7 @@ from sqlmodel import SQLModel
 from starlette.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from api import room, persona, common, message, image, bot, prompt, conversation
+from api import room, persona, common, image, bot, prompt, conversation
 from api.bot import BotUpdate, BotGet
 from api.common import ClientErrorException
 from api.persona import PersonaUpdate

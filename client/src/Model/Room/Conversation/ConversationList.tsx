@@ -32,8 +32,8 @@ export default function ConversationList({room}: { room: Room | null }) {
             "id": -1
         } as Conversation]
         // keep in temp variable because react state is async
-        const tempMessages = conversations.slice(0).concat(sendTemp)
-        setConversations(tempMessages)
+        const tempConversations = conversations.slice(0).concat(sendTemp)
+        setConversations(tempConversations)
         try {
             const data = await notifyFetch(getAPIServer() + 'room/' + room.id + '/conversation/send', sendingAlertProp, {
                 method: "POST",
@@ -43,10 +43,10 @@ export default function ConversationList({room}: { room: Room | null }) {
                 body: JSON.stringify({"text": userMessage})
             }, "메시지를 보내고 있습니다...", true)
             //서버에서 유저가 보낸 메시지를 포함한 응답을 다시 보내주기 때문에 한줄 자름
-            setConversations(tempMessages.slice(0, -1).concat(data.messages));
+            setConversations(tempConversations.slice(0, -1).concat(data));
             setUserMessage("")
         } catch {
-            setConversations(tempMessages.slice(0, -1))
+            setConversations(tempConversations.slice(0, -1))
         }
         sending = false;
     }

@@ -55,7 +55,9 @@ class RoomBase(SQLModel):
     name: str
     bot_id: Optional[int] = Field(foreign_key="bot.id", default=None)
     persona_id: Optional[int] = Field(foreign_key="persona.id", default=None)
-    prompt_id: Optional[int] = Field(foreign_key="prompt.id", default=None)
+
+    prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
+    summary_prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
 
 
 class Room(RoomBase, table=True):
@@ -63,7 +65,9 @@ class Room(RoomBase, table=True):
 
     bot: Optional[Bot] = Relationship()
     persona: Optional[Persona] = Relationship()
-    prompt: Optional[Prompt] = Relationship()
+
+    prompt: Optional[Prompt] = Relationship(sa_relationship_kwargs={"foreign_keys": "[Room.prompt_id]"})
+    summary_prompt: Optional[Prompt] = Relationship(sa_relationship_kwargs={"foreign_keys": "[Room.summary_prompt_id]"})
 
 
 class ConversationBase(SQLModel):
@@ -73,9 +77,31 @@ class ConversationBase(SQLModel):
     user_message: str
     assistant_message: str
 
+
 class Conversation(ConversationBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     room: Room = Relationship()
+
+
+class SummaryBase(SQLModel):
+    room_id: int = Field(foreign_key="room.id", index=True)
+    created_at: datetime.datetime = Field(default=datetime.datetime.now(), index=True)
+
+    conversation_id: int = Field(foreign_key="conversation.id", default=None, nullable=True, index=True)
+    parent: int = Field(foreign_key="summary.id", default=None, nullable=True, index=True)
+
+    content: str
+    # 미래에 사용할 가능성?
+    keyword: str = Field(nullable=True, default=None)
+
+    # 최상위 요약인지의 여부입니다.
+    # 요약 시스템은 대화를 요약하고, 필요한경우 요약을 요약하기 때문에
+    # 이 요약이 최상위 요약인지의 여부를 빠르게 판단하기 위해 사용합니다.
+    is_top: bool = Field(index=True)
+
+
+class Summary(SummaryBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
 
 
 class Image(SQLModel, table=True):

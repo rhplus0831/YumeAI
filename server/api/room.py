@@ -6,7 +6,7 @@ from sqlalchemy import Engine
 from sqlmodel import Session, select
 
 from api import common
-from database.sql_model import RoomBase, Room, Conversation, Bot, Persona, Prompt
+from database.sql_model import RoomBase, Room, Conversation, Bot, Persona, Prompt, Summary
 
 router = APIRouter(prefix="/room", tags=["room"])
 engine: Engine
@@ -18,6 +18,7 @@ class RoomUpdate(BaseModel):
     bot_id: int | None = None
     persona_id: int | None = None
     prompt_id: int | None = None
+    summary_prompt_id: int | None = None
 
 
 class RoomGet(BaseModel):
@@ -26,6 +27,7 @@ class RoomGet(BaseModel):
     bot: Optional[Bot] = None
     persona: Optional[Persona] = None
     prompt: Optional[Prompt] = None
+    summary_prompt: Optional[Prompt] = None
 
 
 common.validate_update_model(RoomBase, RoomUpdate)
@@ -36,4 +38,9 @@ def room_delete_side_effect(session: Session, room: Room):
     conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
     for conversation in conversations:
         session.delete(conversation)
+
+    summaries = session.exec(select(Summary).where(Summary.room_id == room.id)).all()
+    for summary in summaries:
+        session.delete(summary)
+
     session.commit()

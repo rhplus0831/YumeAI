@@ -1,7 +1,7 @@
 import React from "react";
 import {
     Box,
-    Button,
+    Button, Divider,
     HStack,
     Modal,
     ModalBody,
@@ -47,13 +47,15 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, on
             <Button onClick={() => {
                 setSelectedRoom(null)
             }}>돌아가기</Button>
-            <Text>방 이름</Text>
+            <Divider/>
+            <Text fontSize={"xl"}>방 이름</Text>
             <AutoSubmitEditable endpoint={getAPIServer() + 'room/' + selectedRoom?.id} valueName={'name'} value={name}
                                 setValue={(name: string) => {
                                     if (selectedRoom === null) return
                                     setName(name)
                                 }} onEdited={onEdited}></AutoSubmitEditable>
-            <Text>페르소나</Text>
+            <Divider/>
+            <Text fontSize={"xl"}>페르소나</Text>
             <PersonaSelectBox
                 persona={selectedRoom !== null && selectedRoom.persona !== undefined ? selectedRoom.persona : null}
                 onSelected={async (persona: BaseData, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
@@ -71,7 +73,8 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, on
                     } catch { /* empty */
                     }
                 }}></PersonaSelectBox>
-            <Text>봇</Text>
+            <Divider/>
+            <Text fontSize={"xl"}>봇</Text>
             <BotSelectBox bot={selectedRoom !== null && selectedRoom.bot !== undefined ? selectedRoom.bot : null}
                           onSelected={async (bot: Bot, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
                               if (selectedRoom === null) return
@@ -88,7 +91,8 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, on
                               } catch { /* empty */
                               }
                           }}></BotSelectBox>
-            <Text>프롬프트</Text>
+            <Divider/>
+            <Text fontSize={"xl"}>프롬프트</Text>
             <PromptSelectBox
                 prompt={selectedRoom !== null && selectedRoom.prompt !== undefined ? selectedRoom.prompt : null}
                 onSelected={async (prompt: Prompt, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
@@ -102,7 +106,26 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, on
                             body: JSON.stringify({
                                 'prompt_id': prompt.id,
                             })
-                        }, '봇 선택중...') as Room)
+                        }, '프롬프트 선택중...') as Room)
+                    } catch { /* empty */
+                    }
+                }}></PromptSelectBox>
+            <Divider/>
+            <Text fontSize={"xl"}>요약용 프롬프트</Text>
+            <PromptSelectBox
+                prompt={selectedRoom !== null && selectedRoom.summary_prompt !== undefined ? selectedRoom.summary_prompt : null}
+                onSelected={async (prompt: Prompt, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
+                    if (selectedRoom === null) return
+                    try {
+                        onEdited(await notifyFetch(getAPIServer() + 'room/' + selectedRoom.id, {
+                            method: 'PUT',
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                'summary_prompt_id': prompt.id,
+                            })
+                        }, '요약용 프롬프트 선택중...') as Room)
                     } catch { /* empty */
                     }
                 }}></PromptSelectBox>

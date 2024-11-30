@@ -7,5 +7,6 @@ export default interface Room extends BaseData {
     name: string
     bot: Bot | undefined,
     persona: Persona | undefined,
-    prompt: Prompt | undefined
+    prompt: Prompt | undefined,
+    summary_prompt: Prompt | undefined
 }

@@ -141,6 +141,8 @@ export async function notifyFetch(url: string, props: UseSendingAlertProps, extr
                     } else {
                         result = jsonValue
                         received = true
+                        await reader.cancel('Received Result')
+                        break
                     }
                     // 처리한 부분을 버퍼에서 제거
                     buffer = buffer.substring(boundary + 1);

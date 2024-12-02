@@ -16,7 +16,8 @@ async def summarize_conversation(session: Session, conversation: Conversation):
                                             , [
                                                 {
                                                     'role': 'user',
-                                                    'content': conversation.user_message + '\r\n' + conversation.assistant_message,
+                                                    'content': f'{conversation.room.persona.name}: {conversation.user_message}\r\n\r\n'
+                                                               f'{conversation.room.bot.name}: {conversation.assistant_message}n'
                                                 }
                                             ])
     summary = Summary()

@@ -132,8 +132,6 @@ def register(router: APIRouter):
                 'content': argument.text
             })
 
-            messages_dump(messages)
-
             yield generate_progress('봇이 응답하는중...')
             response = await oai.chat.completions.create(model='gpt-4o', messages=messages, temperature=0.8,
                                                          max_tokens=2048,
@@ -149,6 +147,10 @@ def register(router: APIRouter):
                     "status": 'stream',
                     "message": chunk_message
                 }) + "\n"
+
+            response_combined = ''.join(collected_messages)
+
+            messages_dump(messages, response_combined)
 
             conversation = Conversation()
             conversation.user_message = argument.text

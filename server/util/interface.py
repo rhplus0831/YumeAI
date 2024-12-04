@@ -10,11 +10,14 @@ from api import prompt
 from database.sql_model import Prompt
 
 
-def messages_dump(messages):
-    # TODO: Remove this debug process
+def messages_dump(messages, response_text):
+    # TODO: Remove or Improve this debug process
     datestr = datetime.datetime.today().strftime('%Y%m%d_%H%M%S')
-    with open(configure.get_store_path(f'message_check/{datestr}.json'), 'w', encoding='utf-8') as f:
-        f.write(json.dumps(messages, indent=4, ensure_ascii=False))
+    with open(configure.get_store_path(f'message.log'), 'a', encoding='utf-8') as f:
+        print(f'================== {datestr} ==================')
+        for message in messages:
+            f.write(message['role'] + ': ' + message['content'] + '\n')
+        f.write('result: ' + response_text + '\n')
 
 
 async def run_prompt(prompt_value: Prompt, extra_data: dict, insert_message: list):
@@ -31,12 +34,12 @@ async def run_prompt(prompt_value: Prompt, extra_data: dict, insert_message: lis
     for insert in insert_message:
         messages.append(insert)
 
-    messages_dump(messages)
-
     response = await oai.chat.completions.create(model='gpt-4o-mini', messages=messages, temperature=0.35,
                                       max_tokens=2048,
                                       top_p=1,
                                       frequency_penalty=0,
                                       presence_penalty=0)
+
+    messages_dump(messages, response.choices[0].message.content)
 
     return response.choices[0].message.content

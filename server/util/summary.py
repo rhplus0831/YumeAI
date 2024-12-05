@@ -10,14 +10,14 @@ from util import interface
 # TODO: "재 요약본" 보다 더 나은 단어 선택이 필요
 
 async def summarize_conversation(session: Session, conversation: Conversation):
-    summarized = await interface.run_prompt(conversation.room.summary_prompt, {
+    summarized = await interface.perform_prompt(conversation.room.summary_prompt, {
         "content": lambda: conversation.user_message + '\r\n' + conversation.assistant_message,
     }
-                                            , [
+                                                , [
                                                 {
                                                     'role': 'user',
-                                                    'content': f'{conversation.room.persona.name}: {conversation.user_message}\r\n\r\n'
-                                                               f'{conversation.room.bot.name}: {conversation.assistant_message}n'
+                                                    'content': f'{conversation.room.persona.name}: {conversation.user_message}\n'
+                                                               f'{conversation.room.bot.name}: {conversation.assistant_message}'
                                                 }
                                             ])
     summary = Summary()
@@ -81,7 +81,7 @@ async def summarize(session: Session, room: Room):
 
         combined = combined.rstrip('\r\n')
 
-        combined = await interface.run_prompt(room.summary_prompt, {
+        combined = await interface.perform_prompt(room.summary_prompt, {
             "content": lambda: combined,
         }, [
                                                   {

@@ -129,19 +129,38 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, on
                     } catch { /* empty */
                     }
                 }}></PromptSelectBox>
+            <Divider/>
+            <Text fontSize={"xl"}>번역용 프롬프트</Text>
+            <PromptSelectBox
+                prompt={selectedRoom !== null && selectedRoom.translate_prompt !== undefined ? selectedRoom.translate_prompt : null}
+                onSelected={async (prompt: Prompt, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
+                    if (selectedRoom === null) return
+                    try {
+                        onEdited(await notifyFetch(getAPIServer() + 'room/' + selectedRoom.id, {
+                            method: 'PUT',
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                'translate_prompt_id': prompt.id,
+                            })
+                        }, '번역용 프롬프트 선택중...') as Room)
+                    } catch { /* empty */
+                    }
+                }}></PromptSelectBox>
             <br/>
             <Button colorScheme={'red'} onClick={() => {
                 modalProps.onOpen()
-            }}>나가기</Button>
+            }}>삭제하기</Button>
             <SendingAlert {...sendingAlertProp}></SendingAlert>
             <Modal {...modalProps}>
                 <ModalOverlay/>
                 <ModalContent>
-                    <ModalHeader><b>정말로 방을 나가시겠습니까?</b></ModalHeader>
+                    <ModalHeader><b>정말로 방을 삭제하시겠습니까?</b></ModalHeader>
                     <ModalCloseButton/>
                     <ModalBody pb={6}>
-                        방을 한번 나가면 돌아올 수 없습니다!<br/>
-                        정말로 나가시겠습니까?
+                        방을 한번 삭제하면 되돌릴 수 없습니다!<br/>
+                        정말로 삭제하시겠습니까?
                     </ModalBody>
                     <ModalFooter>
                         <VStack width={"auto"}>
@@ -156,7 +175,7 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, on
                                         onRemoved(selectedRoom)
                                     })
                                 }} colorScheme='red' mr={3}>
-                                    나갈래
+                                    지울래
                                 </Button>
                             </HStack>
                         </VStack>

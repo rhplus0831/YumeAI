@@ -19,6 +19,8 @@ class RoomUpdate(BaseModel):
     persona_id: int | None = None
     prompt_id: int | None = None
     summary_prompt_id: int | None = None
+    translate_method: str | None = None
+    translate_prompt_id: int | None = None
 
 
 class RoomGet(BaseModel):
@@ -28,6 +30,8 @@ class RoomGet(BaseModel):
     persona: Optional[Persona] = None
     prompt: Optional[Prompt] = None
     summary_prompt: Optional[Prompt] = None
+    translate_method: Optional[str] = None
+    translate_prompt: Optional[Prompt] = None
 
 
 common.validate_update_model(RoomBase, RoomUpdate)

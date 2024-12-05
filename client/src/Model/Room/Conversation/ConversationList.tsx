@@ -8,6 +8,7 @@ import Conversation from "./Conversation.ts";
 import ScrollToBottom from 'react-scroll-to-bottom';
 import ConversationBox from "./ConversationBox.tsx";
 import {AutoResizeTextarea} from "../../../Base/AutoResizeTextarea.tsx";
+import {StreamData} from "../../Base/StreamData.ts";
 
 export default function ConversationList({room}: { room: Room | null }) {
     const [userMessage, setUserMessage] = React.useState<string>("");
@@ -16,6 +17,17 @@ export default function ConversationList({room}: { room: Room | null }) {
 
     let sending = false
     const sendingAlertProp = useSendingAlert()
+
+    const updateConversation = (conversation: Conversation) => {
+        const newConversations = conversations.map((item: Conversation) => {
+            if (item.id == conversation?.id) {
+                return conversation;
+            } else {
+                return item;
+            }
+        })
+        setConversations(newConversations)
+    }
 
     const sendMessage = async () => {
         if (!room) {
@@ -36,15 +48,11 @@ export default function ConversationList({room}: { room: Room | null }) {
         const tempConversations = conversations.slice(0).concat(sendTemp)
         setConversations(tempConversations)
 
-        interface StreamingProp {
-            message: string
-        }
-
         const receiver = (data: unknown) => {
             if (sendTemp[0].assistant_message == null) {
                 sendTemp[0].assistant_message = ""
             }
-            sendTemp[0].assistant_message += (data as StreamingProp).message
+            sendTemp[0].assistant_message += (data as StreamData).message
             setConversations(tempConversations.slice(0, -1).concat(sendTemp));
         }
 
@@ -106,7 +114,8 @@ export default function ConversationList({room}: { room: Room | null }) {
                             <CardBody>
                                 <Stack divider={<StackDivider/>} spacing='4'>
                                     {conversations.map(conversation => (
-                                        <ConversationBox room={room} conversation={conversation}/>
+                                        <ConversationBox room={room} conversation={conversation}
+                                                         updateConversation={updateConversation}/>
                                     ))}
                                 </Stack>
                             </CardBody>

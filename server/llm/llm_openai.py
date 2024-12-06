@@ -8,7 +8,6 @@ from openai import AsyncOpenAI
 import configure
 from api import prompt
 from database.sql_model import Prompt
-from llm.llm_common import messages_dump
 
 # Add prefix for prevent conflict with library
 
@@ -61,6 +60,7 @@ async def perform_prompt(prompt_value: Prompt, extra_data: dict, insert_message:
                                                  frequency_penalty=0,
                                                  presence_penalty=0)
 
+    from llm.llm_common import messages_dump
     messages_dump(messages, response.choices[0].message.content)
 
     return response.choices[0].message.content
@@ -76,6 +76,8 @@ async def stream_prompt(prompt_value: Prompt, extra_data: dict, insert_message: 
     config = OpenAIConfig(prompt_value.llm_config)
     oai = AsyncOpenAI(api_key=get_key(config))
 
+    print(config.model)
+
     response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=0.8,
                                                  max_tokens=2048,
                                                  top_p=1,
@@ -90,6 +92,7 @@ async def stream_prompt(prompt_value: Prompt, extra_data: dict, insert_message: 
             "message": chunk_message
         }) + "\n"
 
+    from llm.llm_common import messages_dump
     messages_dump(messages, ''.join(collected_messages))
 
     complete_receiver(''.join(collected_messages))

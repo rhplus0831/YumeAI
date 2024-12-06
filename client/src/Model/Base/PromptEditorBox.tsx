@@ -25,11 +25,14 @@ interface Prompt {
     prompt: string
 }
 
-export default function PromptEditorBox({item, display, endpoint, onPromptSaved}: {
+export default function PromptEditorBox({item, display, endpoint, onPromptSaved, customData = undefined, getCustomResult = undefined, customTitle = undefined}: {
     item: Prompt | null,
     display: boolean,
     endpoint: string,
-    onPromptSaved: (prompt: string) => void
+    onPromptSaved: (prompt: string) => void,
+    customData?: (prompt: string) => unknown,
+    getCustomResult?: (data: unknown) => string,
+    customTitle?: string
 }) {
 
     const [prompt, setPrompt] = useState('');
@@ -106,7 +109,7 @@ export default function PromptEditorBox({item, display, endpoint, onPromptSaved}
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({
+                body: JSON.stringify(customData ? customData(promptRef.current) : {
                     'prompt': promptRef.current
                 })
             })
@@ -119,22 +122,23 @@ export default function PromptEditorBox({item, display, endpoint, onPromptSaved}
                 }
                 return
             }
-            setPrompt(data.prompt)
+            setPrompt(getCustomResult ? getCustomResult(data) : data.prompt)
             setStatus('normal')
             onPromptSaved(prompt)
         } catch (err: unknown) {
             console.log(err)
             try {
-                if(err instanceof Error)
-                notifyError(err.message)
-            } catch { /* empty */ }
+                if (err instanceof Error)
+                    notifyError(err.message)
+            } catch { /* empty */
+            }
         }
         isProcessing = false;
     }
 
     useEffect(() => {
         if (item === null) return
-        setPrompt(item.prompt)
+        setPrompt(getCustomResult ? getCustomResult(item) : item.prompt)
     }, [item])
 
     const statusBarSize = '32px'
@@ -146,7 +150,7 @@ export default function PromptEditorBox({item, display, endpoint, onPromptSaved}
               minHeight={'100%'}
               maxHeight={'100%'}>
             <GridItem>
-                <Text>프롬프트</Text>
+                <Text>{customTitle ? customTitle : "프롬프트"}</Text>
                 <Textarea value={prompt} onChange={(event) => {
                     setPrompt(event.target.value)
                     onPromptEdited()

@@ -21,6 +21,7 @@ class RoomUpdate(BaseModel):
     summary_prompt_id: int | None = None
     translate_method: str | None = None
     translate_prompt_id: int | None = None
+    translate_only_assistant: bool | None = None
 
 
 class RoomGet(BaseModel):
@@ -32,6 +33,7 @@ class RoomGet(BaseModel):
     summary_prompt: Optional[Prompt] = None
     translate_method: Optional[str] = None
     translate_prompt: Optional[Prompt] = None
+    translate_only_assistant: bool
 
 
 common.validate_update_model(RoomBase, RoomUpdate)

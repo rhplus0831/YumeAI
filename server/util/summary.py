@@ -4,13 +4,14 @@ from sqlmodel import Session, select
 
 import configure
 from database.sql_model import Conversation, Room, Summary
+from llm import llm_common
 from util import interface
 
 
 # TODO: "재 요약본" 보다 더 나은 단어 선택이 필요
 
 async def summarize_conversation(session: Session, conversation: Conversation):
-    summarized = await interface.perform_prompt(conversation.room.summary_prompt, {
+    summarized = await llm_common.perform_prompt(conversation.room.summary_prompt, {
         "content": lambda: conversation.user_message + '\r\n' + conversation.assistant_message,
     }
                                                 , [
@@ -33,20 +34,14 @@ async def summarize_conversation(session: Session, conversation: Conversation):
 async def get_summaries(session: Session, room: Room):
     return session.exec(select(Summary).where(Summary.room_id == room.id)
                         .where(Summary.is_top == True)
-                        .where(Summary.parent.is_(None))
+                        .where(Summary.conversation_id.is_not(None))
                         .order_by(Summary.created_at)).all()
 
 
 async def get_re_summaries(session: Session, room: Room):
     return session.exec(select(Summary).where(Summary.room_id == room.id)
                         .where(Summary.is_top == True)
-                        .where(Summary.parent.is_not(None))
-                        .order_by(Summary.created_at)).all()
-
-
-async def get_summaries_and_re(session: Session, room: Room):
-    return session.exec(select(Summary).where(Summary.room_id == room.id)
-                        .where(Summary.is_top == True)
+                        .where(Summary.conversation_id.is_(None))
                         .order_by(Summary.created_at)).all()
 
 
@@ -81,7 +76,7 @@ async def summarize(session: Session, room: Room):
 
         combined = combined.rstrip('\r\n')
 
-        combined = await interface.perform_prompt(room.summary_prompt, {
+        combined = await llm_common.perform_prompt(room.summary_prompt, {
             "content": lambda: combined,
         }, [
                                                   {

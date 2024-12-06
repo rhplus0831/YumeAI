@@ -5,4 +5,5 @@ export default interface Bot extends BaseData, ProfileImage {
     name: string
     displayName: string
     prompt: string
+    first_message: string
 }

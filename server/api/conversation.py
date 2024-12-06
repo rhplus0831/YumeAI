@@ -11,9 +11,10 @@ from starlette.responses import StreamingResponse
 
 import configure
 from api import common
+from api.prompt import parse_tag, parse_prompt
 from database.sql_model import ConversationBase, Room, Conversation, Summary
-from util import interface
-from util.summary import summarize_conversation, need_summarize, summarize, get_summaries_and_re
+from llm import llm_common
+from util.summary import summarize_conversation, need_summarize, summarize, get_re_summaries, get_summaries
 
 engine: Engine
 room_not_exist_model: BaseModel | None = None
@@ -92,20 +93,17 @@ def register(router: APIRouter):
                 yield generate_progress('쌓인 요약을 재 요약하는중...')
                 await summarize(session, room)
 
-            all_summary_list = await get_summaries_and_re(session, room)
-
             combined_re_summary = ''
             combined_summary = ''
 
-            summary: Summary
-            for summary in all_summary_list:
-                if summary.conversation_id is None:
-                    combined_re_summary += summary.content + '\r\n'
-                else:
-                    combined_summary += summary.content + '\r\n'
+            for summary in await get_re_summaries(session, room):
+                combined_re_summary += summary.content + '\r\n'
+
+            for summary in (await get_summaries(session, room))[:configure.get_max_conversation_count()]:
+                combined_re_summary += summary.content + '\r\n'
 
             combined_summary = combined_summary.rstrip('\r\n')
-            combined_re_summary = combined_summary.rstrip('\r\n')
+            combined_re_summary = combined_re_summary.rstrip('\r\n')
 
             insert_messages = []
 
@@ -130,7 +128,7 @@ def register(router: APIRouter):
                 nonlocal bot_response
                 bot_response = rep
 
-            async for value in interface.stream_prompt(room.prompt, {
+            async for value in llm_common.stream_prompt(room.prompt, {
                 'user': lambda: room.persona.name,
                 'user_prompt': lambda: room.persona.prompt,
                 'char': lambda: room.bot.name,
@@ -169,34 +167,29 @@ def register(router: APIRouter):
 
     async def translate_message_streamer(conversation: Conversation, room: Room, session: Session):
         try:
-            # TODO: 번역 방법 선택할 수 있게 하기
-            # if room.translate_method is None:
-            #     yield generate_error("번역 방법을 선택해야 합니다")
-            #     return
-            #
-            # if room.translate_method == "google":
-            #     # TODO: 번역을 한번에 할 수 없으므로, 단위를 어떻게 쪼갤지 고민해보기
-            #     yield generate_error("구현이 안되었습니다 :(")
-            #     return
-            # elif room.translate_method == "prompt":
+            # TODO: 구글 번역 클라이언트 단에서 구현하기
+            if room.translate_method != "prompt":
+                yield generate_error("번역 방법이 프롬프트가 아닙니다.")
+                return
 
             if room.translate_prompt_id is None:
                 yield generate_error("번역 방법이 프롬프트 이지만 선택된 프롬프트가 없습니다")
                 return
 
-            yield generate_progress('유저의 메시지를 번역하는중...')
-
             user_response = ''
 
-            def user_receiver(rep: str):
-                nonlocal user_response
-                user_response = rep
+            if not room.translate_only_assistant:
+                yield generate_progress('유저의 메시지를 번역하는중...')
 
-            async for value in interface.stream_prompt(room.translate_prompt,
-                                                       {'content': lambda: conversation.user_message}, [
-                                                           {'role': 'user', 'content': conversation.user_message},
-                                                       ], user_receiver):
-                yield value
+                def user_receiver(rep: str):
+                    nonlocal user_response
+                    user_response = rep
+
+                async for value in llm_common.stream_prompt(room.translate_prompt,
+                                                            {'content': lambda: conversation.user_message}, [
+                                                                {'role': 'user', 'content': conversation.user_message},
+                                                            ], user_receiver):
+                    yield value
 
             yield generate_progress('봇의 메시지를 번역하는중...')
             yield json.dumps({
@@ -210,11 +203,11 @@ def register(router: APIRouter):
                 nonlocal assistant_response
                 assistant_response = rep
 
-            async for value in interface.stream_prompt(room.translate_prompt,
-                                                       {'content': lambda: conversation.assistant_message}, [
-                                                           {'role': 'assistant',
-                                                            'content': conversation.assistant_message},
-                                                       ], user_receiver):
+            async for value in llm_common.stream_prompt(room.translate_prompt,
+                                                        {'content': lambda: conversation.assistant_message}, [
+                                                            {'role': 'assistant',
+                                                             'content': conversation.assistant_message},
+                                                        ], user_receiver):
                 yield value
 
             conversation.user_message_translated = user_response
@@ -243,3 +236,79 @@ def register(router: APIRouter):
         return StreamingResponse(translate_message_streamer(conversation, room, session), headers={
             'Content-Type': 'text/event-stream'
         })
+
+    @router.post("/{id}/conversation/apply_first_message")
+    async def apply_first_message(id: int):
+        with Session(engine) as session:
+            room = get_room_or_404(id, session=session)
+            if not room.bot.first_message:
+                raise Exception("First message not found")
+            conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+                Conversation.created_at.desc()).limit(2)).all()
+
+            if len(conversations) != 0:
+                if len(conversations) == 2:
+                    raise Exception("Room already has conversation")
+
+                for conversation in conversations:
+                    if conversation.user_message:
+                        raise Exception("Room already has conversation")
+                    session.delete(conversation)
+
+            conversation = Conversation()
+            conversation.user_message = ''
+            conversation.assistant_message = parse_prompt(room.bot.first_message, {
+                "user": lambda: room.persona.name,
+                "assistant": lambda: room.bot.name,
+            })
+            conversation.room_id = room.id
+            conversation.created_at = datetime.datetime.now()
+
+            session.add(conversation)
+            session.commit()
+            session.refresh(conversation)
+
+            return conversation.model_dump()
+
+    @router.post("/{id}/conversation/re_roll")
+    async def re_roll(id: int):
+        session = Session(engine)
+        try:
+            room = get_room_or_404(id, session=session)
+            conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+                Conversation.created_at.desc()).limit(1)).all()
+            if len(conversations) == 0:
+                raise Exception("Conversation not found")
+
+            for conversation in conversations:
+                if not conversation.user_message:
+                    raise Exception("First message can't be re-rolled")
+                argument = SendMessageArgument(text=conversation.user_message)
+                session.delete(conversation)
+                session.commit()
+        except:
+            session.close()
+            raise
+
+        return StreamingResponse(send_message_streamer(argument, room, session), headers={
+            'Content-Type': 'text/event-stream'
+        })
+
+    @router.post("/{id}/conversation/revert")
+    async def revert(id: int):
+        session = Session(engine)
+        try:
+            room = get_room_or_404(id, session=session)
+            conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+                Conversation.created_at.desc()).limit(1)).all()
+            if len(conversations) == 0:
+                raise Exception("Conversation not found")
+
+            for conversation in conversations:
+                session.delete(conversation)
+                session.commit()
+
+            return {"status": "success"}
+        except:
+            session.close()
+            raise

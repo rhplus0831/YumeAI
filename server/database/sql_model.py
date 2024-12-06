@@ -1,11 +1,14 @@
 import datetime
-from typing import Optional, List
+from typing import Optional
 
 from sqlalchemy import Enum
 from sqlmodel import SQLModel, Field, Relationship
 from sqlmodel import main as _sqlmodel_main
 
 _sqlmodel_main.sa_Enum = lambda _: _sqlmodel_main.AutoString  # type: ignore
+
+
+# TODO: CombineIt to this_format
 
 
 class PersonaBase(SQLModel):
@@ -24,23 +27,11 @@ class BotBase(SQLModel):
     displayName: str
     profileImageId: Optional[str] = None
     prompt: str
+    first_message: Optional[str] = None
 
 
 class Bot(BotBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-
-    firstMessages: List["FirstMessage"] = Relationship(back_populates="bot")
-
-
-class FirstMessageBase(SQLModel):
-    name: str
-    prompt: str
-    bot_id: int = Field(foreign_key="bot.id")
-
-
-class FirstMessage(FirstMessageBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    bot: Bot = Relationship(back_populates="firstMessages")
 
 
 class LLMModel(Enum):
@@ -70,6 +61,7 @@ class RoomBase(SQLModel):
 
     translate_method: Optional[str] = Field(default=None)
     translate_prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
+    translate_only_assistant: bool = Field(default=False)
 
 
 class Room(RoomBase, table=True):

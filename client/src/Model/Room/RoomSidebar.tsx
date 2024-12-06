@@ -1,7 +1,8 @@
 import React from "react";
 import {
     Box,
-    Button, Divider,
+    Button, Checkbox,
+    Divider,
     HStack,
     Modal,
     ModalBody,
@@ -10,6 +11,7 @@ import {
     ModalFooter,
     ModalHeader,
     ModalOverlay,
+    Select,
     Text,
     useDisclosure,
     VStack
@@ -33,10 +35,13 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, on
     onRemoved: (data: Room) => void
 }) {
     const [name, setName] = React.useState("");
+    const [translateOnlyAssistant, setTranslateOnlyAssistant] = React.useState(false)
 
     React.useEffect(() => {
         if (selectedRoom === null) return
         setName(selectedRoom.name)
+        console.log(selectedRoom.translate_only_assistant)
+        setTranslateOnlyAssistant(selectedRoom.translate_only_assistant)
     }, [selectedRoom])
 
     const modalProps = useDisclosure()
@@ -130,25 +135,61 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, on
                     }
                 }}></PromptSelectBox>
             <Divider/>
-            <Text fontSize={"xl"}>번역용 프롬프트</Text>
-            <PromptSelectBox
-                prompt={selectedRoom !== null && selectedRoom.translate_prompt !== undefined ? selectedRoom.translate_prompt : null}
-                onSelected={async (prompt: Prompt, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
-                    if (selectedRoom === null) return
-                    try {
-                        onEdited(await notifyFetch(getAPIServer() + 'room/' + selectedRoom.id, {
+            <Text fontSize={"xl"}>번역 방법</Text>
+            <Select value={selectedRoom && selectedRoom.translate_method ? selectedRoom.translate_method : ""}
+                    onChange={async (event) => {
+                        if (!selectedRoom) return
+                        const room: Room = await notifyFetch(getAPIServer() + `room/${selectedRoom.id}`, sendingAlertProp, {
                             method: 'PUT',
                             headers: {
-                                "Content-Type": "application/json",
+                                'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({
-                                'translate_prompt_id': prompt.id,
+                                'translate_method': event.target.value
                             })
-                        }, '번역용 프롬프트 선택중...') as Room)
-                    } catch { /* empty */
-                    }
-                }}></PromptSelectBox>
-            <br/>
+                        }, '번역 방법을 번경하는중...')
+                        onEdited(room)
+                    }}>
+                <option value=''>없음</option>
+                <option value='google'>구글</option>
+                <option value='prompt'>프롬프트</option>
+            </Select>
+            {selectedRoom?.translate_method ?
+                <Checkbox isChecked={translateOnlyAssistant}
+                          onChange={async (event) => {
+                              if (!selectedRoom) return
+                              const room: Room = await notifyFetch(getAPIServer() + `room/${selectedRoom.id}`, sendingAlertProp, {
+                                  method: 'PUT',
+                                  headers: {
+                                      'Content-Type': 'application/json'
+                                  },
+                                  body: JSON.stringify({
+                                      'translate_only_assistant': event.target.checked
+                                  })
+                              }, '번역 옵션을 변경하는중...')
+                              setTranslateOnlyAssistant(event.target.checked)
+                              onEdited(room)
+                          }}>봇의 메시지만 번역하기</Checkbox> : ""}
+            {selectedRoom?.translate_method === "prompt" ? <>
+                <Text fontSize={"xl"}>번역용 프롬프트</Text>
+                <PromptSelectBox
+                    prompt={selectedRoom !== null && selectedRoom.translate_prompt !== undefined ? selectedRoom.translate_prompt : null}
+                    onSelected={async (prompt: Prompt, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
+                        if (selectedRoom === null) return
+                        try {
+                            onEdited(await notifyFetch(getAPIServer() + 'room/' + selectedRoom.id, {
+                                method: 'PUT',
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                    'translate_prompt_id': prompt.id,
+                                })
+                            }, '번역용 프롬프트 선택중...') as Room)
+                        } catch { /* empty */
+                        }
+                    }}></PromptSelectBox></> : ""}
+            <Divider marginY={"0.5em"}/>
             <Button colorScheme={'red'} onClick={() => {
                 modalProps.onOpen()
             }}>삭제하기</Button>

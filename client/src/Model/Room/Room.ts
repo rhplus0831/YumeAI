@@ -9,5 +9,7 @@ export default interface Room extends BaseData {
     persona: Persona | undefined,
     prompt: Prompt | undefined,
     summary_prompt: Prompt | undefined
+    translate_method: string | undefined
     translate_prompt: Prompt | undefined
+    translate_only_assistant: boolean
 }

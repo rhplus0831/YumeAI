@@ -1,15 +1,17 @@
 import React from "react";
-import {Grid, GridItem, IconButton, Text} from "@chakra-ui/react";
+import {Checkbox, Grid, GridItem, IconButton, Text} from "@chakra-ui/react";
 import Bot from "./Bot";
 import {getAPIServer} from "../../Configure";
 import AutoSubmitEditable from "../Base/AutoSubmitEditable";
 import UploadableProfileBox from "../Base/UploadableProfileBox";
 import {ArrowBackIcon} from "@chakra-ui/icons";
 
-export default function BotSidebar({selectedBot, setSelectedBot, onEdited}: {
+export default function BotSidebar({selectedBot, setSelectedBot, onEdited, isEditingFirstMessage, setIsEditingFirstMessage}: {
     selectedBot: Bot | null,
     setSelectedBot: (bot: Bot | null) => void,
-    onEdited: (data: Bot) => void
+    onEdited: (data: Bot) => void,
+    isEditingFirstMessage: boolean,
+    setIsEditingFirstMessage: (editing: boolean) => void
 }) {
     const [name, setName] = React.useState("");
     const [displayName, setDisplayName] = React.useState("");
@@ -43,6 +45,11 @@ export default function BotSidebar({selectedBot, setSelectedBot, onEdited}: {
                     endpoint={selectedBot !== null ? getAPIServer() + 'bot/' + selectedBot.id : ''}
                     valueName={'displayName'} value={displayName} setValue={setDisplayName}
                     onEdited={onEdited}></AutoSubmitEditable>
+            </GridItem>
+            <GridItem>
+                <Checkbox isChecked={isEditingFirstMessage} onChange={(event) => {
+                    setIsEditingFirstMessage(event.target.checked)
+                }} >첫 메시지 수정하기</Checkbox>
             </GridItem>
         </Grid>
     )

@@ -32,7 +32,8 @@ async def stream_prompt(prompt_value: Prompt, extra_data: dict, insert_message: 
     # TODO: 완성된 문자열을 전달하는 더 이쁜 방법(complete_receiver) 없을까?
 
     if prompt_value.llm == LLMModel.OPENAI:
-        yield llm_openai.stream_prompt(prompt_value, extra_data, insert_message, complete_receiver)
+        async for value in llm_openai.stream_prompt(prompt_value, extra_data, insert_message, complete_receiver):
+            yield value
         return
 
     raise NotImplementedError(f"{prompt_value.llm} is not implemented.")

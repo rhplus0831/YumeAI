@@ -6,7 +6,7 @@ from sqlalchemy import Engine
 from sqlmodel import Session, Field
 
 from api import common, image
-from database.sql_model import BotBase, Bot, FirstMessage
+from database.sql_model import BotBase, Bot
 
 router = APIRouter(prefix="/bot", tags=["bot"])
 # noinspection DuplicatedCode
@@ -19,6 +19,7 @@ class BotUpdate(BaseModel):
     displayName: str | None = None
     profileImageId: str | None = None
     prompt: str | None = None
+    first_message: str | None = None
 
 
 class BotGet(BaseModel):
@@ -27,11 +28,11 @@ class BotGet(BaseModel):
     displayName: str
     profileImageId: Optional[str] = None
     prompt: str
-    firstMessages: List[FirstMessage] = Field(default_factory=lambda: [])
+    first_message: Optional[str] = None
 
 
 common.validate_update_model(BotBase, BotUpdate)
-common.validate_get_model(BotBase, BotGet, ['firstMessages'])
+common.validate_get_model(BotBase, BotGet)
 
 
 def get_bot_or_404(bot_id: int, session: Session) -> Bot:

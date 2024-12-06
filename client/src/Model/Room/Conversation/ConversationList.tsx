@@ -29,6 +29,13 @@ export default function ConversationList({room}: { room: Room | null }) {
         setConversations(newConversations)
     }
 
+    const removeConversation = (conversation: Conversation) => {
+        const newConversations = conversations.filter((item: Conversation) => {
+            return item.id != conversation.id
+        })
+        setConversations(newConversations)
+    }
+
     const sendMessage = async () => {
         if (!room) {
             return
@@ -105,42 +112,63 @@ export default function ConversationList({room}: { room: Room | null }) {
         getConversationList().then()
     }, [room])
 
-    return (
-        <Grid display={room !== null ? 'grid' : 'none'} templateRows={'1fr auto'} minHeight={'100%'} maxHeight={'100%'}>
-            <GridItem minHeight={'100%'} maxHeight={'100%'}>
-                <Flex flexDirection="column-reverse" minHeight={'100%'} maxHeight={'100%'} overflow={"scroll"}>
-                    <ScrollToBottom>
-                        <Card variant={"unstyled"} flex="1" overflowY="auto">
-                            <CardBody>
-                                <Stack divider={<StackDivider/>} spacing='4'>
-                                    {conversations.map(conversation => (
-                                        <ConversationBox room={room} conversation={conversation}
-                                                         updateConversation={updateConversation}/>
-                                    ))}
-                                </Stack>
-                            </CardBody>
-                        </Card>
-                    </ScrollToBottom>
-                </Flex>
-            </GridItem>
-            <GridItem>
-                <Box>
-                    <SendingAlert {...sendingAlertProp}></SendingAlert>
-                    <Grid templateColumns={'1fr 6em'} templateRows={'1fr'} marginTop="16px">
-                        <GridItem>
-                            <AutoResizeTextarea id="chatbox-input" value={userMessage} onChange={(event) => {
-                                setUserMessage(event.target.value)
-                            }} placeholder="여기에 보낼 메시지를 입력하세요"/>
-                        </GridItem>
-                        <GridItem>
-                            <Button h={"100%"} onClick={sendMessage}>
-                                보내기!
-                            </Button>
-                        </GridItem>
-                    </Grid>
-                </Box>
-            </GridItem>
-        </Grid>
+    const isCanImportFirstMessage = () => {
+        if (conversations.length > 1) return false;
+        if (conversations.length == 1) {
+            if (conversations[0].user_message) return false;
+        }
+        return true;
+    }
 
+    return (
+        <>
+            <Grid display={room !== null ? 'grid' : 'none'} templateRows={'1fr auto'} minHeight={'100%'}
+                  maxHeight={'100%'}>
+                <GridItem minHeight={'100%'} maxHeight={'100%'}>
+                    <Flex flexDirection="column-reverse" minHeight={'100%'} maxHeight={'100%'} overflow={"scroll"}>
+                        <ScrollToBottom>
+                            <Card variant={"unstyled"} flex="1" overflowY="auto">
+                                <CardBody>
+                                    <Stack divider={<StackDivider/>} spacing='4'>
+                                        {conversations.map((conversation, index) => (
+                                            <ConversationBox room={room} conversation={conversation}
+                                                             updateConversation={updateConversation}
+                                                             removeConversation={removeConversation}
+                                                             isLast={index === conversations.length - 1}/>
+                                        ))}
+                                    </Stack>
+                                </CardBody>
+                            </Card>
+                        </ScrollToBottom>
+                    </Flex>
+                </GridItem>
+                <GridItem display={isCanImportFirstMessage() ? "grid" : "none"}>
+                    <Button onClick={async () => {
+                        if (!room) return;
+                        const data = await notifyFetch(getAPIServer() + `room/${room.id}/conversation/apply_first_message`, sendingAlertProp, {
+                            method: 'POST'
+                        }, "퍼스트 메시지를 적용중입니다...")
+                        setConversations([data])
+                    }}>퍼스트 메시지 적용하기</Button>
+                </GridItem>
+                <GridItem>
+                    <Box>
+                        <SendingAlert {...sendingAlertProp}></SendingAlert>
+                        <Grid templateColumns={'1fr 6em'} templateRows={'1fr'} marginTop="16px">
+                            <GridItem>
+                                <AutoResizeTextarea id="chatbox-input" value={userMessage} onChange={(event) => {
+                                    setUserMessage(event.target.value)
+                                }} placeholder="여기에 보낼 메시지를 입력하세요"/>
+                            </GridItem>
+                            <GridItem>
+                                <Button h={"100%"} onClick={sendMessage}>
+                                    보내기!
+                                </Button>
+                            </GridItem>
+                        </Grid>
+                    </Box>
+                </GridItem>
+            </Grid>
+        </>
     )
 }

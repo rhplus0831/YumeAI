@@ -8,9 +8,14 @@ from sqlalchemy import Engine
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 engine: Engine
 
+
 class PromptUpdate(BaseModel):
     name: str | None = None
     prompt: str | None = None
+
+    llm: str | None = None
+    llm_config: str | None = None
+
 
 def parse_tag(prompt: str, extra_map: dict[str, Callable[[], str]], start: str, end: str) -> str:
     reader = prompt

@@ -1,6 +1,7 @@
 import datetime
 from typing import Optional, List
 
+from sqlalchemy import Enum
 from sqlmodel import SQLModel, Field, Relationship
 from sqlmodel import main as _sqlmodel_main
 
@@ -42,9 +43,17 @@ class FirstMessage(FirstMessageBase, table=True):
     bot: Bot = Relationship(back_populates="firstMessages")
 
 
+class LLMModel(Enum):
+    OPENAI = "openai"
+
+
 class PromptBase(SQLModel):
     name: str
     prompt: str
+
+    # pydantic.errors.PydanticUserError: `model_config` cannot be used as a model field name. Use `model_config` for model configuration.
+    llm: str
+    llm_config: str  # Store as Json
 
 
 class Prompt(PromptBase, table=True):

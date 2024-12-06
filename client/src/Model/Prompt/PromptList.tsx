@@ -28,7 +28,9 @@ export default function PromptList({selectedPrompt, setSelectedPrompt, prompts, 
                           )} createItemJson={() => {
             return JSON.stringify({
                 'name': name,
-                'prompt': ''
+                'prompt': '',
+                'llm': 'openai',
+                'llm_config': ''
             })
         }}>
         </BaseList>

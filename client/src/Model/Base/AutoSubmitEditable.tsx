@@ -22,12 +22,13 @@ import {
 } from "@chakra-ui/react";
 import {CheckIcon, CloseIcon, EditIcon, RepeatIcon} from "@chakra-ui/icons";
 
-export default function AutoSubmitEditable<dataType>({endpoint, valueName, value, setValue, onEdited}: {
+export default function AutoSubmitEditable<dataType>({endpoint, valueName, value, setValue, onEdited, customData = undefined}: {
     endpoint: string,
     valueName: string,
     value: string,
     setValue: (value: string) => void,
     onEdited: (data: dataType) => void,
+    customData?: (() => unknown)
 }) {
     function EditableControls() {
         const {
@@ -89,7 +90,7 @@ export default function AutoSubmitEditable<dataType>({endpoint, valueName, value
         }
 
         try {
-            const jsonObj: { [valueName: string]: string } = { [valueName]: value }
+            const jsonObj: unknown = customData ? customData() : { [valueName]: value }
 
             const response = await fetch(endpoint, {
                 method: "PUT",

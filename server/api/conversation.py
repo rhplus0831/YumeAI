@@ -6,13 +6,13 @@ from typing import Sequence
 from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import Engine
-from sqlmodel import Session, select
+from sqlmodel import Session, select, SQLModel
 from starlette.responses import StreamingResponse
 
 import configure
 from api import common
-from api.prompt import parse_tag, parse_prompt
-from database.sql_model import ConversationBase, Room, Conversation, Summary
+from api.prompt import parse_prompt
+from database.sql_model import ConversationBase, Room, Conversation
 from llm import llm_common
 from util.summary import summarize_conversation, need_summarize, summarize, get_re_summaries, get_summaries
 
@@ -71,11 +71,8 @@ def register(router: APIRouter):
                 yield generate_error("페르소나를 선택해야 합니다")
                 return
 
-            # TODO: Support insert conversation in middle of prompt
             # TODO: Support LLM Selection
-            # TODO: OpenAI class caching
             # TODO: Support user select use summary | combine summary limit
-            # 왜이리 미루는게 많아요? 그러게요?
 
             statement = select(Conversation).where(Conversation.room_id == room.id).order_by(
                 Conversation.created_at.desc()).limit(
@@ -105,22 +102,13 @@ def register(router: APIRouter):
             combined_summary = combined_summary.rstrip('\r\n')
             combined_re_summary = combined_re_summary.rstrip('\r\n')
 
-            insert_messages = []
+            conversation_converted = []
 
             for conversation in conversations:
-                insert_messages.append({
-                    'role': 'user',
-                    'content': conversation.user_message,
-                })
-                insert_messages.append({
-                    'role': 'assistant',
-                    'content': conversation.assistant_message,
-                })
+                conversation_converted.append(f'||user||\n{conversation.user_message}\n')
+                conversation_converted.append(f'||assistant||\n{conversation.assistant_message}\n')
 
-            insert_messages.append({
-                'role': 'user',
-                'content': argument.text
-            })
+            conversation_converted.append(f'||user||\n{argument.text}\n')
 
             bot_response = ''
 
@@ -135,7 +123,8 @@ def register(router: APIRouter):
                 'char_prompt': lambda: room.bot.prompt,
                 'summaries': lambda: combined_summary,
                 're_summaries': lambda: combined_re_summary,
-            }, insert_messages, receiver):
+                'chat': lambda: ''.join(conversation_converted)
+            }, receiver):
                 yield value
 
             conversation = Conversation()
@@ -186,9 +175,8 @@ def register(router: APIRouter):
                     user_response = rep
 
                 async for value in llm_common.stream_prompt(room.translate_prompt,
-                                                            {'content': lambda: conversation.user_message}, [
-                                                                {'role': 'user', 'content': conversation.user_message},
-                                                            ], user_receiver):
+                                                            {'content': lambda: conversation.user_message},
+                                                            user_receiver):
                     yield value
 
             yield generate_progress('봇의 메시지를 번역하는중...')
@@ -204,10 +192,8 @@ def register(router: APIRouter):
                 assistant_response = rep
 
             async for value in llm_common.stream_prompt(room.translate_prompt,
-                                                        {'content': lambda: conversation.assistant_message}, [
-                                                            {'role': 'assistant',
-                                                             'content': conversation.assistant_message},
-                                                        ], user_receiver):
+                                                        {'content': lambda: conversation.assistant_message},
+                                                        user_receiver):
                 yield value
 
             conversation.user_message_translated = user_response
@@ -312,3 +298,23 @@ def register(router: APIRouter):
         except:
             session.close()
             raise
+
+    class PutTranslateModel(SQLModel):
+        user_message_translated: str
+        assistant_message_translated: str
+
+    @router.post('/{id}/conversation/put_translate/{conversation_id}')
+    async def put_translate(id: int, conversation_id: int, put: PutTranslateModel):
+        with Session(engine) as session:
+            # TODO: 룸 체크가 필요한거 맞나...?
+            room = get_room_or_404(id, session=session)
+            conversation = common.get_or_404(Conversation, session, conversation_id)
+            if room.id != conversation.room_id:
+                raise Exception("room id mismatch")
+
+            conversation.user_message_translated = put.user_message_translated
+            conversation.assistant_message_translated = put.assistant_message_translated
+            session.add(conversation)
+            session.commit()
+            session.refresh(conversation)
+            return conversation.model_dump()

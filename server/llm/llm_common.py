@@ -20,19 +20,18 @@ def messages_dump(messages, response_text):
         f.write('result: ' + response_text + '\n')
 
 
-async def perform_prompt(prompt_value: Prompt, extra_data: dict, insert_message: list):
+async def perform_prompt(prompt_value: Prompt, extra_data: dict):
     if prompt_value.llm == LLMModel.OPENAI:
-        return await llm_openai.perform_prompt(prompt_value, extra_data, insert_message)
+        return await llm_openai.perform_prompt(prompt_value, extra_data)
 
     raise NotImplementedError(f"{prompt_value.llm} is not implemented.")
 
 
-async def stream_prompt(prompt_value: Prompt, extra_data: dict, insert_message: list,
-                        complete_receiver: Callable[[str], None]):
+async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receiver: Callable[[str], None]):
     # TODO: 완성된 문자열을 전달하는 더 이쁜 방법(complete_receiver) 없을까?
 
     if prompt_value.llm == LLMModel.OPENAI:
-        async for value in llm_openai.stream_prompt(prompt_value, extra_data, insert_message, complete_receiver):
+        async for value in llm_openai.stream_prompt(prompt_value, extra_data, complete_receiver):
             yield value
         return
 

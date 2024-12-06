@@ -5,22 +5,20 @@ from sqlmodel import Session, select
 import configure
 from database.sql_model import Conversation, Room, Summary
 from llm import llm_common
-from util import interface
 
 
 # TODO: "재 요약본" 보다 더 나은 단어 선택이 필요
 
 async def summarize_conversation(session: Session, conversation: Conversation):
+    exist_summary = session.exec(select(Summary).where(Summary.conversation_id == conversation.id)).all()
+    # 이미 다른 번역본이 있음?
+    if len(exist_summary) != 0:
+        return
+    summary_content = (f'{conversation.room.persona.name}: {conversation.user_message}\n'
+                       f'{conversation.room.bot.name}: {conversation.assistant_message}')
     summarized = await llm_common.perform_prompt(conversation.room.summary_prompt, {
-        "content": lambda: conversation.user_message + '\r\n' + conversation.assistant_message,
-    }
-                                                , [
-                                                {
-                                                    'role': 'user',
-                                                    'content': f'{conversation.room.persona.name}: {conversation.user_message}\n'
-                                                               f'{conversation.room.bot.name}: {conversation.assistant_message}'
-                                                }
-                                            ])
+        "content": lambda: summary_content
+    })
     summary = Summary()
     summary.created_at = datetime.datetime.now()
     summary.room_id = conversation.room.id
@@ -78,12 +76,7 @@ async def summarize(session: Session, room: Room):
 
         combined = await llm_common.perform_prompt(room.summary_prompt, {
             "content": lambda: combined,
-        }, [
-                                                  {
-                                                      'role': 'user',
-                                                      'content': combined,
-                                                  }
-                                              ])
+        })
 
         parent_summary.content = combined
         session.add(parent_summary)

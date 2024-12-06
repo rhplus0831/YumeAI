@@ -45,11 +45,9 @@ def get_key(config: OpenAIConfig) -> str:
     return default_key
 
 
-async def perform_prompt(prompt_value: Prompt, extra_data: dict, insert_message: list):
+async def perform_prompt(prompt_value: Prompt, extra_data: dict):
     parsed_prompt = prompt.parse_prompt(prompt_value.prompt, extra_data)
     messages = prompt.json_prompt(parsed_prompt)
-    for insert in insert_message:
-        messages.append(insert)
 
     config = OpenAIConfig(prompt_value.llm_config)
     oai = AsyncOpenAI(api_key=get_key(config))
@@ -66,12 +64,9 @@ async def perform_prompt(prompt_value: Prompt, extra_data: dict, insert_message:
     return response.choices[0].message.content
 
 
-async def stream_prompt(prompt_value: Prompt, extra_data: dict, insert_message: list,
-                        complete_receiver: Callable[[str], None]):
+async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receiver: Callable[[str], None]):
     parsed_prompt = prompt.parse_prompt(prompt_value.prompt, extra_data)
     messages = prompt.json_prompt(parsed_prompt)
-    for insert in insert_message:
-        messages.append(insert)
 
     config = OpenAIConfig(prompt_value.llm_config)
     oai = AsyncOpenAI(api_key=get_key(config))

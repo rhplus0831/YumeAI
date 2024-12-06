@@ -9,6 +9,7 @@ import SendingAlert from "../../../Base/SendingAlert/SendingAlert.tsx";
 import {StreamData} from "../../Base/StreamData.ts";
 import {getAPIServer} from "../../../Configure.ts";
 import {useState} from "react";
+import {googleTranslate} from "../../../Base/GoogleTranslate.ts";
 
 export default function ConversationBox({room, conversation, updateConversation, removeConversation, isLast}: {
     room: Room | null,
@@ -36,7 +37,6 @@ export default function ConversationBox({room, conversation, updateConversation,
         setIsInTranslate(true);
 
         let isInUser = true;
-
         let userMessage = "";
         let assistantMessage = "";
 
@@ -58,6 +58,28 @@ export default function ConversationBox({room, conversation, updateConversation,
         }
 
         try {
+            if (room.translate_method == "google") {
+                if (conversation.user_message) {
+                    await googleTranslate(conversation.user_message, sendingAlertProp, receiver)
+                }
+                isInUser = false;
+                if (conversation.assistant_message) {
+                    await googleTranslate(conversation.assistant_message, sendingAlertProp, receiver)
+                }
+                const googlePutData = await notifyFetch(getAPIServer() + 'room/' + room.id + `/conversation/put_translate/${conversation.id}`, sendingAlertProp, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "user_message_translated": userMessage,
+                        "assistant_message_translated": assistantMessage
+                    })
+                }, "번역 정보를 서버에 등록하고 있습니다...", true, receiver)
+                updateConversation(googlePutData)
+                return
+            }
+
             const data = await notifyFetch(getAPIServer() + 'room/' + room.id + `/conversation/${conversation.id}/translate`, sendingAlertProp, {
                 method: "POST",
                 headers: {
@@ -168,20 +190,8 @@ export default function ConversationBox({room, conversation, updateConversation,
                 <MessageBox message={getAssistantMessage()} name={room?.bot?.displayName}
                             profileImageId={room?.bot?.profileImageId}></MessageBox>
                 <Box marginY={'8px'} display={'flex'} margin={"8px"} justifyContent={'right'} alignItems={'right'}>
-                    {useTranslate && conversation.assistant_message_translated ?
-                        <ButtonGroup size='md' isAttached>
-                            <Button disabled={isInSending} aria-label={"다시 번역"} leftIcon={<RepeatIcon/>}
-                                    onClick={() => {
-                                        translateSelf().then()
-                                    }}>다시 번역</Button>
-                            <IconButton disabled={isInSending} aria-label={"번역"} colorScheme={"green"}
-                                        icon={translateIcon}
-                                        onClick={switchTranslate}/>
-                        </ButtonGroup>
-                        : <IconButton disabled={isInSending} size='md' aria-label={"번역"} icon={translateIcon}
-                                      onClick={switchTranslate}/>}
                     {isLast ?
-                        <ButtonGroup marginLeft={"0.5em"} size={'md'}>
+                        <ButtonGroup size={'md'}>
                             <Button disabled={isInSending} aria-label={"리롤"}
                                     leftIcon={<RepeatIcon/>} onClick={() => {
                                 reRollSelf().then()
@@ -200,6 +210,18 @@ export default function ConversationBox({room, conversation, updateConversation,
                             }}>{revertConfirm ? "확실한가요?" : "삭제"}</Button>
                         </ButtonGroup>
                         : ""}
+                    {useTranslate && conversation.assistant_message_translated ?
+                        <ButtonGroup marginLeft={"0.5em"} size='md' isAttached>
+                            <Button disabled={isInSending} aria-label={"다시 번역"} leftIcon={<RepeatIcon/>}
+                                    onClick={() => {
+                                        translateSelf().then()
+                                    }}>다시 번역</Button>
+                            <IconButton disabled={isInSending} aria-label={"번역"} colorScheme={"green"}
+                                        icon={translateIcon}
+                                        onClick={switchTranslate}/>
+                        </ButtonGroup>
+                        : <IconButton marginLeft={"0.5em"} disabled={isInSending} size='md' aria-label={"번역"} icon={translateIcon}
+                                      onClick={switchTranslate}/>}
                 </Box>
             </> : ""}
             <SendingAlert {...sendingAlertProp}></SendingAlert>

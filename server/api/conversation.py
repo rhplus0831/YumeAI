@@ -11,8 +11,9 @@ from starlette.responses import StreamingResponse
 
 import configure
 from api import common
+from api.common import ClientErrorException
 from api.prompt import parse_prompt
-from database.sql_model import ConversationBase, Room, Conversation
+from database.sql_model import ConversationBase, Room, Conversation, Summary
 from llm import llm_common
 from util.summary import summarize_conversation, need_summarize, summarize, get_re_summaries, get_summaries
 
@@ -42,9 +43,7 @@ def register(router: APIRouter):
     async def list_conversations(id: int):
         with Session(engine) as session:
             room = get_room_or_404(id, session)
-            statement = select(Conversation).where(Conversation.room_id == room.id)
-            conversations = session.exec(statement).all()
-        return {"conversations": conversations}
+            return session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
 
     class SendMessageArgument(BaseModel):
         text: str
@@ -156,7 +155,6 @@ def register(router: APIRouter):
 
     async def translate_message_streamer(conversation: Conversation, room: Room, session: Session):
         try:
-            # TODO: 구글 번역 클라이언트 단에서 구현하기
             if room.translate_method != "prompt":
                 yield generate_error("번역 방법이 프롬프트가 아닙니다.")
                 return
@@ -306,11 +304,7 @@ def register(router: APIRouter):
     @router.post('/{id}/conversation/put_translate/{conversation_id}')
     async def put_translate(id: int, conversation_id: int, put: PutTranslateModel):
         with Session(engine) as session:
-            # TODO: 룸 체크가 필요한거 맞나...?
-            room = get_room_or_404(id, session=session)
             conversation = common.get_or_404(Conversation, session, conversation_id)
-            if room.id != conversation.room_id:
-                raise Exception("room id mismatch")
 
             conversation.user_message_translated = put.user_message_translated
             conversation.assistant_message_translated = put.assistant_message_translated
@@ -318,3 +312,13 @@ def register(router: APIRouter):
             session.commit()
             session.refresh(conversation)
             return conversation.model_dump()
+
+    @router.get('/{id}/conversation/get_summary/{conversation_id}')
+    async def get_summary(id: int, conversation_id: int):
+        with Session(engine) as session:
+            summary: Summary = session.exec(
+                select(Summary).where(Summary.conversation_id == conversation_id)).one_or_none()
+            if summary:
+                return summary.model_dump()
+            else:
+                raise ClientErrorException(status_code=404, detail=f"Summary does not exist")

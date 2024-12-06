@@ -103,7 +103,7 @@ export default function ConversationList({room}: { room: Room | null }) {
                 const data = await notifyFetch(getAPIServer() + 'room/' + room.id + '/conversation', sendingAlertProp, {
                     method: "GET"
                 }, "기존 메시지를 받아오고 있습니다...")
-                setConversations(data.conversations)
+                setConversations(data)
             } catch { /* empty */
             }
             sending = false;

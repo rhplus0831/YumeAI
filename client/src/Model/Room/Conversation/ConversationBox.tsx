@@ -2,7 +2,7 @@ import MessageBox from "./MessageBox.tsx";
 import Conversation from "./Conversation.ts";
 import Room from "../Room.ts";
 import {DeleteIcon, Icon, RepeatIcon, TriangleDownIcon} from "@chakra-ui/icons";
-import {Box, Button, ButtonGroup, IconButton} from "@chakra-ui/react";
+import {Box, Button, ButtonGroup, IconButton, Text} from "@chakra-ui/react";
 import {MdOutlineTranslate} from "react-icons/md";
 import {notifyFetch, useSendingAlert} from "../../../Base/SendingAlert/useSendingAlert.ts";
 import SendingAlert from "../../../Base/SendingAlert/SendingAlert.tsx";
@@ -28,6 +28,30 @@ export default function ConversationBox({room, conversation, updateConversation,
     const sendingAlertProp = useSendingAlert()
 
     const translateIcon = (<Icon as={MdOutlineTranslate} w={'24px'} h={'24px'}/>)
+
+    let [isInSummaryView, setIsInSummaryView] = useState<boolean>(false)
+
+    const activeSummaryView = async () => {
+        if (!room) return;
+        if (conversation.summary) {
+            setIsInSummaryView(true)
+            return
+        }
+        blockInSending = true;
+        setIsInSending(true);
+
+        try {
+            let newConversation = conversation
+            newConversation.summary = await notifyFetch(getAPIServer() + 'room/' + room.id + `/conversation/get_summary/${conversation.id}`, sendingAlertProp, {
+                method: "GET"
+            }, "요약 정보를 가져오고 있습니다...")
+            updateConversation(newConversation)
+            setIsInSummaryView(true)
+        } finally {
+            blockInSending = false;
+            setIsInSending(false);
+        }
+    }
 
     const translateSelf = async () => {
         if (!room) return;
@@ -75,7 +99,7 @@ export default function ConversationBox({room, conversation, updateConversation,
                         "user_message_translated": userMessage,
                         "assistant_message_translated": assistantMessage
                     })
-                }, "번역 정보를 서버에 등록하고 있습니다...", true, receiver)
+                }, "번역 정보를 서버에 등록하고 있습니다...")
                 updateConversation(googlePutData)
                 return
             }
@@ -149,28 +173,28 @@ export default function ConversationBox({room, conversation, updateConversation,
     let [receivingUserMessage, setReceivingUserMessage] = useState<string>("");
     let [receivingAssistantMessage, setReceivingAssistantMessage] = useState<string>("");
 
-    let [useTranslate, setUseTranslate] = useState<boolean>(false);
+    let [isInTranslateView, setIsInTranslateView] = useState<boolean>(false);
 
     const getUserMessage = () => {
         if (!room) return "";
         if (isInTranslate && !room.translate_only_assistant) return receivingUserMessage;
-        if (conversation.user_message_translated && useTranslate && !room.translate_only_assistant) return conversation.user_message_translated;
+        if (conversation.user_message_translated && isInTranslateView && !room.translate_only_assistant) return conversation.user_message_translated;
         if (conversation.user_message) return conversation.user_message;
         return "";
     }
 
     const getAssistantMessage = () => {
         if (isInSending) return receivingAssistantMessage;
-        if (conversation.assistant_message_translated && useTranslate) return conversation.assistant_message_translated;
+        if (conversation.assistant_message_translated && isInTranslateView) return conversation.assistant_message_translated;
         if (conversation.assistant_message) return conversation.assistant_message;
         return "";
     }
 
     const switchTranslate = () => {
-        if (useTranslate) {
-            setUseTranslate(false)
+        if (isInTranslateView) {
+            setIsInTranslateView(false)
         } else {
-            setUseTranslate(true)
+            setIsInTranslateView(true)
             if (!conversation.assistant_message_translated) {
                 translateSelf().then()
             }
@@ -178,17 +202,20 @@ export default function ConversationBox({room, conversation, updateConversation,
     }
 
     return (
-        <>
-            {conversation.user_message ?
-                <MessageBox message={getUserMessage()} name={room?.persona?.displayName}
-                            profileImageId={room?.persona?.profileImageId}></MessageBox> : ""}
-            {conversation.user_message && conversation.assistant_message ?
-                <Box marginY={'8px'} display={'flex'} justifyContent={'center'} alignItems={'center'}>
-                    <TriangleDownIcon></TriangleDownIcon>
-                </Box> : ""}
+        <Box paddingX={"20px"}>
+            {isInSummaryView && conversation.summary ? <Text>{conversation.summary.content}</Text> : <>
+                {conversation.user_message ?
+                    <MessageBox message={getUserMessage()} name={room?.persona?.displayName}
+                                profileImageId={room?.persona?.profileImageId}></MessageBox> : ""}
+                {conversation.user_message && conversation.assistant_message ?
+                    <Box marginY={'8px'} display={'flex'} justifyContent={'center'} alignItems={'center'}>
+                        <TriangleDownIcon></TriangleDownIcon>
+                    </Box> : ""}
+            </>}
+
             {conversation.assistant_message ? <>
-                <MessageBox message={getAssistantMessage()} name={room?.bot?.displayName}
-                            profileImageId={room?.bot?.profileImageId}></MessageBox>
+                {!isInSummaryView ? <MessageBox message={getAssistantMessage()} name={room?.bot?.displayName}
+                                profileImageId={room?.bot?.profileImageId}></MessageBox> : ""}
                 <Box marginY={'8px'} display={'flex'} margin={"8px"} justifyContent={'right'} alignItems={'right'}>
                     {isLast ?
                         <ButtonGroup size={'md'}>
@@ -210,7 +237,10 @@ export default function ConversationBox({room, conversation, updateConversation,
                             }}>{revertConfirm ? "확실한가요?" : "삭제"}</Button>
                         </ButtonGroup>
                         : ""}
-                    {useTranslate && conversation.assistant_message_translated ?
+                    {!isLast ? <Button onClick={() => {
+                        isInSummaryView ? setIsInSummaryView(false) : activeSummaryView()
+                    }}>{isInSummaryView ? "원문보기" : "요약보기"}</Button> : ""}
+                    {isInTranslateView && conversation.assistant_message_translated ?
                         <ButtonGroup marginLeft={"0.5em"} size='md' isAttached>
                             <Button disabled={isInSending} aria-label={"다시 번역"} leftIcon={<RepeatIcon/>}
                                     onClick={() => {
@@ -220,11 +250,12 @@ export default function ConversationBox({room, conversation, updateConversation,
                                         icon={translateIcon}
                                         onClick={switchTranslate}/>
                         </ButtonGroup>
-                        : <IconButton marginLeft={"0.5em"} disabled={isInSending} size='md' aria-label={"번역"} icon={translateIcon}
+                        : <IconButton marginLeft={"0.5em"} disabled={isInSending} size='md' aria-label={"번역"}
+                                      icon={translateIcon}
                                       onClick={switchTranslate}/>}
                 </Box>
             </> : ""}
             <SendingAlert {...sendingAlertProp}></SendingAlert>
-        </>
+        </Box>
     )
 }

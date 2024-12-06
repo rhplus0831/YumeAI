@@ -27,6 +27,11 @@ async def summarize_conversation(session: Session, conversation: Conversation):
     summary.content = summarized
     session.add(summary)
     session.commit()
+    session.refresh(summary)
+    conversation.summary_id = summary.id
+    session.add(conversation)
+    session.commit()
+    session.refresh(conversation)
 
 
 async def get_summaries(session: Session, room: Room):

@@ -5,4 +5,5 @@ export default interface Prompt extends BaseData {
     prompt: string
     llm: string
     llm_config: string
+    filters: string | null
 }

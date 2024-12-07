@@ -8,8 +8,10 @@ import {notifyFetch, useSendingAlert} from "../../../Base/SendingAlert/useSendin
 import SendingAlert from "../../../Base/SendingAlert/SendingAlert.tsx";
 import {StreamData} from "../../Base/StreamData.ts";
 import {getAPIServer} from "../../../Configure.ts";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {googleTranslate} from "../../../Base/GoogleTranslate.ts";
+import DeleteConfirmButton from "../../../Base/DeleteConfirmButton.tsx";
+import Filter, {ApplyFilter} from "../../Filter/Filter.ts";
 
 export default function ConversationBox({room, conversation, updateConversation, removeConversation, isLast}: {
     room: Room | null,
@@ -23,13 +25,13 @@ export default function ConversationBox({room, conversation, updateConversation,
     let [isInSending, setIsInSending] = useState<boolean>(false)
     let [isInTranslate, setIsInTranslate] = useState<boolean>(false)
 
-    let [revertConfirm, setRevertConfirm] = useState<boolean>(false)
-
     const sendingAlertProp = useSendingAlert()
 
     const translateIcon = (<Icon as={MdOutlineTranslate} w={'24px'} h={'24px'}/>)
 
     let [isInSummaryView, setIsInSummaryView] = useState<boolean>(false)
+
+    let [filters, setFilters] = useState<Filter[]>([])
 
     const activeSummaryView = async () => {
         if (!room) return;
@@ -179,14 +181,14 @@ export default function ConversationBox({room, conversation, updateConversation,
         if (!room) return "";
         if (isInTranslate && !room.translate_only_assistant) return receivingUserMessage;
         if (conversation.user_message_translated && isInTranslateView && !room.translate_only_assistant) return conversation.user_message_translated;
-        if (conversation.user_message) return conversation.user_message;
+        if (conversation.user_message) return ApplyFilter(filters, "display", conversation.user_message);
         return "";
     }
 
     const getAssistantMessage = () => {
         if (isInSending) return receivingAssistantMessage;
         if (conversation.assistant_message_translated && isInTranslateView) return conversation.assistant_message_translated;
-        if (conversation.assistant_message) return conversation.assistant_message;
+        if (conversation.assistant_message) return ApplyFilter(filters, "display", conversation.assistant_message);
         return "";
     }
 
@@ -201,21 +203,33 @@ export default function ConversationBox({room, conversation, updateConversation,
         }
     }
 
+    useEffect(() => {
+        if (!room) return
+        let making: Filter[] = []
+        if (room.prompt?.filters) {
+            making = making.concat( JSON.parse(room.prompt.filters) )
+        }
+        console.log(making)
+        setFilters(making)
+    }, [room])
+
     return (
         <Box paddingX={"20px"}>
-            {isInSummaryView && conversation.summary ? <Text>{conversation.summary.content}</Text> : <>
-                {conversation.user_message ?
-                    <MessageBox message={getUserMessage()} name={room?.persona?.displayName}
-                                profileImageId={room?.persona?.profileImageId}></MessageBox> : ""}
-                {conversation.user_message && conversation.assistant_message ?
-                    <Box marginY={'8px'} display={'flex'} justifyContent={'center'} alignItems={'center'}>
-                        <TriangleDownIcon></TriangleDownIcon>
-                    </Box> : ""}
-            </>}
+            {isInSummaryView && conversation.summary ?
+                <Text>{conversation.summary.is_top ? "" : <>이 요약은 재요약 되었으며 요청에 들어가지
+                    않습니다.<br/></>}{conversation.summary.content}</Text> : <>
+                    {conversation.user_message ?
+                        <MessageBox message={getUserMessage()} name={room?.persona?.displayName}
+                                    profileImageId={room?.persona?.profileImageId}></MessageBox> : ""}
+                    {conversation.user_message && conversation.assistant_message ?
+                        <Box marginY={'8px'} display={'flex'} justifyContent={'center'} alignItems={'center'}>
+                            <TriangleDownIcon></TriangleDownIcon>
+                        </Box> : ""}
+                </>}
 
             {conversation.assistant_message ? <>
                 {!isInSummaryView ? <MessageBox message={getAssistantMessage()} name={room?.bot?.displayName}
-                                profileImageId={room?.bot?.profileImageId}></MessageBox> : ""}
+                                                profileImageId={room?.bot?.profileImageId}></MessageBox> : ""}
                 <Box marginY={'8px'} display={'flex'} margin={"8px"} justifyContent={'right'} alignItems={'right'}>
                     {isLast ?
                         <ButtonGroup size={'md'}>
@@ -223,18 +237,9 @@ export default function ConversationBox({room, conversation, updateConversation,
                                     leftIcon={<RepeatIcon/>} onClick={() => {
                                 reRollSelf().then()
                             }}>리롤</Button>
-                            <Button disabled={isInSending} _hover={{bg: "red.500"}} marginLeft={"0.5em"}
-                                    aria-label={"삭제"}
-                                    leftIcon={<DeleteIcon/>} onClick={() => {
-                                if (!revertConfirm) {
-                                    setRevertConfirm(true)
-                                    setTimeout(() => {
-                                        setRevertConfirm(false)
-                                    }, 5000)
-                                    return
-                                }
+                            <DeleteConfirmButton disabled={isInSending} marginLeft={"0.5em"} onConfirmed={() => {
                                 revertSelf().then()
-                            }}>{revertConfirm ? "확실한가요?" : "삭제"}</Button>
+                            }}></DeleteConfirmButton>
                         </ButtonGroup>
                         : ""}
                     {!isLast ? <Button onClick={() => {

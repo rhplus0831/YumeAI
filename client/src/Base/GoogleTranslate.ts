@@ -15,7 +15,7 @@ export async function googleTranslate(text: string, props: UseSendingAlertProps,
     }
 
     const updateStatus = (index: number) => {
-        props.setAlertDescription?.(`${index + 1}번째 줄 번역중 (${messages.length - index} 개 남음)`)
+        props.setAlertDescription?.(`${index + 1}번째 줄 번역중`)
     }
 
     try {

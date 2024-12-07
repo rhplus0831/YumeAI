@@ -7,6 +7,7 @@ import {ArrowBackIcon} from "@chakra-ui/icons";
 import SendingAlert from "../../Base/SendingAlert/SendingAlert.tsx";
 import {notifyFetch, useSendingAlert} from "../../Base/SendingAlert/useSendingAlert.ts";
 import OpenAIBox from "./LLMBox/OpenAIBox.tsx";
+import FilterList from "../Filter/FilterList.tsx";
 
 export default function PromptSidebar({selectedPrompt, setSelectedPrompt, onEdited}: {
     selectedPrompt: Prompt | null,
@@ -58,6 +59,20 @@ export default function PromptSidebar({selectedPrompt, setSelectedPrompt, onEdit
                 <Divider marginY={"0.6em"}/>
                 {selectedPrompt?.llm === "openai" ?
                     <OpenAIBox selectedPrompt={selectedPrompt} onEdited={onEdited}/> : ""}
+                <Divider marginY={"0.6em"}/>
+                <Text>필터</Text>
+                {selectedPrompt ? <FilterList onEdited={async (data: string) => {
+                    const prompt: Prompt = await notifyFetch(getAPIServer() + `prompt/${selectedPrompt?.id}`, sendingAlertProp, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            'filters': data
+                        })
+                    }, '필터 정보를 업데이트 하는중...')
+                    onEdited(prompt)
+                }} filters_raw={selectedPrompt.filters ? selectedPrompt.filters : ""}/> : ""}
             </GridItem>
         </Grid>
     )

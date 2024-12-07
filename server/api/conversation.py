@@ -70,7 +70,6 @@ def register(router: APIRouter):
                 yield generate_error("페르소나를 선택해야 합니다")
                 return
 
-            # TODO: Support LLM Selection
             # TODO: Support user select use summary | combine summary limit
 
             statement = select(Conversation).where(Conversation.room_id == room.id).order_by(
@@ -96,7 +95,7 @@ def register(router: APIRouter):
                 combined_re_summary += summary.content + '\r\n'
 
             for summary in (await get_summaries(session, room))[:configure.get_max_conversation_count()]:
-                combined_re_summary += summary.content + '\r\n'
+                combined_summary += summary.content + '\r\n'
 
             combined_summary = combined_summary.rstrip('\r\n')
             combined_re_summary = combined_re_summary.rstrip('\r\n')
@@ -114,6 +113,8 @@ def register(router: APIRouter):
             def receiver(rep: str):
                 nonlocal bot_response
                 bot_response = rep
+
+            yield generate_progress('봇이 응답하는중...')
 
             async for value in llm_common.stream_prompt(room.prompt, {
                 'user': lambda: room.persona.name,

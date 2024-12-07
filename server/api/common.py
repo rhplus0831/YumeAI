@@ -29,6 +29,8 @@ def validate_get_model(base_model: Type[SQLModel], get_model: Type[BaseModel], e
     get_keys = list(filter(lambda k: k != 'id' and k not in exclude_list, get_keys))
 
     if base_keys != get_keys:
+        print(base_keys)
+        print(get_keys)
         raise Exception(f"{base_model.__name__} is not matching with {get_model.__name__}")
 
 

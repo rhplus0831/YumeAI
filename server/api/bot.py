@@ -20,6 +20,7 @@ class BotUpdate(BaseModel):
     profileImageId: str | None = None
     prompt: str | None = None
     first_message: str | None = None
+    filters: str | None = None
 
 
 class BotGet(BaseModel):
@@ -29,6 +30,7 @@ class BotGet(BaseModel):
     profileImageId: Optional[str] = None
     prompt: str
     first_message: Optional[str] = None
+    filters: Optional[str] = None
 
 
 common.validate_update_model(BotBase, BotUpdate)

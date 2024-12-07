@@ -29,6 +29,8 @@ class BotBase(SQLModel):
     prompt: str
     first_message: Optional[str] = None
 
+    filters: Optional[str] = Field(default=None)
+
 
 class Bot(BotBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -46,6 +48,8 @@ class PromptBase(SQLModel):
     llm: str
     llm_config: str  # Store as Json
 
+    filters: Optional[str] = Field(default=None)
+
 
 class Prompt(PromptBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -62,6 +66,8 @@ class RoomBase(SQLModel):
     translate_method: Optional[str] = Field(default=None)
     translate_prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
     translate_only_assistant: bool = Field(default=False)
+
+    filters: Optional[str] = Field(default=None)
 
 
 class Room(RoomBase, table=True):

@@ -49,8 +49,14 @@ async def perform_prompt(prompt_value: Prompt, extra_data: dict):
     parsed_prompt = prompt.parse_prompt(prompt_value.prompt, extra_data)
     messages = prompt.json_prompt(parsed_prompt)
 
-    config = OpenAIConfig(prompt_value.llm_config)
-    oai = AsyncOpenAI(api_key=get_key(config))
+    config = OpenAIConfig.from_json(prompt_value.llm_config)
+    base_url = None
+    if config.endpoint:
+        base_url = config.endpoint
+    key = get_key(config)
+    oai = AsyncOpenAI(api_key=key, base_url=base_url)
+
+    print(f"key: {key} / base_url: {base_url}")
 
     response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=0.35,
                                                  max_tokens=2048,
@@ -68,8 +74,11 @@ async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receive
     parsed_prompt = prompt.parse_prompt(prompt_value.prompt, extra_data)
     messages = prompt.json_prompt(parsed_prompt)
 
-    config = OpenAIConfig(prompt_value.llm_config)
-    oai = AsyncOpenAI(api_key=get_key(config))
+    config = OpenAIConfig.from_json(prompt_value.llm_config)
+    base_url = None
+    if config.endpoint:
+        base_url = config.endpoint
+    oai = AsyncOpenAI(api_key=get_key(config), base_url=base_url)
 
     print(config.model)
 

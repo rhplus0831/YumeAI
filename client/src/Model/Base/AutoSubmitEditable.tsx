@@ -28,7 +28,7 @@ export default function AutoSubmitEditable<dataType>({endpoint, valueName, value
     value: string,
     setValue: (value: string) => void,
     onEdited: (data: dataType) => void,
-    customData?: (() => unknown)
+    customData?: (() => unknown),
 }) {
     function EditableControls() {
         const {

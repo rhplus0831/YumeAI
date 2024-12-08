@@ -109,7 +109,9 @@ def register(router: APIRouter):
                 conversation_converted.append(f'||user||\n{conversation.user_message}\n')
                 conversation_converted.append(f'||assistant||\n{conversation.assistant_message}\n')
 
-            conversation_converted.append(f'||user||\n{user_new_message}\n')
+            message = f'||user||\n{user_new_message}\n'
+            chat_combined = conversations[:]
+            chat_combined.append(f'||user||\n{user_new_message}\n')
 
             bot_response = ''
 
@@ -126,7 +128,9 @@ def register(router: APIRouter):
                 'char_prompt': lambda: room.bot.prompt,
                 'summaries': lambda: combined_summary,
                 're_summaries': lambda: combined_re_summary,
-                'chat': lambda: ''.join(conversation_converted)
+                'chat': lambda: ''.join(chat_combined),
+                'conversations': lambda: ''.join(conversation_converted),
+                'message': lambda: message,
             }, receiver):
                 yield value
 

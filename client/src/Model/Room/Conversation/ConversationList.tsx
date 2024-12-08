@@ -1,5 +1,6 @@
 import {Box, Button, Card, CardBody, Flex, Grid, GridItem, Stack, StackDivider} from "@chakra-ui/react";
 import * as React from "react";
+import {useEffect, useState} from "react";
 import SendingAlert from "../../../Base/SendingAlert/SendingAlert";
 import {notifyFetch, useSendingAlert} from "../../../Base/SendingAlert/useSendingAlert";
 import {getAPIServer} from "../../../Configure";
@@ -9,6 +10,7 @@ import ScrollToBottom from 'react-scroll-to-bottom';
 import ConversationBox from "./ConversationBox.tsx";
 import {AutoResizeTextarea} from "../../../Base/AutoResizeTextarea.tsx";
 import {StreamData} from "../../Base/StreamData.ts";
+import Filter from "../../Filter/Filter.ts";
 
 export default function ConversationList({room}: { room: Room | null }) {
     const [userMessage, setUserMessage] = React.useState<string>("");
@@ -17,6 +19,17 @@ export default function ConversationList({room}: { room: Room | null }) {
 
     let sending = false
     const sendingAlertProp = useSendingAlert()
+
+    let [filters, setFilters] = useState<Filter[]>([])
+    useEffect(() => {
+        if (!room) return
+        let making: Filter[] = []
+        if (room.prompt?.filters) {
+            making = making.concat(JSON.parse(room.prompt.filters))
+        }
+        console.log(making)
+        setFilters(making)
+    }, [room])
 
     const updateConversation = (conversation: Conversation) => {
         const newConversations = conversations.map((item: Conversation) => {
@@ -134,7 +147,8 @@ export default function ConversationList({room}: { room: Room | null }) {
                                             <ConversationBox room={room} conversation={conversation}
                                                              updateConversation={updateConversation}
                                                              removeConversation={removeConversation}
-                                                             isLast={index === conversations.length - 1}/>
+                                                             isLast={index === conversations.length - 1}
+                                                             filters={filters}/>
                                         ))}
                                     </Stack>
                                 </CardBody>

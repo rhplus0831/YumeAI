@@ -1,24 +1,25 @@
 import MessageBox from "./MessageBox.tsx";
 import Conversation from "./Conversation.ts";
 import Room from "../Room.ts";
-import {DeleteIcon, Icon, RepeatIcon, TriangleDownIcon} from "@chakra-ui/icons";
+import {Icon, RepeatIcon, TriangleDownIcon} from "@chakra-ui/icons";
 import {Box, Button, ButtonGroup, IconButton, Text} from "@chakra-ui/react";
 import {MdOutlineTranslate} from "react-icons/md";
 import {notifyFetch, useSendingAlert} from "../../../Base/SendingAlert/useSendingAlert.ts";
 import SendingAlert from "../../../Base/SendingAlert/SendingAlert.tsx";
 import {StreamData} from "../../Base/StreamData.ts";
 import {getAPIServer} from "../../../Configure.ts";
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import {googleTranslate} from "../../../Base/GoogleTranslate.ts";
 import DeleteConfirmButton from "../../../Base/DeleteConfirmButton.tsx";
 import Filter, {ApplyFilter} from "../../Filter/Filter.ts";
 
-export default function ConversationBox({room, conversation, updateConversation, removeConversation, isLast}: {
+export default function ConversationBox({room, conversation, updateConversation, removeConversation, isLast, filters}: {
     room: Room | null,
     conversation: Conversation,
     updateConversation: (conversation: Conversation) => void,
     removeConversation: (conversation: Conversation) => void,
-    isLast: boolean
+    isLast: boolean,
+    filters: Filter[]
 }) {
     // 코딩 블로킹용 (빠른 더블클릭 방지)
     let blockInSending = false
@@ -30,8 +31,6 @@ export default function ConversationBox({room, conversation, updateConversation,
     const translateIcon = (<Icon as={MdOutlineTranslate} w={'24px'} h={'24px'}/>)
 
     let [isInSummaryView, setIsInSummaryView] = useState<boolean>(false)
-
-    let [filters, setFilters] = useState<Filter[]>([])
 
     const activeSummaryView = async () => {
         if (!room) return;
@@ -76,21 +75,21 @@ export default function ConversationBox({room, conversation, updateConversation,
 
             if (isInUser) {
                 userMessage += message
-                setReceivingUserMessage(userMessage)
+                setReceivingUserMessage(ApplyFilter(filters, ["translate"], userMessage))
             } else {
                 assistantMessage += message
-                setReceivingAssistantMessage(assistantMessage)
+                setReceivingAssistantMessage(ApplyFilter(filters, ["translate"], assistantMessage))
             }
         }
 
         try {
             if (room.translate_method == "google") {
                 if (conversation.user_message) {
-                    await googleTranslate(conversation.user_message, sendingAlertProp, receiver)
+                    await googleTranslate(ApplyFilter(filters, ["display"], conversation.user_message), sendingAlertProp, receiver)
                 }
                 isInUser = false;
                 if (conversation.assistant_message) {
-                    await googleTranslate(conversation.assistant_message, sendingAlertProp, receiver)
+                    await googleTranslate(ApplyFilter(filters, ["display"], conversation.assistant_message), sendingAlertProp, receiver)
                 }
                 const googlePutData = await notifyFetch(getAPIServer() + 'room/' + room.id + `/conversation/put_translate/${conversation.id}`, sendingAlertProp, {
                     method: "POST",
@@ -179,16 +178,16 @@ export default function ConversationBox({room, conversation, updateConversation,
 
     const getUserMessage = () => {
         if (!room) return "";
-        if (isInTranslate && !room.translate_only_assistant) return receivingUserMessage;
-        if (conversation.user_message_translated && isInTranslateView && !room.translate_only_assistant) return conversation.user_message_translated;
-        if (conversation.user_message) return ApplyFilter(filters, "display", conversation.user_message);
+        if (isInTranslate && !room.translate_only_assistant) return ApplyFilter(filters, ["display", "display_final"], receivingUserMessage);
+        if (conversation.user_message_translated && isInTranslateView && !room.translate_only_assistant) return ApplyFilter(filters, ["display", "display_final"], conversation.user_message_translated);
+        if (conversation.user_message) return ApplyFilter(filters, ["display", "display_final"], conversation.user_message);
         return "";
     }
 
     const getAssistantMessage = () => {
-        if (isInSending) return receivingAssistantMessage;
-        if (conversation.assistant_message_translated && isInTranslateView) return conversation.assistant_message_translated;
-        if (conversation.assistant_message) return ApplyFilter(filters, "display", conversation.assistant_message);
+        if (isInSending) return ApplyFilter(filters, ["display", "display_final"], receivingAssistantMessage);
+        if (conversation.assistant_message_translated && isInTranslateView) return ApplyFilter(filters, ["display", "display_final"], conversation.assistant_message_translated);
+        if (conversation.assistant_message) return ApplyFilter(filters, ["display", "display_final"], conversation.assistant_message);
         return "";
     }
 
@@ -203,21 +202,11 @@ export default function ConversationBox({room, conversation, updateConversation,
         }
     }
 
-    useEffect(() => {
-        if (!room) return
-        let making: Filter[] = []
-        if (room.prompt?.filters) {
-            making = making.concat( JSON.parse(room.prompt.filters) )
-        }
-        console.log(making)
-        setFilters(making)
-    }, [room])
-
     return (
         <Box paddingX={"20px"}>
             {isInSummaryView && conversation.summary ?
-                <Text>{conversation.summary.is_top ? "" : <>이 요약은 재요약 되었으며 요청에 들어가지
-                    않습니다.<br/></>}{conversation.summary.content}</Text> : <>
+                <Text>{conversation.summary.is_top ? "" : <>이 요약은 재요약 되었으며 요청에 들어가지 않습니다.<br/></>}
+                    {conversation.summary.content}</Text> : <>
                     {conversation.user_message ?
                         <MessageBox message={getUserMessage()} name={room?.persona?.displayName}
                                     profileImageId={room?.persona?.profileImageId}></MessageBox> : ""}

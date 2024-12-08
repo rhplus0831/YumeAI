@@ -15,6 +15,7 @@ from api.common import ClientErrorException
 from api.prompt import parse_prompt
 from database.sql_model import ConversationBase, Room, Conversation, Summary
 from llm import llm_common
+from util.filter import apply_filter
 from util.summary import summarize_conversation, need_summarize, summarize, get_re_summaries, get_summaries
 
 engine: Engine
@@ -70,6 +71,8 @@ def register(router: APIRouter):
                 yield generate_error("페르소나를 선택해야 합니다")
                 return
 
+            user_new_message = apply_filter(room, 'input', argument.text)
+
             # TODO: Support user select use summary | combine summary limit
 
             statement = select(Conversation).where(Conversation.room_id == room.id).order_by(
@@ -106,7 +109,7 @@ def register(router: APIRouter):
                 conversation_converted.append(f'||user||\n{conversation.user_message}\n')
                 conversation_converted.append(f'||assistant||\n{conversation.assistant_message}\n')
 
-            conversation_converted.append(f'||user||\n{argument.text}\n')
+            conversation_converted.append(f'||user||\n{user_new_message}\n')
 
             bot_response = ''
 
@@ -128,8 +131,8 @@ def register(router: APIRouter):
                 yield value
 
             conversation = Conversation()
-            conversation.user_message = argument.text
-            conversation.assistant_message = bot_response
+            conversation.user_message = user_new_message
+            conversation.assistant_message = apply_filter(room, 'output', bot_response)
             conversation.room_id = room.id
             conversation.created_at = datetime.datetime.now()
 
@@ -166,7 +169,10 @@ def register(router: APIRouter):
 
             user_response = ''
 
-            if not room.translate_only_assistant:
+            filtered_user_message = apply_filter(room, "display", conversation.user_message)
+            filtered_assistant_message = apply_filter(room, "display", conversation.assistant_message)
+
+            if not room.translate_only_assistant and filtered_user_message:
                 yield generate_progress('유저의 메시지를 번역하는중...')
 
                 def user_receiver(rep: str):
@@ -174,7 +180,7 @@ def register(router: APIRouter):
                     user_response = rep
 
                 async for value in llm_common.stream_prompt(room.translate_prompt,
-                                                            {'content': lambda: conversation.user_message},
+                                                            {'content': lambda: filtered_user_message},
                                                             user_receiver):
                     yield value
 
@@ -186,17 +192,17 @@ def register(router: APIRouter):
 
             assistant_response = ''
 
-            def user_receiver(rep: str):
+            def assistant_receiver(rep: str):
                 nonlocal assistant_response
                 assistant_response = rep
 
             async for value in llm_common.stream_prompt(room.translate_prompt,
-                                                        {'content': lambda: conversation.assistant_message},
-                                                        user_receiver):
+                                                        {'content': lambda: filtered_assistant_message},
+                                                        assistant_receiver):
                 yield value
 
-            conversation.user_message_translated = user_response
-            conversation.assistant_message_translated = assistant_response
+            conversation.user_message_translated = apply_filter(room, 'translate', user_response)
+            conversation.assistant_message_translated = apply_filter(room, 'translate', assistant_response)
 
             session.add(conversation)
             session.commit()

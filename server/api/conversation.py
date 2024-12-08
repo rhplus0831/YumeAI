@@ -46,7 +46,7 @@ def register(router: APIRouter):
             room = get_room_or_404(id, session)
             return session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
 
-    class SendMessageArgument(BaseModel):
+    class SingleTextArgument(BaseModel):
         text: str
 
     key_path = configure.get_store_path('openai_key')
@@ -57,7 +57,7 @@ def register(router: APIRouter):
     with open(key_path, 'r', encoding='utf-8') as f:
         key = f.read().strip()
 
-    async def send_message_streamer(argument: SendMessageArgument, room: Room, session: Session):
+    async def send_message_streamer(argument: SingleTextArgument, room: Room, session: Session):
         try:
             if room.prompt is None:
                 yield generate_error("프롬프트를 선택해야 합니다")
@@ -110,7 +110,7 @@ def register(router: APIRouter):
                 conversation_converted.append(f'||assistant||\n{conversation.assistant_message}\n')
 
             message = f'||user||\n{user_new_message}\n'
-            chat_combined = conversations[:]
+            chat_combined = conversation_converted[:]
             chat_combined.append(f'||user||\n{user_new_message}\n')
 
             bot_response = ''
@@ -150,7 +150,7 @@ def register(router: APIRouter):
 
     @router.post("/{id}/conversation/send",
                  responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def send_message(id: int, argument: SendMessageArgument) -> StreamingResponse:
+    async def send_message(id: int, argument: SingleTextArgument) -> StreamingResponse:
         session = Session(engine)
         try:
             room = get_room_or_404(id, session=session)
@@ -254,7 +254,7 @@ def register(router: APIRouter):
             conversation.user_message = ''
             conversation.assistant_message = parse_prompt(room.bot.first_message, {
                 "user": lambda: room.persona.name,
-                "assistant": lambda: room.bot.name,
+                "char": lambda: room.bot.name,
             })
             conversation.room_id = room.id
             conversation.created_at = datetime.datetime.now()
@@ -278,9 +278,36 @@ def register(router: APIRouter):
             for conversation in conversations:
                 if not conversation.user_message:
                     raise Exception("First message can't be re-rolled")
-                argument = SendMessageArgument(text=conversation.user_message)
+                argument = SingleTextArgument(text=conversation.user_message)
                 session.delete(conversation)
                 session.commit()
+        except:
+            session.close()
+            raise
+
+        return StreamingResponse(send_message_streamer(argument, room, session), headers={
+            'Content-Type': 'text/event-stream'
+        })
+
+    @router.post("/{id}/conversation/edit")
+    async def edit(id: int, argument: SingleTextArgument):
+        session = Session(engine)
+        try:
+            room = get_room_or_404(id, session=session)
+            conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+                Conversation.created_at.desc()).limit(1)).all()
+            if len(conversations) == 0:
+                raise Exception("Conversation not found")
+
+            for conversation in conversations:
+                if not conversation.user_message:
+                    raise Exception("First message can't be edited")
+                conversation.assistant_message = argument.text
+                conversation.assistant_message_translated = ''
+                session.add(conversation)
+                session.commit()
+                session.refresh(conversation)
+                return conversation.model_dump()
         except:
             session.close()
             raise

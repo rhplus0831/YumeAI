@@ -1,7 +1,7 @@
 import MessageBox from "./MessageBox.tsx";
 import Conversation from "./Conversation.ts";
 import Room from "../Room.ts";
-import {Icon, RepeatIcon, TriangleDownIcon} from "@chakra-ui/icons";
+import {CheckIcon, CloseIcon, EditIcon, Icon, RepeatIcon, TriangleDownIcon} from "@chakra-ui/icons";
 import {Box, Button, ButtonGroup, IconButton, Text} from "@chakra-ui/react";
 import {MdOutlineTranslate} from "react-icons/md";
 import {notifyFetch, useSendingAlert} from "../../../Base/SendingAlert/useSendingAlert.ts";
@@ -12,6 +12,7 @@ import {useState} from "react";
 import {googleTranslate} from "../../../Base/GoogleTranslate.ts";
 import DeleteConfirmButton from "../../../Base/DeleteConfirmButton.tsx";
 import Filter, {ApplyFilter} from "../../Filter/Filter.ts";
+import {AutoResizeTextarea} from "../../../Base/AutoResizeTextarea.tsx";
 
 export default function ConversationBox({room, conversation, updateConversation, removeConversation, isLast, filters}: {
     room: Room | null,
@@ -25,6 +26,9 @@ export default function ConversationBox({room, conversation, updateConversation,
     let blockInSending = false
     let [isInSending, setIsInSending] = useState<boolean>(false)
     let [isInTranslate, setIsInTranslate] = useState<boolean>(false)
+
+    let [isInEditing, setIsInEditing] = useState<boolean>(false)
+    let [editingText, setEditingText] = useState<string>("")
 
     const sendingAlertProp = useSendingAlert()
 
@@ -171,6 +175,30 @@ export default function ConversationBox({room, conversation, updateConversation,
         }
     }
 
+    const editSelf = async () => {
+        if (!room) return;
+        if (blockInSending) return;
+        blockInSending = true;
+        setIsInSending(true);
+
+        try {
+            const data = await notifyFetch(getAPIServer() + 'room/' + room.id + `/conversation/edit`, sendingAlertProp, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "text": editingText
+                })
+            }, "메시지를 수정하고 있습니다...")
+            updateConversation(data)
+        } finally {
+            blockInSending = false;
+            setIsInSending(false);
+            setIsInEditing(false)
+        }
+    }
+
     let [receivingUserMessage, setReceivingUserMessage] = useState<string>("");
     let [receivingAssistantMessage, setReceivingAssistantMessage] = useState<string>("");
 
@@ -217,36 +245,63 @@ export default function ConversationBox({room, conversation, updateConversation,
                 </>}
 
             {conversation.assistant_message ? <>
-                {!isInSummaryView ? <MessageBox message={getAssistantMessage()} name={room?.bot?.displayName}
-                                                profileImageId={room?.bot?.profileImageId}></MessageBox> : ""}
+                {!isInSummaryView && !isInEditing ?
+                    <MessageBox message={getAssistantMessage()} name={room?.bot?.displayName}
+                                profileImageId={room?.bot?.profileImageId}></MessageBox> : ""}
+                {isInEditing ? <AutoResizeTextarea value={editingText} onChange={(event) => {
+                    setEditingText(event.target.value)
+                }}/> : ""}
                 <Box marginY={'8px'} display={'flex'} margin={"8px"} justifyContent={'right'} alignItems={'right'}>
                     {isLast ?
                         <ButtonGroup size={'md'}>
-                            <Button disabled={isInSending} aria-label={"리롤"}
-                                    leftIcon={<RepeatIcon/>} onClick={() => {
-                                reRollSelf().then()
-                            }}>리롤</Button>
-                            <DeleteConfirmButton disabled={isInSending} marginLeft={"0.5em"} onConfirmed={() => {
-                                revertSelf().then()
-                            }}></DeleteConfirmButton>
+                            {isInEditing ?
+                                <>
+                                    <Button disabled={isInSending} aria-label={"저장"}
+                                            leftIcon={<CheckIcon/>} onClick={() => {
+                                        if (!conversation.assistant_message) return
+                                        editSelf().then()
+                                    }}>저장</Button>
+                                    <Button disabled={isInSending} aria-label={"취소"}
+                                            leftIcon={<CloseIcon/>} onClick={() => {
+                                        if (!conversation.assistant_message) return
+                                        setIsInEditing(false)
+                                    }}>취소</Button>
+                                </>
+                                : <>
+                                    <Button disabled={isInSending} aria-label={"리롤"}
+                                            leftIcon={<RepeatIcon/>} onClick={() => {
+                                        reRollSelf().then()
+                                    }}>리롤</Button>
+                                    <Button disabled={isInSending} aria-label={"수정"}
+                                            leftIcon={<EditIcon/>} onClick={() => {
+                                        if (!conversation.assistant_message) return
+                                        setEditingText(conversation.assistant_message)
+                                        setIsInEditing(true)
+                                    }}>수정</Button>
+                                    <DeleteConfirmButton disabled={isInSending} marginLeft={"0.5em"}
+                                                         onConfirmed={() => {
+                                                             revertSelf().then()
+                                                         }}></DeleteConfirmButton>
+                                </>}
                         </ButtonGroup>
                         : ""}
                     {!isLast ? <Button onClick={() => {
                         isInSummaryView ? setIsInSummaryView(false) : activeSummaryView()
                     }}>{isInSummaryView ? "원문보기" : "요약보기"}</Button> : ""}
-                    {isInTranslateView && conversation.assistant_message_translated ?
-                        <ButtonGroup marginLeft={"0.5em"} size='md' isAttached>
-                            <Button disabled={isInSending} aria-label={"다시 번역"} leftIcon={<RepeatIcon/>}
-                                    onClick={() => {
-                                        translateSelf().then()
-                                    }}>다시 번역</Button>
-                            <IconButton disabled={isInSending} aria-label={"번역"} colorScheme={"green"}
-                                        icon={translateIcon}
-                                        onClick={switchTranslate}/>
-                        </ButtonGroup>
-                        : <IconButton marginLeft={"0.5em"} disabled={isInSending} size='md' aria-label={"번역"}
-                                      icon={translateIcon}
-                                      onClick={switchTranslate}/>}
+                    {!isInEditing ? <>
+                        {isInTranslateView && conversation.assistant_message_translated ?
+                            <ButtonGroup marginLeft={"0.5em"} size='md' isAttached>
+                                <Button disabled={isInSending} aria-label={"다시 번역"} leftIcon={<RepeatIcon/>}
+                                        onClick={() => {
+                                            translateSelf().then()
+                                        }}>다시 번역</Button>
+                                <IconButton disabled={isInSending} aria-label={"번역"} colorScheme={"green"}
+                                            icon={translateIcon}
+                                            onClick={switchTranslate}/>
+                            </ButtonGroup>
+                            : <IconButton marginLeft={"0.5em"} disabled={isInSending} size='md' aria-label={"번역"}
+                                          icon={translateIcon}
+                                          onClick={switchTranslate}/>}</> : ""}
                 </Box>
             </> : ""}
             <SendingAlert {...sendingAlertProp}></SendingAlert>

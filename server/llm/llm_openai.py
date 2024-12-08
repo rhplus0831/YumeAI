@@ -26,7 +26,7 @@ class OpenAIConfig:
 
     @staticmethod
     def from_json(config: Optional[str] = None) -> 'OpenAIConfig':
-        if config is None:
+        if not config:
             return OpenAIConfig()  # 기본값으로 초기화
         data = json.loads(config)
 

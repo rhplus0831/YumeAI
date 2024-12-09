@@ -8,6 +8,7 @@ import SendingAlert from "../../Base/SendingAlert/SendingAlert.tsx";
 import {notifyFetch, useSendingAlert} from "../../Base/SendingAlert/useSendingAlert.ts";
 import OpenAIBox from "./LLMBox/OpenAIBox.tsx";
 import FilterList from "../Filter/FilterList.tsx";
+import GeminiBox from "./LLMBox/GeminiBox.tsx";
 
 export default function PromptSidebar({selectedPrompt, setSelectedPrompt, onEdited}: {
     selectedPrompt: Prompt | null,
@@ -54,11 +55,14 @@ export default function PromptSidebar({selectedPrompt, setSelectedPrompt, onEdit
                     setModel(prompt.llm)
                 }}>
                     <option value='openai'>OpenAI</option>
+                    <option value='gemini'>Gemini</option>
                     <option value='claude'>Calude</option>
                 </Select>
                 <Divider marginY={"0.6em"}/>
                 {selectedPrompt?.llm === "openai" ?
                     <OpenAIBox selectedPrompt={selectedPrompt} onEdited={onEdited}/> : ""}
+                {selectedPrompt?.llm === "gemini" ?
+                    <GeminiBox selectedPrompt={selectedPrompt} onEdited={onEdited}/> : ""}
                 <Divider marginY={"0.6em"}/>
                 <Text>필터</Text>
                 {selectedPrompt ? <FilterList onEdited={async (data: string) => {

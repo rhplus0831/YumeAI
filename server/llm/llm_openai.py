@@ -47,7 +47,7 @@ def get_key(config: OpenAIConfig) -> str:
 
 async def perform_prompt(prompt_value: Prompt, extra_data: dict):
     parsed_prompt = prompt.parse_prompt(prompt_value.prompt, extra_data)
-    messages = prompt.json_prompt(parsed_prompt)
+    messages = prompt.generate_openai_messages(parsed_prompt)
 
     config = OpenAIConfig.from_json(prompt_value.llm_config)
     base_url = None
@@ -72,7 +72,7 @@ async def perform_prompt(prompt_value: Prompt, extra_data: dict):
 
 async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receiver: Callable[[str], None]):
     parsed_prompt = prompt.parse_prompt(prompt_value.prompt, extra_data)
-    messages = prompt.json_prompt(parsed_prompt)
+    messages = prompt.generate_openai_messages(parsed_prompt)
 
     config = OpenAIConfig.from_json(prompt_value.llm_config)
     base_url = None

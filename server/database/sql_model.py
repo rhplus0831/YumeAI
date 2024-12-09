@@ -38,6 +38,7 @@ class Bot(BotBase, table=True):
 
 class LLMModel(Enum):
     OPENAI = "openai"
+    GEMINI = "gemini"
 
 
 class PromptBase(SQLModel):

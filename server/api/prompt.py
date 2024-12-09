@@ -62,7 +62,7 @@ def parse_prompt(prompt: str, extra_map: dict[str, Callable[[], str]]) -> str:
     return parse_tag(parse_tag(prompt, extra_map, "<", ">"), extra_map, "{{", "}}")
 
 
-def json_prompt(prompt: str) -> list:
+def generate_openai_messages(prompt: str) -> list:
     jsoned_prompt = [{'role': 'system', 'content': ''}]
 
     def remove_last_newline():

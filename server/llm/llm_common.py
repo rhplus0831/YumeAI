@@ -7,7 +7,7 @@ from openai import AsyncOpenAI
 import configure
 from api import prompt
 from database.sql_model import Prompt, LLMModel
-from llm import llm_openai
+from llm import llm_openai, llm_gemini
 
 
 def messages_dump(messages, response_text):
@@ -16,13 +16,19 @@ def messages_dump(messages, response_text):
     with open(configure.get_store_path(f'message.log'), 'a', encoding='utf-8') as f:
         f.write(f'================== {datestr} ==================\n')
         for message in messages:
-            f.write(message['role'] + ': ' + message['content'] + '\n')
+            if 'content' in message:
+                f.write(message['role'] + ': ' + message['content'] + '\n')
+            elif 'parts' in message:
+                f.write(message['role'] + ': ' + message['parts'][0] + '\n')
+
         f.write('result: ' + response_text + '\n')
 
 
 async def perform_prompt(prompt_value: Prompt, extra_data: dict):
     if prompt_value.llm == LLMModel.OPENAI:
         return await llm_openai.perform_prompt(prompt_value, extra_data)
+    if prompt_value.llm == LLMModel.GEMINI:
+        return await llm_gemini.perform_prompt(prompt_value, extra_data)
 
     raise NotImplementedError(f"{prompt_value.llm} is not implemented.")
 
@@ -32,6 +38,10 @@ async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receive
 
     if prompt_value.llm == LLMModel.OPENAI:
         async for value in llm_openai.stream_prompt(prompt_value, extra_data, complete_receiver):
+            yield value
+        return
+    if prompt_value.llm == LLMModel.GEMINI:
+        async for value in llm_gemini.stream_prompt(prompt_value, extra_data, complete_receiver):
             yield value
         return
 

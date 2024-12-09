@@ -1,6 +1,6 @@
 import {Box, Button, Card, CardBody, Flex, Grid, GridItem, Stack, StackDivider} from "@chakra-ui/react";
 import * as React from "react";
-import {useEffect, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import SendingAlert from "../../../Base/SendingAlert/SendingAlert";
 import {notifyFetch, useSendingAlert} from "../../../Base/SendingAlert/useSendingAlert";
 import {getAPIServer} from "../../../Configure";
@@ -133,6 +133,20 @@ export default function ConversationList({room}: { room: Room | null }) {
         return true;
     }
 
+    const cachedConversations = useMemo(() => {
+        return conversations.map((conversation, index) => (
+            <ConversationBox
+                room={room}
+                key={conversation.id.toString()}
+                conversation={conversation}
+                updateConversation={updateConversation}
+                removeConversation={removeConversation}
+                isLast={index === conversations.length - 1}
+                filters={filters}
+            />
+        ));
+    }, [conversations, room, filters]);
+
     return (
         <>
             <Grid display={room !== null ? 'grid' : 'none'} templateRows={'1fr auto'} minHeight={'100%'}
@@ -143,13 +157,7 @@ export default function ConversationList({room}: { room: Room | null }) {
                             <Card variant={"unstyled"} flex="1" overflowY="auto">
                                 <CardBody>
                                     <Stack divider={<StackDivider/>} spacing='4'>
-                                        {conversations.map((conversation, index) => (
-                                            <ConversationBox room={room} conversation={conversation}
-                                                             updateConversation={updateConversation}
-                                                             removeConversation={removeConversation}
-                                                             isLast={index === conversations.length - 1}
-                                                             filters={filters}/>
-                                        ))}
+                                        {cachedConversations}
                                     </Stack>
                                 </CardBody>
                             </Card>

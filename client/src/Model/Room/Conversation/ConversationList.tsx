@@ -11,6 +11,7 @@ import ConversationBox from "./ConversationBox.tsx";
 import {AutoResizeTextarea} from "../../../Base/AutoResizeTextarea.tsx";
 import {StreamData} from "../../Base/StreamData.ts";
 import Filter from "../../Filter/Filter.ts";
+import {ArrowUpIcon} from "@chakra-ui/icons";
 
 export default function ConversationList({room}: { room: Room | null }) {
     const [userMessage, setUserMessage] = React.useState<string>("");
@@ -173,6 +174,7 @@ export default function ConversationList({room}: { room: Room | null }) {
                         setConversations([data])
                     }}>퍼스트 메시지 적용하기</Button>
                 </GridItem>
+                {conversations.length}번의 대화
                 <GridItem>
                     <Box>
                         <SendingAlert {...sendingAlertProp}></SendingAlert>
@@ -183,8 +185,8 @@ export default function ConversationList({room}: { room: Room | null }) {
                                 }} placeholder="여기에 보낼 메시지를 입력하세요"/>
                             </GridItem>
                             <GridItem>
-                                <Button h={"100%"} onClick={sendMessage}>
-                                    보내기!
+                                <Button h={"100%"} leftIcon={<ArrowUpIcon/>} onClick={sendMessage}>
+                                    보내기
                                 </Button>
                             </GridItem>
                         </Grid>

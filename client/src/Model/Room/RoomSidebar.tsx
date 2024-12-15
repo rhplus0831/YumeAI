@@ -135,6 +135,25 @@ export default function RoomSidebar({selectedRoom, setSelectedRoom, onEdited, on
                     }
                 }}></PromptSelectBox>
             <Divider/>
+            <Text fontSize={"xl"}>재 요약용 프롬프트</Text>
+            <PromptSelectBox
+                prompt={selectedRoom !== null && selectedRoom.re_summary_prompt !== undefined ? selectedRoom.re_summary_prompt : null}
+                onSelected={async (prompt: Prompt, notifyFetch: (url: string, extra: RequestInit, progressMessage: string) => Promise<BaseData>) => {
+                    if (selectedRoom === null) return
+                    try {
+                        onEdited(await notifyFetch(getAPIServer() + 'room/' + selectedRoom.id, {
+                            method: 'PUT',
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                're_summary_prompt_id': prompt.id,
+                            })
+                        }, '재 요약용 프롬프트 선택중...') as Room)
+                    } catch { /* empty */
+                    }
+                }}></PromptSelectBox>
+            <Divider/>
             <Text fontSize={"xl"}>번역 방법</Text>
             <Select value={selectedRoom && selectedRoom.translate_method ? selectedRoom.translate_method : ""}
                     onChange={async (event) => {

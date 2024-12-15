@@ -66,7 +66,10 @@ async def perform_prompt(prompt_value: Prompt, extra_data: dict):
     config = GeminiConfig.from_json(prompt_value.llm_config)
 
     genai.configure(api_key=get_key(config))
-    model = genai.GenerativeModel(config.model, system_instruction=system)
+    if not system:
+        model = genai.GenerativeModel(config.model)
+    else:
+        model = genai.GenerativeModel(config.model, system_instruction=system)
 
     response = await model.generate_content_async(messages)
 
@@ -84,7 +87,10 @@ async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receive
     config = GeminiConfig.from_json(prompt_value.llm_config)
 
     genai.configure(api_key=get_key(config))
-    model = genai.GenerativeModel(config.model, system_instruction=system)
+    if not system:
+        model = genai.GenerativeModel(config.model)
+    else:
+        model = genai.GenerativeModel(config.model, system_instruction=system)
 
     response = await model.generate_content_async(messages, stream=True)
 

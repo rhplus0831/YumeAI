@@ -11,13 +11,18 @@ from llm import llm_common
 
 async def summarize_conversation(session: Session, conversation: Conversation):
     exist_summary = session.exec(select(Summary).where(Summary.conversation_id == conversation.id)).all()
-    # 이미 다른 번역본이 있음?
+    # 이미 다른 번역본이 있음 (리롤, 메시지 삭제 후 다른 메시지 전달 등)
     if len(exist_summary) != 0:
         return
+
     summary_content = (f'{conversation.room.persona.name}: {conversation.user_message}\n'
                        f'{conversation.room.bot.name}: {conversation.assistant_message}')
     summarized = await llm_common.perform_prompt(conversation.room.summary_prompt, {
-        "content": lambda: summary_content
+        "content": lambda: summary_content,
+        "user": lambda: conversation.room.persona.name,
+        "user_message": lambda: conversation.user_message,
+        "char": lambda: conversation.room.bot.name,
+        "char_message": lambda: conversation.assistant_message,
     })
     summary = Summary()
     summary.created_at = datetime.datetime.now()
@@ -74,7 +79,7 @@ async def summarize(session: Session, room: Room):
 
         combined = combined.rstrip('\r\n')
 
-        combined = await llm_common.perform_prompt(room.summary_prompt, {
+        combined = await llm_common.perform_prompt(room.re_summary_prompt, {
             "content": lambda: combined,
         })
 

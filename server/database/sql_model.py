@@ -63,6 +63,7 @@ class RoomBase(SQLModel):
 
     prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
     summary_prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
+    re_summary_prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
 
     translate_method: Optional[str] = Field(default=None)
     translate_prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
@@ -79,6 +80,7 @@ class Room(RoomBase, table=True):
 
     prompt: Optional[Prompt] = Relationship(sa_relationship_kwargs={"foreign_keys": "[Room.prompt_id]"})
     summary_prompt: Optional[Prompt] = Relationship(sa_relationship_kwargs={"foreign_keys": "[Room.summary_prompt_id]"})
+    re_summary_prompt: Optional[Prompt] = Relationship(sa_relationship_kwargs={"foreign_keys": "[Room.re_summary_prompt_id]"})
 
     translate_prompt: Optional[Prompt] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Room.translate_prompt_id]"})

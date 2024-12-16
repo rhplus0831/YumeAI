@@ -29,6 +29,7 @@ export default function PromptList({selectedPrompt, setSelectedPrompt, prompts, 
             return JSON.stringify({
                 'name': name,
                 'prompt': '',
+                'type': 'chat',
                 'llm': 'openai',
                 'llm_config': ''
             })

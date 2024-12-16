@@ -90,4 +90,5 @@ app.include_router(image.router)
 
 prompt.engine = engine
 common.insert_crud(prompt.router, PromptBase, Prompt, PromptUpdate, engine)
+prompt.register()
 app.include_router(prompt.router)

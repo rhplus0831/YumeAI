@@ -49,6 +49,8 @@ class PromptBase(SQLModel):
     llm: str
     llm_config: str  # Store as Json
 
+    type: str = Field(index=True)
+
     filters: Optional[str] = Field(default=None)
 
 
@@ -80,7 +82,8 @@ class Room(RoomBase, table=True):
 
     prompt: Optional[Prompt] = Relationship(sa_relationship_kwargs={"foreign_keys": "[Room.prompt_id]"})
     summary_prompt: Optional[Prompt] = Relationship(sa_relationship_kwargs={"foreign_keys": "[Room.summary_prompt_id]"})
-    re_summary_prompt: Optional[Prompt] = Relationship(sa_relationship_kwargs={"foreign_keys": "[Room.re_summary_prompt_id]"})
+    re_summary_prompt: Optional[Prompt] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Room.re_summary_prompt_id]"})
 
     translate_prompt: Optional[Prompt] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Room.translate_prompt_id]"})

@@ -252,7 +252,7 @@ def register(router: APIRouter):
 
             conversation = Conversation()
             conversation.user_message = ''
-            conversation.assistant_message = parse_prompt(room.bot.first_message, {
+            conversation.assistant_message, _ = parse_prompt(room.bot.first_message, {
                 "user": lambda: room.persona.name,
                 "char": lambda: room.bot.name,
             })

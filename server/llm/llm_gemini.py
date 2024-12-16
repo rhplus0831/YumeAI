@@ -60,7 +60,7 @@ def convert_to_gemini(messages: list) -> (list, str):
 
 async def perform_prompt(prompt_value: Prompt, extra_data: dict):
     import google.generativeai as genai
-    parsed_prompt = prompt.parse_prompt(prompt_value.prompt, extra_data)
+    parsed_prompt, _ = prompt.parse_prompt(prompt_value.prompt, extra_data)
     messages = prompt.generate_openai_messages(parsed_prompt)
     messages, system = convert_to_gemini(messages)
     config = GeminiConfig.from_json(prompt_value.llm_config)
@@ -81,7 +81,7 @@ async def perform_prompt(prompt_value: Prompt, extra_data: dict):
 
 async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receiver: Callable[[str], None]):
     import google.generativeai as genai
-    parsed_prompt = prompt.parse_prompt(prompt_value.prompt, extra_data)
+    parsed_prompt, _ = prompt.parse_prompt(prompt_value.prompt, extra_data)
     messages = prompt.generate_openai_messages(parsed_prompt)
     messages, system = convert_to_gemini(messages)
     config = GeminiConfig.from_json(prompt_value.llm_config)

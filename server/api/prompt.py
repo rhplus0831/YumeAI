@@ -149,7 +149,7 @@ def lint_chat(prompt: Prompt):
         'summaries': lambda: '__parsed_summaries__',
         're_summaries': lambda: '__parsed_re_summaries__',
         'chat': lambda: '__parsed_chat__',
-        'conversations': '__parsed_conversations__',
+        'conversations': lambda: '__parsed_conversations__',
         'message': lambda: '__parsed_message__',
     })
 

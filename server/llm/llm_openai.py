@@ -23,6 +23,11 @@ class OpenAIConfig:
     endpoint: str = ''
     model: str = 'gpt-4o'
     key: str = ''
+    temperature: float = 1
+    max_tokens: int = 2048
+    top_p: float = 1
+    frequency_penalty: float = 0
+    presence_penalty: float = 0
 
     @staticmethod
     def from_json(config: Optional[str] = None) -> 'OpenAIConfig':
@@ -58,11 +63,11 @@ async def perform_prompt(prompt_value: Prompt, extra_data: dict):
 
     print(f"key: {key} / base_url: {base_url}")
 
-    response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=0.35,
-                                                 max_tokens=2048,
-                                                 top_p=1,
-                                                 frequency_penalty=0,
-                                                 presence_penalty=0)
+    response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=config.temperature,
+                                                 max_tokens=config.max_tokens,
+                                                 top_p=config.top_p,
+                                                 frequency_penalty=config.frequency_penalty,
+                                                 presence_penalty=config.presence_penalty)
 
     from llm.llm_common import messages_dump
     messages_dump(messages, response.choices[0].message.content)
@@ -82,11 +87,11 @@ async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receive
 
     print(config.model)
 
-    response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=0.8,
-                                                 max_tokens=2048,
-                                                 top_p=1,
-                                                 frequency_penalty=0,
-                                                 presence_penalty=0, stream=True)
+    response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=config.temperature,
+                                                 max_tokens=config.max_tokens,
+                                                 top_p=config.top_p,
+                                                 frequency_penalty=config.frequency_penalty,
+                                                 presence_penalty=config.presence_penalty, stream=True)
     collected_messages = []
     async for chunk in response:
         chunk_message = chunk.choices[0].delta.content or ""

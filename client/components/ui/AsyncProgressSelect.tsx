@@ -1,28 +1,27 @@
 "use client";
 
-import {Button, ButtonProps, Popover, PopoverContent, PopoverTrigger} from "@nextui-org/react";
-import {useState} from "react";
+import {Popover, PopoverContent, PopoverTrigger, Select, SelectProps} from "@nextui-org/react";
+import {ChangeEvent, useState} from "react";
 
-interface AsyncProgressButtonProps extends ButtonProps {
-    onPressAsync: () => Promise<void>
+interface AsyncProgressCheckboxProps extends SelectProps {
+    onValueChangeAsync: (value: string) => Promise<void>
     finallyCallback?: () => void | undefined
 }
 
-export default function AsyncProgressButton(props: AsyncProgressButtonProps) {
-    const {isLoading, onPressAsync, finallyCallback, ...restProps} = props;
-
+export default function AsyncProgressSelect(props: AsyncProgressCheckboxProps) {
+    const {onValueChangeAsync, finallyCallback, ...restProps} = props;
     const [internalIsLoading, setInternalIsLoading] = useState(false)
 
     const [isOpen, setIsOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState("")
 
-    function internalOnPress() {
+    function internalOnChange(event: ChangeEvent<HTMLSelectElement>) {
         async function async() {
             try {
                 setIsOpen(false)
                 setErrorMessage("")
                 setInternalIsLoading(true)
-                await onPressAsync()
+                await props.onValueChangeAsync(event.target.value)
             } catch (e) {
                 if (e instanceof Error) {
                     setIsOpen(true)
@@ -30,7 +29,7 @@ export default function AsyncProgressButton(props: AsyncProgressButtonProps) {
                 }
             } finally {
                 setInternalIsLoading(false)
-                finallyCallback?.()
+                props.finallyCallback?.()
             }
         }
 
@@ -45,9 +44,9 @@ export default function AsyncProgressButton(props: AsyncProgressButtonProps) {
     }} shouldCloseOnInteractOutside={() => true}>
         <PopoverTrigger>
             <div>
-                <Button {...restProps} isLoading={internalIsLoading} onPress={internalOnPress}>
-                    {restProps.children}
-                </Button>
+                <Select {...restProps} disabled={internalIsLoading} onChange={internalOnChange}>
+                    {props.children}
+                </Select>
             </div>
         </PopoverTrigger>
         <PopoverContent>

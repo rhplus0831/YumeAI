@@ -3,6 +3,7 @@ import Bot from "@/lib/data/Bot";
 import Persona from "@/lib/data/Persona";
 import Prompt from "@/lib/data/Prompt";
 import {api, buildAPILink} from "@/lib/api-client";
+import Conversation from "@/lib/data/Conversation";
 
 export default interface Room extends BaseData {
     name: string
@@ -31,6 +32,19 @@ export async function getRooms(): Promise<Room[]> {
 
 export async function getRoom(id: number): Promise<Room> {
     return await api(`room/${id}`, {
+        method: 'GET'
+    })
+}
+
+export async function putRoom(id: number, data: {}): Promise<Room> {
+    return await api(`room/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    })
+}
+
+export async function getConversations(room: Room): Promise<Conversation[]> {
+    return await api(`room/${room.id}/conversation`, {
         method: 'GET'
     })
 }

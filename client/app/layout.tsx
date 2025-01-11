@@ -9,6 +9,8 @@ import {fontSans} from "@/config/fonts";
 import {Navbar} from "@/components/navbar";
 import {Link} from "@nextui-org/link";
 import {Noto_Sans_KR} from "next/font/google";
+import {MenuPortalProvider, YumeMenuDest} from "@/components/MenuPortal";
+import MenuSidebar from "@/components/ui/MenuSidebar";
 
 export const metadata: Metadata = {
     title: {
@@ -45,14 +47,17 @@ export default function RootLayout({
                 fontSans.variable,
             )}
         >
-        <Providers themeProps={{attribute: "class", defaultTheme: "dark"}}>
-            <div className="relative flex flex-col h-screen">
-                <Navbar/>
-                <main className="p-2 mx-auto w-screen max-w-7xl">
-                    {children}
-                </main>
-            </div>
-        </Providers>
+        <MenuPortalProvider>
+            <Providers themeProps={{attribute: "class", defaultTheme: "dark"}}>
+                <div className="relative flex flex-col h-screen">
+                    <Navbar/>
+                    <MenuSidebar/>
+                    <main className="p-2 w-screen h-screen overflow-y-scroll max-w-7xl mx-auto">
+                        {children}
+                    </main>
+                </div>
+            </Providers>
+        </MenuPortalProvider>
         </body>
         </html>
     );

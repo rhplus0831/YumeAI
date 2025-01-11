@@ -1,28 +1,27 @@
 "use client";
 
-import {Button, ButtonProps, Popover, PopoverContent, PopoverTrigger} from "@nextui-org/react";
+import {Checkbox, CheckboxProps, Popover, PopoverContent, PopoverTrigger} from "@nextui-org/react";
 import {useState} from "react";
 
-interface AsyncProgressButtonProps extends ButtonProps {
-    onPressAsync: () => Promise<void>
+interface AsyncProgressCheckboxProps extends CheckboxProps {
+    onValueChangeAsync: (value: boolean) => Promise<void>
     finallyCallback?: () => void | undefined
 }
 
-export default function AsyncProgressButton(props: AsyncProgressButtonProps) {
-    const {isLoading, onPressAsync, finallyCallback, ...restProps} = props;
-
+export default function AsyncProgressCheckbox(props: AsyncProgressCheckboxProps) {
+    const {onValueChangeAsync, finallyCallback, ...restProps} = props;
     const [internalIsLoading, setInternalIsLoading] = useState(false)
 
     const [isOpen, setIsOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState("")
 
-    function internalOnPress() {
+    function internalOnValueChange(value: boolean) {
         async function async() {
             try {
                 setIsOpen(false)
                 setErrorMessage("")
                 setInternalIsLoading(true)
-                await onPressAsync()
+                await onValueChangeAsync(value)
             } catch (e) {
                 if (e instanceof Error) {
                     setIsOpen(true)
@@ -45,9 +44,9 @@ export default function AsyncProgressButton(props: AsyncProgressButtonProps) {
     }} shouldCloseOnInteractOutside={() => true}>
         <PopoverTrigger>
             <div>
-                <Button {...restProps} isLoading={internalIsLoading} onPress={internalOnPress}>
-                    {restProps.children}
-                </Button>
+                <Checkbox {...restProps} disabled={internalIsLoading} onValueChange={internalOnValueChange}>
+                    {props.children}
+                </Checkbox>
             </div>
         </PopoverTrigger>
         <PopoverContent>

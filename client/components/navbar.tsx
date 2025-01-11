@@ -1,20 +1,61 @@
 "use client";
 
-import {Avatar, Navbar as NextUINavbar, NavbarBrand, NavbarContent, NavbarItem,} from "@nextui-org/react";
+import {
+    Avatar,
+    Button,
+    Drawer,
+    DrawerBody,
+    DrawerContent,
+    DrawerHeader,
+    Navbar as NextUINavbar,
+    NavbarBrand,
+    NavbarContent,
+    NavbarItem,
+    NavbarMenu,
+    NavbarMenuItem,
+    NavbarMenuToggle,
+    useDisclosure,
+} from "@nextui-org/react";
 import {link as linkStyles} from "@nextui-org/theme";
 import NextLink from "next/link";
 import clsx from "clsx";
 
 import {siteConfig} from "@/config/site";
 import {ThemeSwitch} from "@/components/theme-switch";
+import {MdOutlineSettings} from "react-icons/md";
+import {useMenuPortal} from "@/components/MenuPortal";
+import {useState} from "react";
+import {Link} from "@nextui-org/link";
+import {useRouter} from "next/navigation";
 
 export const Navbar = () => {
-    return (
-        <NextUINavbar maxWidth="xl" position="sticky">
+    const drawerClosure = useDisclosure()
+    const {menuContent, setMenuContent} = useMenuPortal();
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const router = useRouter();
+
+    return (<>
+        <Drawer isOpen={drawerClosure.isOpen} placement={"left"} onOpenChange={drawerClosure.onOpenChange}>
+            <DrawerContent>
+                {(onClose) => (
+                    <>
+                        <DrawerHeader className="flex flex-col gap-1">설정</DrawerHeader>
+                        <DrawerBody>
+                            {menuContent}
+                        </DrawerBody>
+                    </>
+                )}
+            </DrawerContent>
+        </Drawer>
+        <NextUINavbar maxWidth="xl" position="sticky" isMenuOpen={isMenuOpen} onMenuOpenChange={setIsMenuOpen}>
             <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
+                <NavbarMenuToggle
+                    aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                    className="sm:hidden"
+                />
                 <NavbarBrand as="li" className="gap-3 max-w-fit">
                     <NextLink className="flex justify-start items-center gap-2" href="/">
-                        <Avatar src={"/icon.png"} size={"sm"} />
+                        <Avatar src={"/icon.png"} size={"sm"}/>
                         <p className="font-bold text-inherit">YumeAI</p>
                     </NextLink>
                 </NavbarBrand>
@@ -46,8 +87,30 @@ export const Navbar = () => {
             </NavbarContent>
 
             <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
+                {menuContent &&
+                    <Button variant={"light"} className={"block fhd:hidden"} onPress={drawerClosure.onOpen} isIconOnly>
+                        <div className={"flex justify-center items-center"}>
+                            <MdOutlineSettings size={22}/>
+                        </div>
+                    </Button>}
                 <ThemeSwitch/>
             </NavbarContent>
+
+            <NavbarMenu>
+                {siteConfig.navItems.map((item) => (
+                    <NavbarMenuItem key={`${item.label}`}>
+                        <button
+                            className="w-full"
+                            onClick={() => {
+                                router.push(item.href)
+                                setIsMenuOpen(false)
+                            }}
+                        >
+                            {item.label}
+                        </button>
+                    </NavbarMenuItem>
+                ))}
+            </NavbarMenu>
         </NextUINavbar>
-    );
+    </>);
 };

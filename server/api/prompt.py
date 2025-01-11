@@ -1,10 +1,11 @@
 import re
-from typing import Callable
+from typing import Callable, Sequence
 
 from fastapi import APIRouter
+from fastapi.params import Query
 from pydantic import BaseModel
 from sqlalchemy import Engine
-from sqlmodel import Session
+from sqlmodel import Session, select
 from starlette.responses import JSONResponse
 
 from api import common
@@ -231,6 +232,20 @@ def lint_content_only(prompt: Prompt):
 
 
 def register():
+    @router.get("/")
+    def gets_with_filter(type: str = "all", offset: int = 0, limit: int = Query(default=100, le=100)) -> Sequence[
+        Prompt]:
+        with Session(engine) as session:
+            if type == 'all':
+                prompts = session.exec(
+                    select(Prompt).offset(offset).limit(limit)
+                ).all()
+            else:
+                prompts = session.exec(
+                    select(Prompt).where(Prompt.type == type.replace("_", "-")).offset(offset).limit(limit)
+                ).all()
+            return prompts
+
     @router.post("/{id}/lint", response_model=PromptUpdate)
     def lint(id: int):
         with Session(engine) as session:

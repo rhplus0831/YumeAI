@@ -44,7 +44,7 @@ def get_or_404(db_model: Type[SQLModel], session: Session, id: int):
 
 def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQLModel], update_model: Type[BaseModel],
                 engine: Engine, handle_delete_side_effect: Callable[[Session, Any], None] | None = None,
-                get_model: Type[BaseModel] | None = None) -> BaseModel:
+                get_model: Type[BaseModel] | None = None, skip_get_list = False) -> BaseModel:
     def get_session():
         with Session(engine) as session:
             yield session
@@ -106,8 +106,9 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
                          name=f'Create {data_name}')
     router.add_api_route('/{id}', endpoint=get, name=f'Get {data_name}',
                          responses={200: {'model': get_model}, 404: {'model': not_exist_model}})
-    router.add_api_route('/', endpoint=gets, name=f'Get {data_name}s',
-                         responses={200: {'model': list_model}, 404: {'model': not_exist_model}})
+    if not skip_get_list:
+        router.add_api_route('/', endpoint=gets, name=f'Get {data_name}s',
+                             responses={200: {'model': list_model}, 404: {'model': not_exist_model}})
     router.add_api_route('/{id}', endpoint=update, methods=['PUT'], name=f'Update {data_name}',
                          responses={200: {'model': get_model}, 404: {'model': not_exist_model}})
     router.add_api_route('/{id}', endpoint=delete, methods=['DELETE'], name=f'Delete {data_name}',

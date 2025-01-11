@@ -15,6 +15,9 @@ export default {
         mono: ["var(--font-mono)"],
         sansKR: ["var(--font-noto-sans-kr)"],
       },
+      screens: {
+        'fhd': '1920px'
+      }
     },
   },
   darkMode: "class",

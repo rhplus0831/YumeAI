@@ -258,7 +258,7 @@ export default function ConversationBox({room, conversation, updateConversation,
                                 setEditingText(conversation.assistant_message)
                                 setIsInEditing(true)
                             }}><MdModeEdit size={"20"}/></Button>
-                            <DeleteConfirmButton onConfirmed={() => {
+                            <DeleteConfirmButton confirmCount={2} onConfirmed={() => {
                                 revertSelf().then()
                             }}/>
                         </>}

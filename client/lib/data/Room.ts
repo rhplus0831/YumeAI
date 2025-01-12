@@ -48,3 +48,9 @@ export async function getConversations(room: Room): Promise<Conversation[]> {
         method: 'GET'
     })
 }
+
+export async function applyFirstMessage(id: number): Promise<Conversation> {
+    return await api(`room/${id}/conversation/apply_first_message`, {
+        method: 'POST'
+    })
+}

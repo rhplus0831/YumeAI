@@ -1,6 +1,6 @@
 import Conversation from "@/lib/data/Conversation";
 import ConversationBox from "@/components/features/conversation/ConversationBox";
-import Room, {getConversations} from "@/lib/data/Room";
+import Room, {applyFirstMessage, getConversations} from "@/lib/data/Room";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {Button, CircularProgress} from "@nextui-org/react";
 import {StreamData} from "@/lib/data/StreamData";
@@ -9,6 +9,7 @@ import {buildAPILink} from "@/lib/api-client";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {Textarea} from "@nextui-org/input";
 import Filter from "@/lib/data/Filter";
+import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 
 export default function ConversationList({room}: {
     room: Room,
@@ -102,6 +103,14 @@ export default function ConversationList({room}: {
         loader().then()
     }, [room])
 
+    const isCanImportFirstMessage = () => {
+        if (conversations.length > 1) return false;
+        if (conversations.length == 1) {
+            if (conversations[0].user_message) return false;
+        }
+        return true;
+    }
+
     const cachedConversations = useMemo(() => {
         return conversations.map((conversation, index) => (
             <ConversationBox
@@ -122,8 +131,11 @@ export default function ConversationList({room}: {
         <section className={"flex-1 overflow-y-scroll flex flex-col gap-4 pr-4"}>
             {cachedConversations}
         </section>
-        <div className={"flex-0 flex pb-2"}>
+        <div className={"flex-0 flex flex-col gap-2 pb-2"}>
             <PendingAlert {...pendingAlertProps}/>
+            {isCanImportFirstMessage() && <AsyncProgressButton className={"w-full"} onPressAsync={async () => {
+                setConversations([await applyFirstMessage(room.id)])
+            }}>첫 메시지 적용하기</AsyncProgressButton>}
             <div className={"flex flex-row w-full gap-2"}>
                 <Textarea className={"flex-1"} minRows={1} maxRows={9999} size={"sm"} value={userMessage}
                           onChange={(e) => setUserMessage(e.target.value)}/>

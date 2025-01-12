@@ -1,7 +1,8 @@
 "use client";
 
-import {Checkbox, CheckboxProps, Popover, PopoverContent, PopoverTrigger} from "@nextui-org/react";
+import {Checkbox, CheckboxProps} from "@nextui-org/react";
 import {useState} from "react";
+import ErrorPopover from "@/components/ui/ErrorPopover";
 
 interface AsyncProgressCheckboxProps extends CheckboxProps {
     onValueChangeAsync: (value: boolean) => Promise<void>
@@ -12,19 +13,16 @@ export default function AsyncProgressCheckbox(props: AsyncProgressCheckboxProps)
     const {onValueChangeAsync, finallyCallback, ...restProps} = props;
     const [internalIsLoading, setInternalIsLoading] = useState(false)
 
-    const [isOpen, setIsOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState("")
 
     function internalOnValueChange(value: boolean) {
         async function async() {
             try {
-                setIsOpen(false)
                 setErrorMessage("")
                 setInternalIsLoading(true)
                 await onValueChangeAsync(value)
             } catch (e) {
                 if (e instanceof Error) {
-                    setIsOpen(true)
                     setErrorMessage(`${e.name}: ${e.message}`)
                 }
             } finally {
@@ -36,21 +34,12 @@ export default function AsyncProgressCheckbox(props: AsyncProgressCheckboxProps)
         async().then()
     }
 
-    return (<Popover shouldBlockScroll={false} shouldCloseOnScroll={true} shouldCloseOnBlur={true} showArrow size={"lg"}
-                     color={"danger"} isOpen={isOpen} onOpenChange={(open) => {
-        if (!open) {
-            setIsOpen(false)
-        }
-    }} shouldCloseOnInteractOutside={() => true}>
-        <PopoverTrigger>
+    return (
+        <ErrorPopover errorMessage={errorMessage}>
             <div>
                 <Checkbox {...restProps} disabled={internalIsLoading} onValueChange={internalOnValueChange}>
                     {props.children}
                 </Checkbox>
             </div>
-        </PopoverTrigger>
-        <PopoverContent>
-            <p>{errorMessage}</p>
-        </PopoverContent>
-    </Popover>)
+        </ErrorPopover>)
 }

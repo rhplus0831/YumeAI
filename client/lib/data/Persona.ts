@@ -8,8 +8,40 @@ export default interface Persona extends BaseData, ProfileImage {
     prompt: string
 }
 
+type PartialPersona = Partial<Persona>;
+
 export async function getPersonas(): Promise<Persona[]> {
     return await api('persona', {
         method: 'GET'
+    })
+}
+
+export async function createPersona(name: string) : Promise<Persona> {
+    return await api('persona', {
+        method: 'POST',
+        body: JSON.stringify({
+            "name": name,
+            "displayName": "",
+            "prompt": ""
+        })
+    })
+}
+
+export async function getPersona(id: number) : Promise<Persona> {
+    return await api(`persona/${id}`, {
+        method: 'GET'
+    })
+}
+
+export async function putPersona(id: number, data: PartialPersona) : Promise<Persona> {
+    return await api(`persona/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    })
+}
+
+export async function deletePersona(id: number) : Promise<void> {
+    return await api(`persona/${id}`, {
+        method: 'DELETE'
     })
 }

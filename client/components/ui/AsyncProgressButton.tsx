@@ -1,7 +1,8 @@
 "use client";
 
-import {Button, ButtonProps, Popover, PopoverContent, PopoverTrigger} from "@nextui-org/react";
+import {Button, ButtonProps} from "@nextui-org/react";
 import {useState} from "react";
+import ErrorPopover from "@/components/ui/ErrorPopover";
 
 interface AsyncProgressButtonProps extends ButtonProps {
     onPressAsync: () => Promise<void>
@@ -13,19 +14,16 @@ export default function AsyncProgressButton(props: AsyncProgressButtonProps) {
 
     const [internalIsLoading, setInternalIsLoading] = useState(false)
 
-    const [isOpen, setIsOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState("")
 
     function internalOnPress() {
         async function async() {
             try {
-                setIsOpen(false)
                 setErrorMessage("")
                 setInternalIsLoading(true)
                 await onPressAsync()
             } catch (e) {
                 if (e instanceof Error) {
-                    setIsOpen(true)
                     setErrorMessage(`${e.name}: ${e.message}`)
                 }
             } finally {
@@ -37,21 +35,11 @@ export default function AsyncProgressButton(props: AsyncProgressButtonProps) {
         async().then()
     }
 
-    return (<Popover shouldBlockScroll={false} shouldCloseOnScroll={true} shouldCloseOnBlur={true} showArrow size={"lg"}
-                     color={"danger"} isOpen={isOpen} onOpenChange={(open) => {
-        if (!open) {
-            setIsOpen(false)
-        }
-    }} shouldCloseOnInteractOutside={() => true}>
-        <PopoverTrigger>
-            <div>
-                <Button {...restProps} isLoading={internalIsLoading} onPress={internalOnPress}>
-                    {restProps.children}
-                </Button>
-            </div>
-        </PopoverTrigger>
-        <PopoverContent>
-            <p>{errorMessage}</p>
-        </PopoverContent>
-    </Popover>)
+    return (<ErrorPopover errorMessage={errorMessage}>
+        <div>
+            <Button {...restProps} isLoading={internalIsLoading} onPress={internalOnPress}>
+                {restProps.children}
+            </Button>
+        </div>
+    </ErrorPopover>)
 }

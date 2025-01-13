@@ -4,8 +4,10 @@ from dataclasses import asdict, dataclass
 from typing import Optional, Callable
 
 import configure
+import lib.prompt
 from api import prompt
 from database.sql_model import Prompt
+from lib.cbs import CBSHelper
 
 default_key_path = configure.get_store_path('gemini_key')
 default_key = ''
@@ -58,10 +60,10 @@ def convert_to_gemini(messages: list) -> (list, str):
     return converted_messages, system.rstrip()
 
 
-async def perform_prompt(prompt_value: Prompt, extra_data: dict):
+async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
     import google.generativeai as genai
-    parsed_prompt, _ = prompt.parse_prompt(prompt_value.prompt, extra_data)
-    messages = prompt.generate_openai_messages(parsed_prompt)
+    parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
+    messages = lib.prompt.generate_openai_messages(parsed_prompt)
     messages, system = convert_to_gemini(messages)
     config = GeminiConfig.from_json(prompt_value.llm_config)
 
@@ -73,16 +75,16 @@ async def perform_prompt(prompt_value: Prompt, extra_data: dict):
 
     response = await model.generate_content_async(messages)
 
-    from llm.llm_common import messages_dump
+    from lib.llm.llm_common import messages_dump
     messages_dump(messages, response.text)
 
     return response.text
 
 
-async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receiver: Callable[[str], None]):
+async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver: Callable[[str], None]):
     import google.generativeai as genai
-    parsed_prompt, _ = prompt.parse_prompt(prompt_value.prompt, extra_data)
-    messages = prompt.generate_openai_messages(parsed_prompt)
+    parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
+    messages = lib.prompt.generate_openai_messages(parsed_prompt)
     messages, system = convert_to_gemini(messages)
     config = GeminiConfig.from_json(prompt_value.llm_config)
 
@@ -103,7 +105,7 @@ async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receive
             "message": chunk_message
         }) + "\n"
 
-    from llm.llm_common import messages_dump
+    from lib.llm.llm_common import messages_dump
     messages_dump(messages, ''.join(collected_messages))
 
     complete_receiver(''.join(collected_messages))

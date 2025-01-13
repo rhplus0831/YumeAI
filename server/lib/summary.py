@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 
 import configure
 from database.sql_model import Conversation, Room, Summary
-from llm import llm_common
+from lib.llm import llm_common
 
 
 # TODO: "재 요약본" 보다 더 나은 단어 선택이 필요

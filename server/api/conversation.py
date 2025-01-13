@@ -12,11 +12,12 @@ from starlette.responses import StreamingResponse
 import configure
 from api import common
 from api.common import ClientErrorException
-from api.prompt import parse_prompt
+from lib.cbs import CBSHelper
+from lib.prompt import parse_prompt
 from database.sql_model import ConversationBase, Room, Conversation, Summary
-from llm import llm_common
-from util.filter import apply_filter
-from util.summary import summarize_conversation, need_summarize, summarize, get_re_summaries, get_summaries
+from lib.llm import llm_common
+from lib.filter import apply_filter
+from lib.summary import summarize_conversation, need_summarize, summarize, get_re_summaries, get_summaries
 
 engine: Engine
 room_not_exist_model: BaseModel | None = None
@@ -252,10 +253,10 @@ def register(router: APIRouter):
 
             conversation = Conversation()
             conversation.user_message = ''
-            conversation.assistant_message, _ = parse_prompt(room.bot.first_message, {
-                "user": lambda: room.persona.name,
-                "char": lambda: room.bot.name,
-            })
+            cbs = CBSHelper()
+            cbs.user = room.persona.name
+            cbs.char = room.bot.name
+            conversation.assistant_message, _ = parse_prompt(room.bot.first_message, cbs)
             conversation.room_id = room.id
             conversation.created_at = datetime.datetime.now()
 

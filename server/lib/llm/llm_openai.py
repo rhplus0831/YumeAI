@@ -6,8 +6,10 @@ from typing import Optional, Callable
 from openai import AsyncOpenAI
 
 import configure
+import lib.prompt
 from api import prompt
 from database.sql_model import Prompt
+from lib.cbs import CBSHelper
 
 # Add prefix for prevent conflict with library
 
@@ -50,9 +52,9 @@ def get_key(config: OpenAIConfig) -> str:
     return default_key
 
 
-async def perform_prompt(prompt_value: Prompt, extra_data: dict):
-    parsed_prompt, _ = prompt.parse_prompt(prompt_value.prompt, extra_data)
-    messages = prompt.generate_openai_messages(parsed_prompt)
+async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
+    parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
+    messages = lib.prompt.generate_openai_messages(parsed_prompt)
 
     config = OpenAIConfig.from_json(prompt_value.llm_config)
     base_url = None
@@ -69,15 +71,15 @@ async def perform_prompt(prompt_value: Prompt, extra_data: dict):
                                                  frequency_penalty=config.frequency_penalty,
                                                  presence_penalty=config.presence_penalty)
 
-    from llm.llm_common import messages_dump
+    from lib.llm.llm_common import messages_dump
     messages_dump(messages, response.choices[0].message.content)
 
     return response.choices[0].message.content
 
 
-async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receiver: Callable[[str], None]):
-    parsed_prompt, _ = prompt.parse_prompt(prompt_value.prompt, extra_data)
-    messages = prompt.generate_openai_messages(parsed_prompt)
+async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver: Callable[[str], None]):
+    parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
+    messages = lib.prompt.generate_openai_messages(parsed_prompt)
 
     config = OpenAIConfig.from_json(prompt_value.llm_config)
     base_url = None
@@ -101,7 +103,7 @@ async def stream_prompt(prompt_value: Prompt, extra_data: dict, complete_receive
             "message": chunk_message
         }) + "\n"
 
-    from llm.llm_common import messages_dump
+    from lib.llm.llm_common import messages_dump
     messages_dump(messages, ''.join(collected_messages))
 
     complete_receiver(''.join(collected_messages))

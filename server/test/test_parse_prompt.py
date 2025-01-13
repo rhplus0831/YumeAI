@@ -1,14 +1,17 @@
 import configure
-from api import prompt
+from lib.cbs import CBSHelper
+from lib.prompt import parse_prompt
 
 if __name__ == '__main__':
     with open(configure.get_store_path('test_prompt'), 'r', encoding='utf-8') as f:
         test_prompt = f.read()
 
-    parsed_prompt, _ = prompt.parse_prompt(test_prompt, {
-        'user': lambda: 'Lucas',
-        'user_prompt': lambda: 'Lucas prompt',
-        'char': lambda: 'Yume',
-        'char_prompt': lambda: 'Yume prompt',
-    })
+    cbs = CBSHelper()
+    cbs.user = 'Lucas'
+    cbs.user_prompt = 'Lucas Prompt'
+    cbs.char = 'Yume'
+    cbs.char_prompt = 'Yume Prompt'
+    cbs.global_vars['toggle_input'] = '1'
+
+    parsed_prompt, _ = parse_prompt(test_prompt, cbs)
     print(parsed_prompt)

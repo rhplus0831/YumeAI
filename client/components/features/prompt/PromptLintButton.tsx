@@ -10,13 +10,15 @@ export default function PromptLintButton({prompt, isDisabled}: { prompt: Prompt,
     const modalDisclosure = useDisclosure()
 
     return <>
-        <Modal isOpen={modalDisclosure.isOpen} onOpenChange={modalDisclosure.onOpenChange}>
+        <Modal isOpen={modalDisclosure.isOpen} size={"xl"} onOpenChange={modalDisclosure.onOpenChange}>
             <ModalContent>
                 {(onClose) => (
                     <>
                         <ModalHeader className="flex flex-col gap-1">문제 발견</ModalHeader>
                         <ModalBody>
-                            {messages.map((message) => (<p key={message}>{message}</p>))}
+                            <section className={"flex flex-col gap-1 max-h-[40rem] overflow-y-scroll"}>
+                                {messages.map((message) => (<p key={message}>{message}</p>))}
+                            </section>
                         </ModalBody>
                     </>
                 )}

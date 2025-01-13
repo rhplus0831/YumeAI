@@ -73,7 +73,12 @@ def parse_tag(prompt: str, extra_map: dict[str, Callable[[], str]], start: str, 
 
 def parse_prompt(prompt: str, extra_map: dict[str, Callable[[], str]]) -> tuple[str, list]:
     mismatch = []
-    parsed, first_mismatch = parse_tag(prompt, extra_map, "<", ">")
+
+    lines = [line.strip() for line in prompt.split('\n')]
+    filtered_lines = [line for line in lines if not line.startswith('//YUME')]
+    parsed = '\n'.join(filtered_lines)
+
+    parsed, first_mismatch = parse_tag(parsed, extra_map, "<", ">")
     parsed, second_mismatch = parse_tag(parsed, extra_map, "{{", "}}")
     mismatch.extend(first_mismatch)
     mismatch.extend(second_mismatch)

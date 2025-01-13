@@ -6,7 +6,7 @@ import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {pendingFetch, usePendingAlert} from "@/components/ui/PendingAlert/usePendingAlert";
 import {useEffect, useRef, useState} from "react";
 import {StreamData} from "@/lib/data/StreamData";
-import {googleTranslate} from "@/lib/GoogleTranslate";
+import {googleTranslate} from "@/lib/import/GoogleTranslate";
 import {buildAPILink} from "@/lib/api-client";
 import {Button, ButtonGroup} from "@nextui-org/react";
 import {MdModeEdit, MdOutlineCancel, MdOutlineCheck, MdOutlineTranslate, MdRepeat} from "react-icons/md";

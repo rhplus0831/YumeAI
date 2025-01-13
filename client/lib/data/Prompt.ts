@@ -15,6 +15,10 @@ export interface PromptLint {
     message: string[]
 }
 
+export interface TestPrompt {
+    message: string
+}
+
 type PartialPrompt = Partial<Prompt>;
 
 export async function getPrompts(type: string = "all"): Promise<Prompt[]> {
@@ -35,6 +39,12 @@ export async function lintPrompt(id: number): Promise<PromptLint> {
     })
 }
 
+export async function testPrompt(id: number): Promise<TestPrompt> {
+    return await api(`prompt/${id}/test`, {
+        method: 'POST'
+    })
+}
+
 export async function createPrompt(name: string): Promise<Prompt> {
     return await api('prompt', {
         method: 'POST',
@@ -47,8 +57,6 @@ export async function createPrompt(name: string): Promise<Prompt> {
         })
     })
 }
-
-
 
 export async function putPrompt(id: number, data: PartialPrompt): Promise<Prompt> {
     return await api(`prompt/${id}`, {

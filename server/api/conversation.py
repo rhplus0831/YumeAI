@@ -122,17 +122,19 @@ def register(router: APIRouter):
 
             yield generate_progress('봇이 응답하는중...')
 
-            async for value in llm_common.stream_prompt(room.prompt, {
-                'user': lambda: room.persona.name,
-                'user_prompt': lambda: room.persona.prompt,
-                'char': lambda: room.bot.name,
-                'char_prompt': lambda: room.bot.prompt,
-                'summaries': lambda: combined_summary,
-                're_summaries': lambda: combined_re_summary,
-                'chat': lambda: ''.join(chat_combined),
-                'conversations': lambda: ''.join(conversation_converted),
-                'message': lambda: message,
-            }, receiver):
+            cbs = CBSHelper()
+            cbs.user = room.persona.name
+            cbs.user_prompt = room.persona.prompt
+            cbs.char = room.bot.name
+            cbs.char_prompt = room.bot.prompt
+            cbs.summaries = combined_summary
+            cbs.re_summaries = combined_re_summary
+            cbs.chat = ''.join(chat_combined)
+            cbs.conversations = ''.join(conversation_converted)
+            cbs.message = message
+            cbs.message_count = len(conversations)
+
+            async for value in llm_common.stream_prompt(room.prompt, cbs, receiver):
                 yield value
 
             conversation = Conversation()
@@ -184,8 +186,9 @@ def register(router: APIRouter):
                     nonlocal user_response
                     user_response = rep
 
-                async for value in llm_common.stream_prompt(room.translate_prompt,
-                                                            {'content': lambda: filtered_user_message},
+                cbs = CBSHelper()
+                cbs.content = filtered_user_message
+                async for value in llm_common.stream_prompt(room.translate_prompt, cbs,
                                                             user_receiver):
                     yield value
 
@@ -201,8 +204,8 @@ def register(router: APIRouter):
                 nonlocal assistant_response
                 assistant_response = rep
 
-            async for value in llm_common.stream_prompt(room.translate_prompt,
-                                                        {'content': lambda: filtered_assistant_message},
+            cbs = CBSHelper()
+            async for value in llm_common.stream_prompt(room.translate_prompt, cbs,
                                                         assistant_receiver):
                 yield value
 

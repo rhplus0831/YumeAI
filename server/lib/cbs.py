@@ -1,5 +1,8 @@
 # Support layer for risu cbs
 # https://kwaroran.github.io/docs/syntax/cbs/
+import random
+
+from asteval import Interpreter
 
 
 def yume_cutter_check(text: str) -> [str, bool]:
@@ -10,6 +13,49 @@ def yume_cutter_check(text: str) -> [str, bool]:
 
     return text, False
 
+
+def fix_asteval_alias(text: str) -> str:
+    modified_text = ""
+    i = 0
+    while i < len(text):
+        if text[i:i + 2] == "||":
+            modified_text += "||"
+            i += 2
+        elif text[i] == "|":
+            modified_text += "||"
+            i += 1
+        if text[i:i + 2] == "&&":
+            modified_text += "&&"
+            i += 2
+        elif text[i] == "&":
+            modified_text += "&&"
+            i += 1
+        if text[i:i + 2] == "==":
+            modified_text += "=="
+            i += 2
+        elif text[i] == "=":
+            modified_text += "=="
+            i += 1
+        elif text[i] == "≤":
+            modified_text += "<="
+            i += 1
+        elif text[i] == "≥":
+            modified_text += ">="
+            i += 1
+        else:
+            modified_text += text[i]
+            i += 1
+    return modified_text.replace("||", " or ").replace("&&", " and ").strip()
+
+
+def fix_asteval_result(value) -> str:
+    if isinstance(value, bool):
+        if value:
+            return '1'
+        else:
+            return '0'
+
+    return str(value)
 
 class CBSHelper:
     def __init__(self):
@@ -26,6 +72,7 @@ class CBSHelper:
         self.chat = ''
         self.conversations = ''
         self.message = ''
+        self.message_count = 0
 
         self.content = ''
 
@@ -45,7 +92,28 @@ class CBSHelper:
 
         if text.startswith("getglobalvar"):
             key = text.split("::")[1]
-            return self.global_vars.get(key, 'undefined'), True
+            return self.global_vars.get(key, '0'), True
+
+        def calc(text: str):
+            aeval = Interpreter()
+            return fix_asteval_result(aeval.eval(fix_asteval_alias(text)))
+
+        if text.startswith("?"):
+            return calc(text[1:]), True
+
+        if text.startswith("calc"):
+            return calc(text[4:]), True
+
+        if text.startswith("roll"):
+            max_value = int(text.split("::")[1])
+            return str(random.randint(1, max_value)), True
+
+        if text.startswith("random"):
+            values = text.split("::")[1:]
+            return random.choice(values), True
+
+        if text == 'messagecount' or text == "lastmessageid":
+            return str(self.message_count), True
 
         if text == 'user':
             return self.user, True
@@ -71,16 +139,16 @@ class CBSHelper:
         if text == 'conversations':
             return self.conversations, True
 
-        if text == 'message':
+        if text == 'message' or text == 'lastmessage':
             return self.message, True
 
         if text == 'content':
             return self.content, True
 
         if text == 'user_message':
-            return self.content, True
+            return self.user_message, True
 
         if text == 'char_message':
-            return self.content, True
+            return self.char_message, True
 
         return text, False

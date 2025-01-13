@@ -12,7 +12,7 @@ import {presetTemplate, RisuPromptPreset} from "@/lib/import/risu/preset/RisuPro
 import {getLLMByModal} from "@/lib/import/risu/preset/modelList";
 import OpenAIConfig from "@/lib/data/llm/OpenAIConfig";
 import GeminiConfig from "@/lib/data/llm/GeminiConfig";
-import {PromptItemChat, PromptItemTyped} from "@/lib/import/risu/preset/RisuPrompt";
+import {PromptItemChat, PromptItemTyped, PromptTypeToStr} from "@/lib/import/risu/preset/RisuPrompt";
 
 export interface RisuPresetHeader {
     presetVersion: number,
@@ -76,14 +76,21 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
         }
     }
 
-    function putSlot(p: PromptItemTyped, slot: string) {
-        prompt += ((p as PromptItemTyped).innerFormat ?? '{{slot}}').replaceAll("{{slot}}", `{{${slot}}}`) + '\n'
+    function putSlot(p: PromptItemTyped, ...slot: string[]) {
+        if(slot.length === 0) return
+        let mySlot = ''
+        for(const s of slot) {
+            mySlot += `{{${s}}}\n`
+        }
+        mySlot = mySlot.slice(0, -1)
+        prompt += ((p as PromptItemTyped).innerFormat ?? '{{slot}}').replaceAll("{{slot}}", mySlot) + '\n'
     }
 
     pre.promptTemplate?.forEach(p => {
-        prompt += `//YUME ${p.name ?? ''}\n`
+        prompt += `//YUME ${p.name?.trim() ?? PromptTypeToStr(p.type)}\n`
         switch (p.type) {
             case 'plain':
+                if(p.text.trim() === '') return
                 putRole(p.role)
                 prompt += p.text + '\n'
                 break
@@ -97,8 +104,7 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
                 break
             case 'memory':
                 putRole('system')
-                putSlot(p as PromptItemTyped, 'summaries')
-                putSlot(p as PromptItemTyped, 're_summaries')
+                putSlot(p as PromptItemTyped, 'summaries', 're_summaries')
                 break
             case 'chat':
                 const pp = p as PromptItemChat

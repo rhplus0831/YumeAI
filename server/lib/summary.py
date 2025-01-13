@@ -4,6 +4,7 @@ from sqlmodel import Session, select
 
 import configure
 from database.sql_model import Conversation, Room, Summary
+from lib.cbs import CBSHelper
 from lib.llm import llm_common
 
 
@@ -17,13 +18,14 @@ async def summarize_conversation(session: Session, conversation: Conversation):
 
     summary_content = (f'{conversation.room.persona.name}: {conversation.user_message}\n'
                        f'{conversation.room.bot.name}: {conversation.assistant_message}')
-    summarized = await llm_common.perform_prompt(conversation.room.summary_prompt, {
-        "content": lambda: summary_content,
-        "user": lambda: conversation.room.persona.name,
-        "user_message": lambda: conversation.user_message,
-        "char": lambda: conversation.room.bot.name,
-        "char_message": lambda: conversation.assistant_message,
-    })
+    cbs = CBSHelper()
+    cbs.content = summary_content
+    cbs.user = conversation.room.persona.name
+    cbs.user_message = conversation.user_message
+    cbs.char = conversation.room.bot.name
+    cbs.char_message = conversation.assistant_message
+
+    summarized = await llm_common.perform_prompt(conversation.room.summary_prompt, cbs)
     summary = Summary()
     summary.created_at = datetime.datetime.now()
     summary.room_id = conversation.room.id
@@ -78,10 +80,9 @@ async def summarize(session: Session, room: Room):
         session.commit()
 
         combined = combined.rstrip('\r\n')
-
-        combined = await llm_common.perform_prompt(room.re_summary_prompt, {
-            "content": lambda: combined,
-        })
+        cbs = CBSHelper()
+        cbs.content = combined
+        combined = await llm_common.perform_prompt(room.re_summary_prompt, cbs)
 
         parent_summary.content = combined
         session.add(parent_summary)

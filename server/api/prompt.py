@@ -9,7 +9,8 @@ from starlette.responses import JSONResponse
 
 from api import common
 from database.sql_model import PromptBase, Prompt
-from lib.prompt import lint_chat, lint_summary, lint_content_only
+from lib.cbs import CBSHelper
+from lib.prompt import lint_chat, lint_summary, lint_content_only, parse_prompt
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 engine: Engine
@@ -58,6 +59,8 @@ def register():
         elif prompt.type == 're-summary' or prompt.type == 'translate':
             result = lint_content_only(prompt)
 
+        result = list(set(result))
+
         if len(result) == 0:
             return JSONResponse(content={
                 'check': 'ok',
@@ -68,3 +71,27 @@ def register():
             'check': 'fail',
             'message': result
         }, status_code=200)
+
+    @router.post("/{id}/test", response_model=PromptUpdate)
+    def test(id: int):
+        with Session(engine) as session:
+            prompt: Prompt = common.get_or_404(Prompt, session, id)
+
+        cbs = CBSHelper()
+        cbs.user = '!!User!!'
+        cbs.user_prompt = '!!User Prompt!!'
+        cbs.char = '!!Char!!'
+        cbs.char_prompt = '!!Char Prompt!!'
+        cbs.summary = '!!Summary!!'
+        cbs.re_summary = '!!Re Summary!!'
+        cbs.chat = '!!Chat!!'
+        cbs.conversations = '!!Conversations!!'
+        cbs.messages = '!!Messages!!'
+        cbs.message_count = 39
+        cbs.content = '!!Content!!'
+        cbs.user_content = '!!User Message!!'
+        cbs.char_message = '!!Char Message!!'
+
+        return JSONResponse(content={
+            'message': parse_prompt(prompt.prompt, cbs)
+        })

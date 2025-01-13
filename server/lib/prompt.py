@@ -26,12 +26,19 @@ def parse_tag(text: str, check: Callable[[str], [[str, bool]]], start_word: str,
 
         start, end = find_innermost(text)
         if start is not None and end is not None:
-            content = text[start + 2:end]
+            head = text[:start]
+            foot = text[end + len(end_word):]
+            content = text[start + len(start_word):end]
             processed_content, found = check(content)
             if not found:
                 mismatch.append(content)
+            elif processed_content.strip() == '':
+                if head.endswith("\n"):
+                    head = head[:-1]
+                if foot.startswith("\n"):
+                    foot = foot[1:]
 
-            new_text = text[:start] + processed_content + text[end + 2:]
+            new_text = head + processed_content + foot
             return process_content(new_text)  # 재귀 호출
         else:
             return text
@@ -47,6 +54,7 @@ def parse_prompt(prompt: str, cbs: CBSHelper) -> tuple[str, list]:
 
     # parsed, first_mismatch = parse_tag(parsed, cbs.check, "<", ">")
     parsed, second_mismatch = parse_tag(parsed, cbs.check, "{{", "}}")
+    print(f"Before Cut: {parsed}")
     parsed, _ = parse_tag(parsed, yume_cutter_check, '[[', ']]')
     # mismatch.extend(first_mismatch)
     mismatch.extend(second_mismatch)

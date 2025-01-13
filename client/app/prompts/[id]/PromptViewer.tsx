@@ -13,6 +13,7 @@ import PromptLintButton from "@/components/features/prompt/PromptLintButton";
 import EditableFilterList from "@/components/features/filter/EditableFilterList";
 import OpenAIBox from "@/components/features/prompt/llm/OpenAIBox";
 import GeminiBox from "@/components/features/prompt/llm/GeminiBox";
+import PromptTestButton from "@/components/features/prompt/PromptTestButton";
 
 export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
     const [prompt, setPrompt] = useState<Prompt>(startPrompt)
@@ -20,9 +21,9 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
     const router = useRouter()
 
     async function onLLMConfigChange(value: string) {
-        setPrompt( await putPrompt(prompt.id, {
+        setPrompt(await putPrompt(prompt.id, {
             llm_config: value
-        }) )
+        }))
     }
 
     return <>
@@ -36,30 +37,32 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                 <AsyncProgressSelect label={"LLM"} selectedKeys={[prompt.llm]} onValueChangeAsync={async (value) => {
                     setPrompt(await putPrompt(prompt.id, {
                         "llm": value,
-                        "llm_config":''
+                        "llm_config": ''
                     }))
                 }}>
                     <SelectItem key={"openai"}>OpenAI</SelectItem>
                     <SelectItem key={"gemini"}>Gemini</SelectItem>
                 </AsyncProgressSelect>
-                {prompt.llm == "openai" && <OpenAIBox prompt={prompt} onEdited={onLLMConfigChange} />}
-                {prompt.llm == "gemini" && <GeminiBox prompt={prompt} onEdited={onLLMConfigChange} />}
-                <AsyncProgressSelect label={"프롬프트 타입"} selectedKeys={[prompt.type]} onValueChangeAsync={async (value) => {
-                    setPrompt(await putPrompt(prompt.id, {
-                        type: value,
-                    }))
-                }}>
+                {prompt.llm == "openai" && <OpenAIBox prompt={prompt} onEdited={onLLMConfigChange}/>}
+                {prompt.llm == "gemini" && <GeminiBox prompt={prompt} onEdited={onLLMConfigChange}/>}
+                <AsyncProgressSelect label={"프롬프트 타입"} selectedKeys={[prompt.type]}
+                                     onValueChangeAsync={async (value) => {
+                                         setPrompt(await putPrompt(prompt.id, {
+                                             type: value,
+                                         }))
+                                     }}>
                     <SelectItem key={"chat"}>채팅</SelectItem>
                     <SelectItem key={"summary"}>요약</SelectItem>
                     <SelectItem key={"re-summary"}>재요약</SelectItem>
                     <SelectItem key={"translate"}>번역</SelectItem>
                 </AsyncProgressSelect>
                 <PromptLintButton isDisabled={status !== "normal"} prompt={prompt}/>
+                <PromptTestButton prompt={prompt} isDisabled={status !== "normal"}/>
                 <EditableFilterList rawFilters={prompt.filters} onEdited={async (filters) => {
                     setPrompt(await putPrompt(prompt.id, {
                         filters: filters,
                     }))
-                }} />
+                }}/>
                 <DeleteConfirmButton className={"mt-10"} confirmCount={3} onConfirmed={async () => {
                     await deletePrompt(prompt.id)
                     router.replace("/prompts")

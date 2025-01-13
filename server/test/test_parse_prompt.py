@@ -12,6 +12,7 @@ if __name__ == '__main__':
     cbs.char = 'Yume'
     cbs.char_prompt = 'Yume Prompt'
     cbs.global_vars['toggle_input'] = '1'
+    cbs.global_vars['toggle_stat'] = '1'
 
     parsed_prompt, _ = parse_prompt(test_prompt, cbs)
     print(parsed_prompt)

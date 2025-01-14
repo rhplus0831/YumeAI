@@ -52,6 +52,7 @@ class PromptBase(SQLModel):
     type: str = Field(index=True)
 
     filters: Optional[str] = Field(default=None)
+    toggles: Optional[str] = Field(default=None)
 
 
 class Prompt(PromptBase, table=True):

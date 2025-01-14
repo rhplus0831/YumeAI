@@ -25,6 +25,7 @@ class PromptUpdate(BaseModel):
     llm_config: str | None = None
 
     filters: str | None = None
+    toggles: str | None = None
 
 
 common.validate_update_model(PromptBase, PromptUpdate)

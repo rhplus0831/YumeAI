@@ -13,13 +13,14 @@ import {MdModeEdit, MdOutlineCancel, MdOutlineCheck, MdOutlineTranslate, MdRepea
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {Textarea} from "@nextui-org/input";
 
-export default function ConversationBox({room, conversation, updateConversation, removeConversation, isLast, filters}: {
+export default function ConversationBox({room, conversation, updateConversation, removeConversation, isLast, filters, checkedToggles}: {
     room: Room | null,
     conversation: Conversation,
     updateConversation: (conversation: Conversation) => void,
     removeConversation: (conversation: Conversation) => void,
     isLast: boolean,
-    filters: Filter[]
+    filters: Filter[],
+    checkedToggles: string,
 }) {
     const pendingProps = usePendingAlert()
     const blockInSending = useRef(false);
@@ -143,7 +144,10 @@ export default function ConversationBox({room, conversation, updateConversation,
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
-                }
+                },
+                body: JSON.stringify({
+                    active_toggles: checkedToggles,
+                })
             }, "메시지를 리롤하고 있습니다...", true, receiver)
             updateConversation(data)
         } finally {

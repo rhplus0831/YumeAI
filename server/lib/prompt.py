@@ -35,8 +35,8 @@ def parse_tag(text: str, check: Callable[[str], [[str, bool]]], start_word: str,
             elif processed_content.strip() == '':
                 if head.endswith("\n"):
                     head = head[:-1]
-                if foot.startswith("\n"):
-                    foot = foot[1:]
+                # if foot.startswith("\n"):
+                #     foot = foot[1:]
 
             new_text = head + processed_content + foot
             return process_content(new_text)  # 재귀 호출
@@ -54,7 +54,6 @@ def parse_prompt(prompt: str, cbs: CBSHelper) -> tuple[str, list]:
 
     # parsed, first_mismatch = parse_tag(parsed, cbs.check, "<", ">")
     parsed, second_mismatch = parse_tag(parsed, cbs.check, "{{", "}}")
-    print(f"Before Cut: {parsed}")
     parsed, _ = parse_tag(parsed, yume_cutter_check, '[[', ']]')
     # mismatch.extend(first_mismatch)
     mismatch.extend(second_mismatch)

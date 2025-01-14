@@ -128,6 +128,7 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
         llm_config: llm_config,
         prompt: prompt,
         filters: '',
+        toggles: pre.customPromptTemplateToggle ?? '',
         id: -1
     }
 

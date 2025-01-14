@@ -73,8 +73,11 @@ def register():
             'message': result
         }, status_code=200)
 
+    class PromptTestInfoModel(BaseModel):
+        active_toggles: str
+
     @router.post("/{id}/test", response_model=PromptUpdate)
-    def test(id: int):
+    def test(info: PromptTestInfoModel, id: int):
         with Session(engine) as session:
             prompt: Prompt = common.get_or_404(Prompt, session, id)
 
@@ -92,6 +95,10 @@ def register():
         cbs.content = '!!Content!!'
         cbs.user_content = '!!User Message!!'
         cbs.char_message = '!!Char Message!!'
+
+        if info.active_toggles:
+            for active_toggle in info.active_toggles.split(','):
+                cbs.global_vars[f"toggle_{active_toggle}"] = '1'
 
         return JSONResponse(content={
             'message': parse_prompt(prompt.prompt, cbs)

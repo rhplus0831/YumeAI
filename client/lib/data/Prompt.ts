@@ -8,6 +8,7 @@ export default interface Prompt extends BaseData {
     llm: string
     llm_config: string
     filters: string | null
+    toggles: string | null
 }
 
 export interface PromptLint {
@@ -39,9 +40,12 @@ export async function lintPrompt(id: number): Promise<PromptLint> {
     })
 }
 
-export async function testPrompt(id: number): Promise<TestPrompt> {
+export async function testPrompt(id: number, active_toggles: string): Promise<TestPrompt> {
     return await api(`prompt/${id}/test`, {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({
+            'active_toggles': active_toggles,
+        })
     })
 }
 

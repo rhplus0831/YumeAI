@@ -112,6 +112,13 @@ class CBSHelper:
             values = text.split("::")[1:]
             return random.choice(values), True
 
+        if text.startswith("equal"):
+            [left, right] = text.split("::")[1:]
+            if left == right:
+                return '1', True
+            else:
+                return '0', True
+
         if text == 'messagecount' or text == "lastmessageid":
             return str(self.message_count), True
 

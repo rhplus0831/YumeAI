@@ -14,6 +14,7 @@ import EditableFilterList from "@/components/features/filter/EditableFilterList"
 import OpenAIBox from "@/components/features/prompt/llm/OpenAIBox";
 import GeminiBox from "@/components/features/prompt/llm/GeminiBox";
 import PromptTestButton from "@/components/features/prompt/PromptTestButton";
+import EditablePromptToggleList from "@/components/features/prompt/toggle/EditablePromptToggleList";
 
 export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
     const [prompt, setPrompt] = useState<Prompt>(startPrompt)
@@ -63,6 +64,11 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                         filters: filters,
                     }))
                 }}/>
+                {prompt.type === 'chat' && <EditablePromptToggleList prompt={prompt} onEdited={async (toggles) => {
+                    setPrompt(await putPrompt(prompt.id, {
+                        toggles: toggles,
+                    }))
+                }} />}
                 <DeleteConfirmButton className={"mt-10"} confirmCount={3} onConfirmed={async () => {
                     await deletePrompt(prompt.id)
                     router.replace("/prompts")

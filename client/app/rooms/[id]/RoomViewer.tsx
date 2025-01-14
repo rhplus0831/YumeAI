@@ -1,20 +1,20 @@
 "use client";
 
-import Room, {getConversations, putRoom} from "@/lib/data/Room";
+import Room, {putRoom} from "@/lib/data/Room";
 import YumeMenu from "@/components/MenuPortal";
-import {CircularProgress, Divider, SelectItem} from "@nextui-org/react";
-import {useEffect, useState} from "react";
+import {Divider, SelectItem} from "@nextui-org/react";
+import {useState} from "react";
 import SelectablePersonaCardWithModal from "@/components/features/persona/SelectablePersonaCardWithModal";
 import {getBots} from "@/lib/data/Bot";
 import {getPersonas} from "@/lib/data/Persona";
 import SelectablePromptCardWithModal from "@/components/features/prompt/SelectablePromptCardWithModal";
 import AsyncProgressSelect from "@/components/ui/AsyncProgressSelect";
-import Conversation from "@/lib/data/Conversation";
-import ConversationBox from "@/components/features/conversation/ConversationBox";
 import ConversationList from "@/components/features/conversation/ConversationList";
+import PromptToggleSelect from "@/components/features/prompt/toggle/PromptToggleSelect";
 
 export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const [room, setRoom] = useState<Room>(startRoom)
+    const [checkedToggles, setCheckedToggles] = useState("")
 
     return (<>
         <YumeMenu>
@@ -58,8 +58,9 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                         }} filterType={"translate"} prompt={room.translate_prompt}/>
                     </>
                 }
+                {room.prompt && <PromptToggleSelect prompt={room.prompt} setCheckedToggles={setCheckedToggles} />}
             </div>
         </YumeMenu>
-        <ConversationList room={room} />
+        <ConversationList room={room} checkedToggles={checkedToggles}/>
     </>)
 }

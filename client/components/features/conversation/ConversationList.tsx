@@ -11,8 +11,9 @@ import {Textarea} from "@nextui-org/input";
 import Filter from "@/lib/data/Filter";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 
-export default function ConversationList({room}: {
+export default function ConversationList({room, checkedToggles}: {
     room: Room,
+    checkedToggles: string
 }) {
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [conversations, setConversations] = useState<Conversation[]>([])
@@ -82,7 +83,7 @@ export default function ConversationList({room}: {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({"text": userMessage})
+                body: JSON.stringify({"text": userMessage, "active_toggles": checkedToggles})
             }, "메시지를 보내고 있습니다...", true, receiver)
             //서버에서 유저가 보낸 메시지를 포함한 응답을 다시 보내주기 때문에 한줄 자름
             setConversations(tempConversations.slice(0, -1).concat(data));

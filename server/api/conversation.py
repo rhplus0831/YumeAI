@@ -50,6 +50,9 @@ def register(router: APIRouter):
     class SingleTextArgument(BaseModel):
         text: str
 
+    class ReRollArgument(BaseModel):
+        active_toggles: str
+
     class SendMessageArgument(BaseModel):
         text: str
         active_toggles: str
@@ -161,7 +164,7 @@ def register(router: APIRouter):
 
     @router.post("/{id}/conversation/send",
                  responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def send_message(id: int, argument: SingleTextArgument) -> StreamingResponse:
+    async def send_message(id: int, argument: SendMessageArgument) -> StreamingResponse:
         session = Session(engine)
         try:
             room = get_room_or_404(id, session=session)
@@ -279,7 +282,7 @@ def register(router: APIRouter):
             return conversation.model_dump()
 
     @router.post("/{id}/conversation/re_roll")
-    async def re_roll(id: int):
+    async def re_roll(argument: ReRollArgument, id: int):
         session = Session(engine)
         try:
             room = get_room_or_404(id, session=session)
@@ -291,14 +294,14 @@ def register(router: APIRouter):
             for conversation in conversations:
                 if not conversation.user_message:
                     raise Exception("First message can't be re-rolled")
-                argument = SingleTextArgument(text=conversation.user_message)
+                message_argument = SendMessageArgument(text=conversation.user_message, active_toggles=argument.active_toggles)
                 session.delete(conversation)
                 session.commit()
         except:
             session.close()
             raise
 
-        return StreamingResponse(send_message_streamer(argument, room, session), headers={
+        return StreamingResponse(send_message_streamer(message_argument, room, session), headers={
             'Content-Type': 'text/event-stream'
         })
 

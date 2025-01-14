@@ -52,7 +52,7 @@ export default function UploadableAvatar<Data>({profileImageId, endpoint, onEdit
                }}></input>
         <ErrorPopover errorMessage={errorMessage} >
             <Skeleton key={profileImageId} className={"w-10 h-10 rounded-full"} isLoaded={profileUploaded} onClick={() => hiddenFileInput.current?.click()}>
-                <YumeAvatar src={buildImageLink(profileImageId)} />
+                <YumeAvatar src={buildImageLink(profileImageId, "avatar")} />
             </Skeleton>
         </ErrorPopover>
     </>

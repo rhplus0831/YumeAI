@@ -1,8 +1,11 @@
+import io
 import logging
 import os
 import uuid
 
 import aiofiles
+from PIL import ImageSequence
+import PIL.Image as PILImage
 from fastapi import APIRouter, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import Engine
@@ -27,7 +30,7 @@ async def get_image_and_file_path_or_404(session: Session, file_id: str) -> (Ima
 
 @router.post('/')
 async def upload_image(in_file: UploadFile) -> Image:
-    if in_file.size > 10 * 1024 * 1024:
+    if in_file.size > 20 * 1024 * 1024:
         raise ClientErrorException(status_code=413, detail="File too large")
 
     os.makedirs(configure.get_store_path('image'), exist_ok=True)
@@ -47,12 +50,34 @@ async def upload_image(in_file: UploadFile) -> Image:
     return image
 
 
-@router.get('/{file_id}')
-async def read_image(file_id: str) -> FileResponse:
+@router.get('/{file_id}/{size}')
+async def read_image(file_id: str, size: str) -> FileResponse:
     with Session(engine) as session:
         image, file_path = await get_image_and_file_path_or_404(session, file_id)
     if not os.path.exists(file_path):
         raise ClientErrorException(status_code=404, detail="Image file is gone?")
+
+    if size != "original":
+        number_size = 100
+        if size == "avatar":
+            number_size = 100
+
+        resized_file_path = file_path + f"_{size}"
+        if not os.path.exists(resized_file_path):
+            with PILImage.open(file_path) as img:
+                if img.format == "GIF":  # GIF 파일 처리
+                    frames = []
+                    for frame in ImageSequence.Iterator(img):
+                        frame = frame.copy()
+                        frame.thumbnail((number_size, number_size))  # 비율 유지 크기 조정
+                        frames.append(frame)
+
+                    frames[0].save(resized_file_path, format="GIF", save_all=True, append_images=frames[1:])
+                else:  # 기타 이미지 형식 처리
+                    img.thumbnail((number_size, number_size))  # 비율 유지 크기 조정
+                    img.save(resized_file_path, format=img.format)
+        return FileResponse(resized_file_path, media_type=image.file_type)
+
 
     return FileResponse(file_path, media_type=image.file_type)
 
@@ -61,7 +86,7 @@ class ImageDeleted(BaseModel):
     detail: str = 'Image was deleted'
 
 
-@router.delete('/')
+@router.delete('/{file_id}')
 async def delete_image(file_id: str) -> ImageDeleted:
     with Session(engine) as session:
         image, file_path = await get_image_and_file_path_or_404(session, file_id)

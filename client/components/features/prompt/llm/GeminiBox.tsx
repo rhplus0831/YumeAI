@@ -1,7 +1,7 @@
 import Prompt from "@/lib/data/Prompt";
 import {useEffect, useState} from "react";
-import OpenAIConfig from "@/lib/data/llm/OpenAIConfig";
 import SubmitSpan from "@/components/ui/SubmitSpan";
+import GeminiConfig from "@/lib/data/llm/GeminiConfig";
 
 export default function GeminiBox({prompt, onEdited}: {
     prompt: Prompt,
@@ -14,8 +14,8 @@ export default function GeminiBox({prompt, onEdited}: {
         if (!prompt.llm_config) return {
             "model": "gemini-1.5-pro",
             "key": "",
-        } as OpenAIConfig
-        return JSON.parse(prompt.llm_config) as OpenAIConfig
+        } as GeminiConfig
+        return JSON.parse(prompt.llm_config) as GeminiConfig
     }
 
     useEffect(() => {

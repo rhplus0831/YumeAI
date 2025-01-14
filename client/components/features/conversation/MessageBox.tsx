@@ -8,7 +8,7 @@ export default function MessageBox({message, name, profileImageId}: {
     profileImageId: string | undefined
 }) {
     return <article className={"flex flex-row gap-2"}>
-        <YumeAvatar className={"min-w-[40px] min-h-[40px]"} src={buildImageLink(profileImageId)}/>
+        <YumeAvatar className={"min-w-[40px] min-h-[40px]"} src={buildImageLink(profileImageId, "avatar")}/>
         <div className={`flex flex-col gap-1`}>
             <span>{name}</span>
             <Card className={'w-fit'}>

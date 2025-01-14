@@ -50,6 +50,10 @@ def register(router: APIRouter):
     class SingleTextArgument(BaseModel):
         text: str
 
+    class SendMessageArgument(BaseModel):
+        text: str
+        active_toggles: str
+
     key_path = configure.get_store_path('openai_key')
     if not os.path.exists(key_path):
         print("테스트용 키가 설정되어 있지 않습니다, 대화 API의 등록을 하지 않습니다.")
@@ -58,7 +62,7 @@ def register(router: APIRouter):
     with open(key_path, 'r', encoding='utf-8') as f:
         key = f.read().strip()
 
-    async def send_message_streamer(argument: SingleTextArgument, room: Room, session: Session):
+    async def send_message_streamer(argument: SendMessageArgument, room: Room, session: Session):
         try:
             if room.prompt is None:
                 yield generate_error("프롬프트를 선택해야 합니다")
@@ -134,6 +138,10 @@ def register(router: APIRouter):
             cbs.message = message
             cbs.message_count = len(conversations)
 
+            if argument.active_toggles:
+                for active_toggle in argument.active_toggles.split(','):
+                    cbs.global_vars[f"toggle_{active_toggle}"] = '1'
+
             async for value in llm_common.stream_prompt(room.prompt, cbs, receiver):
                 yield value
 
@@ -205,6 +213,7 @@ def register(router: APIRouter):
                 assistant_response = rep
 
             cbs = CBSHelper()
+            cbs.content = filtered_assistant_message
             async for value in llm_common.stream_prompt(room.translate_prompt, cbs,
                                                         assistant_receiver):
                 yield value

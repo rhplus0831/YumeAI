@@ -1,7 +1,6 @@
 "use client";
 
 import {
-    Avatar,
     Button,
     Drawer,
     DrawerBody,
@@ -25,9 +24,8 @@ import {ThemeSwitch} from "@/components/theme-switch";
 import {MdOutlineSettings} from "react-icons/md";
 import {useMenuPortal} from "@/components/MenuPortal";
 import {useState} from "react";
-import {Link} from "@nextui-org/link";
 import {useRouter} from "next/navigation";
-import {BsChatHeartFill} from "react-icons/bs";
+import {RiChatAiFill} from "react-icons/ri";
 
 export const Navbar = () => {
     const drawerClosure = useDisclosure()
@@ -56,7 +54,7 @@ export const Navbar = () => {
                 />
                 <NavbarBrand as="li" className="gap-3 max-w-fit">
                     <NextLink className="flex justify-start items-center gap-2" href="/">
-                        <BsChatHeartFill size={"24"} />
+                        <RiChatAiFill size={"24"}/>
                         <p className="font-bold text-inherit">YumeAI</p>
                     </NextLink>
                 </NavbarBrand>

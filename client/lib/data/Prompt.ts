@@ -7,6 +7,7 @@ export default interface Prompt extends BaseData {
     type: string
     llm: string
     llm_config: string
+    use_stream: boolean
     filters: string | null
     toggles: string | null
 }

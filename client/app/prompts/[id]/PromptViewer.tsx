@@ -15,6 +15,7 @@ import OpenAIBox from "@/components/features/prompt/llm/OpenAIBox";
 import GeminiBox from "@/components/features/prompt/llm/GeminiBox";
 import PromptTestButton from "@/components/features/prompt/PromptTestButton";
 import EditablePromptToggleList from "@/components/features/prompt/toggle/EditablePromptToggleList";
+import AsyncProgressCheckbox from "@/components/ui/AsyncProgressCheckbox";
 
 export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
     const [prompt, setPrompt] = useState<Prompt>(startPrompt)
@@ -57,6 +58,13 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                     <SelectItem key={"re-summary"}>재요약</SelectItem>
                     <SelectItem key={"translate"}>번역</SelectItem>
                 </AsyncProgressSelect>
+                <AsyncProgressCheckbox isSelected={prompt.use_stream} onValueChangeAsync={async (value) => {
+                    setPrompt(await putPrompt(prompt.id, {
+                        use_stream: value,
+                    }))
+                }}>
+                    스트리밍 사용
+                </AsyncProgressCheckbox>
                 <PromptLintButton isDisabled={status !== "normal"} prompt={prompt}/>
                 <PromptTestButton prompt={prompt} isDisabled={status !== "normal"}/>
                 <EditableFilterList rawFilters={prompt.filters} onEdited={async (filters) => {

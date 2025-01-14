@@ -33,6 +33,7 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                 <SelectablePromptCardWithModal onSelect={async (prompt) => {
                     setRoom(await putRoom(room.id, {"prompt_id": prompt.id}))
                 }} filterType={"chat"} prompt={room.prompt}/>
+                {room.prompt && <PromptToggleSelect prompt={room.prompt} setCheckedToggles={setCheckedToggles} />}
                 <span>요약용 프롬프트</span>
                 <SelectablePromptCardWithModal onSelect={async (prompt) => {
                     setRoom(await putRoom(room.id, {"summary_prompt_id": prompt.id}))
@@ -58,7 +59,6 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                         }} filterType={"translate"} prompt={room.translate_prompt}/>
                     </>
                 }
-                {room.prompt && <PromptToggleSelect prompt={room.prompt} setCheckedToggles={setCheckedToggles} />}
             </div>
         </YumeMenu>
         <ConversationList room={room} checkedToggles={checkedToggles}/>

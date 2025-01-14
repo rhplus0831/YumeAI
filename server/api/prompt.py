@@ -23,6 +23,7 @@ class PromptUpdate(BaseModel):
 
     llm: str | None = None
     llm_config: str | None = None
+    use_stream: bool | None = None
 
     filters: str | None = None
     toggles: str | None = None

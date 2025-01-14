@@ -2,6 +2,7 @@ import Prompt from "@/lib/data/Prompt";
 import {useEffect, useState} from "react";
 import OpenAIConfig from "@/lib/data/llm/OpenAIConfig";
 import SubmitSpan from "@/components/ui/SubmitSpan";
+import AsyncProgressCheckbox from "@/components/ui/AsyncProgressCheckbox";
 
 export default function OpenAIBox({prompt, onEdited}: { prompt: Prompt, onEdited: (llm_config: string) => Promise<void> }) {
     const [model, setModel] = useState<string>("")

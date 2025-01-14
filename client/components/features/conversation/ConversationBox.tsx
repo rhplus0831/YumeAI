@@ -12,6 +12,7 @@ import {Button, ButtonGroup} from "@nextui-org/react";
 import {MdModeEdit, MdOutlineCancel, MdOutlineCheck, MdOutlineTranslate, MdRepeat} from "react-icons/md";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {Textarea} from "@nextui-org/input";
+import {HiOutlineChatBubbleOvalLeftEllipsis} from "react-icons/hi2";
 
 export default function ConversationBox({room, conversation, updateConversation, removeConversation, isLast, filters, checkedToggles}: {
     room: Room | null,
@@ -217,6 +218,16 @@ export default function ConversationBox({room, conversation, updateConversation,
         return "";
     }
 
+    const splitAssistantMessage = () => {
+        const message = getAssistantMessage()
+        if (!message.startsWith("<COT>")) return ["", message];
+        const [cot, content] = message.split("</COT>")
+        return [cot.slice(6), content]
+    }
+
+    const [assistantCOT, assistantContent] = splitAssistantMessage()
+    const [displayCOT, setDisplayCOT] = useState(false)
+
     const switchTranslate = () => {
         if (isInTranslateView) {
             setIsInTranslateView(false)
@@ -243,7 +254,11 @@ export default function ConversationBox({room, conversation, updateConversation,
                                                   profileImageId={room.persona?.profileImageId}/>}
         {conversation.assistant_message && <>
             {!isInSummaryView && !isInEditing &&
-                <MessageBox message={getAssistantMessage()} name={room.bot?.name}
+                <MessageBox message={displayCOT ? assistantCOT : assistantContent} extraNode={assistantCOT && <button onClick={() => {
+                    setDisplayCOT(!displayCOT)
+                }}>
+                    <HiOutlineChatBubbleOvalLeftEllipsis size={"24"} />
+                </button>} name={room.bot?.name}
                             profileImageId={room.bot?.profileImageId}/>}
             {isInEditing &&
                 <Textarea value={editingText} maxRows={9999} onChange={(e) => setEditingText(e.target.value)}/>}

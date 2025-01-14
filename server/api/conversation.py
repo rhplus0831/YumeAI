@@ -145,8 +145,11 @@ def register(router: APIRouter):
                 for active_toggle in argument.active_toggles.split(','):
                     cbs.global_vars[f"toggle_{active_toggle}"] = '1'
 
-            async for value in llm_common.stream_prompt(room.prompt, cbs, receiver):
-                yield value
+            if room.prompt.use_stream:
+                async for value in llm_common.stream_prompt(room.prompt, cbs, receiver):
+                    yield value
+            else:
+                bot_response = await llm_common.perform_prompt(room.prompt, cbs)
 
             conversation = Conversation()
             conversation.user_message = user_new_message

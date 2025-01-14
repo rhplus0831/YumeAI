@@ -49,6 +49,8 @@ class PromptBase(SQLModel):
     llm: str
     llm_config: str  # Store as Json
 
+    use_stream: Optional[bool] = Field(default=False)
+
     type: str = Field(index=True)
 
     filters: Optional[str] = Field(default=None)

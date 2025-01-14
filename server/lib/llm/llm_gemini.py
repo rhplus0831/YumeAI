@@ -3,9 +3,12 @@ import os
 from dataclasses import asdict, dataclass
 from typing import Optional, Callable
 
+from google import genai
+from google.genai import types
+from google.genai._api_client import HttpOptions
+
 import configure
 import lib.prompt
-from api import prompt
 from database.sql_model import Prompt
 from lib.cbs import CBSHelper
 
@@ -45,7 +48,6 @@ def get_key(config: GeminiConfig) -> str:
 def convert_to_gemini(messages: list) -> (list, str):
     converted_messages = []
     system = ''
-    # TODO: Better System Conversation?
     for message in messages:
         role = message['role']
         if role == 'assistant':
@@ -57,48 +59,81 @@ def convert_to_gemini(messages: list) -> (list, str):
             'role': role,
             'parts': [message['content']],
         })
-    return converted_messages, system.rstrip()
+
+    reload = []
+
+    for message in converted_messages:
+        reload.append(types.Content(role=message['role'], parts=[types.Part(text=message['parts'][0])]))
+
+    if system.strip() == "":
+        return reload, None
+
+    return reload, system.rstrip()
+
+
+def process_content(content) -> [str, bool]:
+    # Reference: https://github.com/kwaroran/RisuAI/blob/main/src/ts/process/request.ts
+    # But... why?
+    if len(content.parts) == 2:
+        result = content.parts[0].text or ""
+        result += "</COT>"
+        result += content.parts[1].text or ""
+    else:
+        result = content.parts[0].text or ""
+
+    return result
 
 
 async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
-    import google.generativeai as genai
     parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
-    messages, system = convert_to_gemini(messages)
+    contents, system = convert_to_gemini(messages)
     config = GeminiConfig.from_json(prompt_value.llm_config)
 
-    genai.configure(api_key=get_key(config))
-    if not system:
-        model = genai.GenerativeModel(config.model)
-    else:
-        model = genai.GenerativeModel(config.model, system_instruction=system)
+    client = genai.Client(api_key=get_key(config))
 
-    response = await model.generate_content_async(messages)
+    response = await client.aio.models.generate_content(model=config.model, contents=contents,
+                                                        config=types.GenerateContentConfig(
+                                                            system_instruction=system
+
+                                                        ))
 
     from lib.llm.llm_common import messages_dump
-    messages_dump(messages, response.text)
+    result = process_content(response.candidates[0].content)
 
-    return response.text
+    if 'thinking' in config.model:
+        result = '<COT>' + result
+
+    messages_dump(messages, result)
+
+    return result
 
 
 async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver: Callable[[str], None]):
-    import google.generativeai as genai
     parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
-    messages, system = convert_to_gemini(messages)
+    contents, system = convert_to_gemini(messages)
     config = GeminiConfig.from_json(prompt_value.llm_config)
 
-    genai.configure(api_key=get_key(config))
-    if not system:
-        model = genai.GenerativeModel(config.model)
-    else:
-        model = genai.GenerativeModel(config.model, system_instruction=system)
-
-    response = await model.generate_content_async(messages, stream=True)
-
+    client = genai.Client(api_key=get_key(config))
     collected_messages = []
-    async for chunk in response:
-        chunk_message = chunk.text or ""
+
+    # TODO: Better COT Model Check
+    if 'thinking' in config.model:
+        collected_messages.append('<COT>')
+        yield json.dumps({
+            "status": 'stream',
+            "message": '<COT>'
+        }) + "\n"
+
+    async for chunk in client.aio.models.generate_content_stream(model=config.model, contents=contents,
+                                                                 config=types.GenerateContentConfig(
+                                                                         system_instruction=system
+                                                                 )):
+        chunk_message = ''
+        for candidate in chunk.candidates:
+            chunk_message = process_content(candidate.content)
+
         collected_messages.append(chunk_message)
         yield json.dumps({
             "status": 'stream',

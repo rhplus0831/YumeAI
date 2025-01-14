@@ -122,6 +122,7 @@ export default function ConversationList({room, checkedToggles}: {
                 removeConversation={removeConversation}
                 isLast={index === conversations.length - 1}
                 filters={filters}
+                checkedToggles={checkedToggles}
             />
         ));
     }, [conversations, room, filters]);

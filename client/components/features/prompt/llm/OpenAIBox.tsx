@@ -43,44 +43,44 @@ export default function OpenAIBox({prompt, onEdited}: { prompt: Prompt, onEdited
     }, [prompt])
 
     return <>
-        <SubmitSpan value={model} label={"모델명"} submit={async () => {
+        <SubmitSpan value={model} label={"모델명"} submit={async (value) => {
             const config = getConfig()
-            config.model = model
+            config.model = value
             await onEdited(JSON.stringify(config))
         }} />
-        <SubmitSpan value={endpoint} label={"제공자"} placeholder={"OpenAI"} submit={async () => {
+        <SubmitSpan value={endpoint} label={"제공자"} placeholder={"OpenAI"} submit={async (value) => {
             const config = getConfig()
-            config.endpoint = endpoint
+            config.endpoint = value
             await onEdited(JSON.stringify(config))
         }} />
-        <SubmitSpan value={key} label={"API 키"} placeholder={"기본 값"} submit={async () => {
+        <SubmitSpan value={key} label={"API 키"} placeholder={"기본 값"} submit={async (value) => {
             const config = getConfig()
-            config.key = key
+            config.key = value
             await onEdited(JSON.stringify(config))
         }} />
-        <SubmitSpan value={temperature} label={"온도"} submit={async () => {
+        <SubmitSpan value={temperature} label={"온도"} submit={async (value) => {
             const config = getConfig()
-            config.temperature = parseFloat(temperature)
+            config.temperature = parseFloat(value)
             await onEdited(JSON.stringify(config))
         }} />
-        <SubmitSpan value={max_tokens} label={"최대 토큰"} submit={async () => {
+        <SubmitSpan value={max_tokens} label={"최대 토큰"} submit={async (value) => {
             const config = getConfig()
-            config.max_tokens = parseInt(max_tokens)
+            config.max_tokens = parseInt(value)
             await onEdited(JSON.stringify(config))
         }} />
-        <SubmitSpan value={top_p} label={"Top P"} submit={async () => {
+        <SubmitSpan value={top_p} label={"Top P"} submit={async (value) => {
             const config = getConfig()
-            config.top_p = parseFloat(top_p)
+            config.top_p = parseFloat(value)
             await onEdited(JSON.stringify(config))
         }} />
-        <SubmitSpan value={frequency_penalty} label={"빈도 패널티"} submit={async () => {
+        <SubmitSpan value={frequency_penalty} label={"빈도 패널티"} submit={async (value) => {
             const config = getConfig()
-            config.frequency_penalty = parseFloat(frequency_penalty)
+            config.frequency_penalty = parseFloat(value)
             await onEdited(JSON.stringify(config))
         }} />
-        <SubmitSpan value={presence_penalty} label={"프레전스 패널티"} submit={async () => {
+        <SubmitSpan value={presence_penalty} label={"프레전스 패널티"} submit={async (value) => {
             const config = getConfig()
-            config.presence_penalty = parseFloat(presence_penalty)
+            config.presence_penalty = parseFloat(value)
             await onEdited(JSON.stringify(config))
         }} />
     </>

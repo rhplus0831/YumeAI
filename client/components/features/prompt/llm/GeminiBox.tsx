@@ -26,14 +26,14 @@ export default function GeminiBox({prompt, onEdited}: {
     }, [prompt])
 
     return <>
-        <SubmitSpan value={model} label={"모델명"} submit={async () => {
+        <SubmitSpan value={model} label={"모델명"} submit={async (value) => {
             const config = getConfig()
-            config.model = model
+            config.model = value
             await onEdited(JSON.stringify(config))
         }}/>
-        <SubmitSpan value={key} label={"API 키"} placeholder={"기본 값"} submit={async () => {
+        <SubmitSpan value={key} label={"API 키"} placeholder={"기본 값"} submit={async (value) => {
             const config = getConfig()
-            config.key = key
+            config.key = value
             await onEdited(JSON.stringify(config))
         }}/>
     </>

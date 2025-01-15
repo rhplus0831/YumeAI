@@ -191,7 +191,15 @@ def register(router: APIRouter):
             user_response = ''
 
             filtered_user_message = apply_filter(room, "display", conversation.user_message)
-            filtered_assistant_message = apply_filter(room, "display", conversation.assistant_message)
+
+            if conversation.assistant_message.startswith("<COT>"):
+                cot, filtered_assistant_message = conversation.assistant_message.split("</COT>")
+                cot = cot[5:]
+            else:
+                cot = ''
+                filtered_assistant_message = conversation.assistant_message
+
+            filtered_assistant_message = apply_filter(room, "display", filtered_assistant_message)
 
             if not room.translate_only_assistant and filtered_user_message:
                 yield generate_progress('유저의 메시지를 번역하는중...')
@@ -225,7 +233,7 @@ def register(router: APIRouter):
                 yield value
 
             conversation.user_message_translated = apply_filter(room, 'translate', user_response)
-            conversation.assistant_message_translated = apply_filter(room, 'translate', assistant_response)
+            conversation.assistant_message_translated = "<COT>" + cot + "</COT>" + apply_filter(room, 'translate', assistant_response)
 
             session.add(conversation)
             session.commit()

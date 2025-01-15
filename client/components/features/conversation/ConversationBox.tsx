@@ -222,7 +222,7 @@ export default function ConversationBox({room, conversation, updateConversation,
         const message = getAssistantMessage()
         if (!message.startsWith("<COT>")) return ["", message];
         const [cot, content] = message.split("</COT>")
-        return [cot.slice(6), content]
+        return [cot.slice(5), content]
     }
 
     const [assistantCOT, assistantContent] = splitAssistantMessage()

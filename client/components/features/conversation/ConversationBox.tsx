@@ -254,7 +254,7 @@ export default function ConversationBox({
     if (!room) return undefined
 
     return <article ref={containerRef} className={"flex flex-col gap-4"}>
-        {conversation.user_message && <MessageBox message={getUserMessage()} name={room.persona?.name}
+        {conversation.user_message && <MessageBox message={getUserMessage()} name={room.persona?.displayName ?? room.persona?.name}
                                                   profileImageId={room.persona?.profileImageId}/>}
         {conversation.assistant_message && <>
             {!isInSummaryView && !isInEditing &&
@@ -263,7 +263,7 @@ export default function ConversationBox({
                                 setDisplayCOT(!displayCOT)
                             }}>
                                 <HiOutlineChatBubbleOvalLeftEllipsis size={"24"}/>
-                            </button>} name={room.bot?.name}
+                            </button>} name={room.bot?.displayName ?? room.bot?.name}
                             profileImageId={room.bot?.profileImageId}/>}
             {isInEditing &&
                 <Textarea value={editingText} maxRows={9999} onChange={(e) => setEditingText(e.target.value)}/>}

@@ -14,7 +14,7 @@ export default function MenuSidebar() {
             if (screenWidth >= preferWidth) {
                 const left = ((screenWidth - 1600) / 2) - (sidebarWidth / 2);
                 setContent(
-                    <aside className={"absolute pt-[4rem] w-80 h-screen left-0 top-0"}
+                    <aside className={"absolute pt-[4rem] w-80 h-screen left-0 top-0 overflow-y-scroll"}
                            style={{transform: `translate(${left}px, 0px)`}}>
                         <YumeMenuDest/>
                     </aside>

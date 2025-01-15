@@ -11,6 +11,7 @@ import SelectablePromptCardWithModal from "@/components/features/prompt/Selectab
 import AsyncProgressSelect from "@/components/ui/AsyncProgressSelect";
 import ConversationList from "@/components/features/conversation/ConversationList";
 import PromptToggleSelect from "@/components/features/prompt/toggle/PromptToggleSelect";
+import AsyncProgressCheckbox from "@/components/ui/AsyncProgressCheckbox";
 
 export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const [room, setRoom] = useState<Room>(startRoom)
@@ -51,6 +52,11 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                     <SelectItem key={"google"}>구글</SelectItem>
                     <SelectItem key={"prompt"}>프롬프트</SelectItem>
                 </AsyncProgressSelect>
+                {room.translate_method && <AsyncProgressCheckbox isSelected={room.translate_only_assistant} onValueChangeAsync={async (value) => {
+                    setRoom(await putRoom(room.id, {"translate_only_assistant": value}))
+                }}>
+                    봇의 메시지만 번역하기
+                </AsyncProgressCheckbox>}
                 {
                     room.translate_method === "prompt" && <>
                         <span>번역용 프롬프트</span>

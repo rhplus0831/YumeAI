@@ -3,7 +3,6 @@ import ConversationBox from "@/components/features/conversation/ConversationBox"
 import Room, {applyFirstMessage, getConversations} from "@/lib/data/Room";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {Button, CircularProgress} from "@nextui-org/react";
-import {StreamData} from "@/lib/data/StreamData";
 import {pendingFetch, usePendingAlert} from "@/components/ui/PendingAlert/usePendingAlert";
 import {buildAPILink} from "@/lib/api-client";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
@@ -69,11 +68,11 @@ export default function ConversationList({room, checkedToggles}: {
         const tempConversations = conversations.slice(0).concat(sendTemp)
         setConversations(tempConversations)
 
-        const receiver = (data: unknown) => {
+        const receiver = (message: string) => {
             if (sendTemp[0].assistant_message == null) {
                 sendTemp[0].assistant_message = ""
             }
-            sendTemp[0].assistant_message += (data as StreamData).message
+            sendTemp[0].assistant_message += message
             setConversations(tempConversations.slice(0, -1).concat(sendTemp));
         }
 

@@ -52,7 +52,7 @@ export default function RootLayout({
                 <div className="relative flex flex-col h-screen">
                     <Navbar/>
                     <MenuSidebar/>
-                    <main className="p-2 w-screen h-screen overflow-y-scroll max-w-7xl mx-auto">
+                    <main className="p-2 w-screen h-screen overflow-y-auto max-w-7xl mx-auto">
                         {children}
                     </main>
                 </div>

@@ -2,9 +2,11 @@ import {useState} from "react";
 
 export function usePendingAlert() {
     const [display, setDisplay] = useState<boolean>(false)
+
     function onClose() {
         setDisplay(false)
     }
+
     function onOpen() {
         setDisplay(true)
     }
@@ -25,9 +27,46 @@ export function usePendingAlert() {
         setAlertDescription,
     }
 }
+
 export type UsePendingAlertReturn = ReturnType<typeof usePendingAlert>;
 
-export async function pendingFetch(url: string, props: UsePendingAlertReturn, extra: RequestInit, progressMessage: string, isStreaming: boolean = false, streamingReceiver?: (data: unknown) => void) {
+function splitStream(separator: string) {
+    let buffer = '';
+    return new TransformStream({
+        transform(chunk, controller) {
+            buffer += chunk;
+            const parts = buffer.split(separator);
+            buffer = parts.pop() ?? ''; // 마지막 부분은 다음 청크와 결합될 수 있으므로 버퍼에 저장
+            parts.forEach(part => controller.enqueue(part));
+        },
+        flush(controller) {
+            if (buffer) {
+                controller.enqueue(buffer); // 남은 버퍼 처리
+            }
+        }
+    });
+}
+
+function parseEvent(message: string) {
+    const event: Record<string, string> = {};
+    const lines = message.trim().split('\n');
+    for (const line of lines) {
+        const spliter = line.indexOf(':');
+        if(spliter === -1) {
+            continue;
+        }
+        const key = line.slice(0, spliter).trim();
+        const value = line.slice(spliter + 1).trim().replaceAll("__YUME_LINE__", "\n");
+
+        if (key && value) {
+            event[key] = value;
+        }
+    }
+    // console.log(event)
+    return event;
+}
+
+export async function pendingFetch(url: string, props: UsePendingAlertReturn, extra: RequestInit, progressMessage: string, isStreaming: boolean = false, streamingReceiver?: (message: string) => void) {
     props.setAlertStatus?.("loading")
     props.setAlertTitle?.("통신중")
     props.setAlertDescription?.(progressMessage)
@@ -55,51 +94,43 @@ export async function pendingFetch(url: string, props: UsePendingAlertReturn, ex
             props.onClose?.()
             return data
         } else {
-            let result = {}
-            let received = false
-            const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader()
-            while (true) {
-                const {value, done} = await reader.read();
-                if (done) break;
-                if (!value) continue;
-                let buffer = value
-                let boundary = value.indexOf('\n');
-                if (boundary === -1) {
-                    boundary = buffer.length;
-                }
-                while (boundary !== -1) {
-                    const jsonString = buffer.substring(0, boundary);
-                    console.log(jsonString)
-                    const jsonValue = JSON.parse(jsonString)
-                    if (Object.prototype.hasOwnProperty.call(jsonValue, 'status')) {
-                        if (jsonValue['status'] == 'progress') {
-                            props.setAlertDescription?.(jsonValue['message'])
-                        } else if (jsonValue['status'] == 'error') {
-                            // noinspection ExceptionCaughtLocallyJS
-                            throw new Error(jsonValue['message'])
-                        } else if (jsonValue['status'] == 'stream') {
-                            if (streamingReceiver) {
-                                streamingReceiver(jsonValue)
-                            }
-                        }
-                    } else {
-                        result = jsonValue
-                        received = true
-                        await reader.cancel('Received Result')
-                        break
+            const reader = response.body!
+                .pipeThrough(new TextDecoderStream()) // 바이트 스트림을 텍스트 스트림으로 변환
+                .pipeThrough(splitStream('\n\n')) // 각 이벤트 메시지별로 스트림 분할
+                .getReader();
+
+            let complete = false;
+            let data = {};
+
+            try {
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) {
+                        break;
                     }
-                    // 처리한 부분을 버퍼에서 제거
-                    buffer = buffer.substring(boundary + 1);
-                    // 다음 JSON의 경계를 찾습니다.
-                    boundary = buffer.indexOf('\n');
+                    if (value) {
+                        const event = parseEvent(value); // 이벤트 메시지 파싱
+                        if (event.type === "complete") {
+                            complete = true;
+                            data = JSON.parse(event.data);
+                        } else if (event.type === "progress") {
+                            props.setAlertDescription?.(event.data)
+                        } else if (event.type === "stream") {
+                            streamingReceiver?.(event.data)
+                        }
+                    }
                 }
+            } finally {
+                reader.releaseLock();
             }
-            if (!received) {
+
+            if (!complete) {
                 // noinspection ExceptionCaughtLocallyJS
                 throw new Error("서버가 응답을 제대로 하지 않았거나 그 전에 연결이 끊어졌습니다.")
             }
+
             props.onClose?.()
-            return result
+            return data;
         }
     } catch (err: unknown) {
         console.log(err)

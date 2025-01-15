@@ -5,7 +5,6 @@ import Filter, {ApplyFilter} from "@/lib/data/Filter";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {pendingFetch, usePendingAlert} from "@/components/ui/PendingAlert/usePendingAlert";
 import {useEffect, useRef, useState} from "react";
-import {StreamData} from "@/lib/data/StreamData";
 import {googleTranslate} from "@/lib/import/GoogleTranslate";
 import {buildAPILink} from "@/lib/api-client";
 import {Button, ButtonGroup} from "@nextui-org/react";
@@ -14,7 +13,15 @@ import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {Textarea} from "@nextui-org/input";
 import {HiOutlineChatBubbleOvalLeftEllipsis} from "react-icons/hi2";
 
-export default function ConversationBox({room, conversation, updateConversation, removeConversation, isLast, filters, checkedToggles}: {
+export default function ConversationBox({
+                                            room,
+                                            conversation,
+                                            updateConversation,
+                                            removeConversation,
+                                            isLast,
+                                            filters,
+                                            checkedToggles
+                                        }: {
     room: Room | null,
     conversation: Conversation,
     updateConversation: (conversation: Conversation) => void,
@@ -70,9 +77,7 @@ export default function ConversationBox({room, conversation, updateConversation,
         let userMessage = "";
         let assistantMessage = "";
 
-        const receiver = (data: unknown) => {
-            const message = (data as StreamData).message
-
+        const receiver = (message: string) => {
             if (message.startsWith("yume||switch")) {
                 isInUser = false;
                 return
@@ -134,8 +139,7 @@ export default function ConversationBox({room, conversation, updateConversation,
 
         let assistantMessage = "";
 
-        const receiver = (data: unknown) => {
-            const message = (data as StreamData).message
+        const receiver = (message: string) => {
             assistantMessage += message
             setReceivingAssistantMessage(assistantMessage)
         }
@@ -254,11 +258,12 @@ export default function ConversationBox({room, conversation, updateConversation,
                                                   profileImageId={room.persona?.profileImageId}/>}
         {conversation.assistant_message && <>
             {!isInSummaryView && !isInEditing &&
-                <MessageBox message={displayCOT ? assistantCOT : assistantContent} extraNode={assistantCOT && <button onClick={() => {
-                    setDisplayCOT(!displayCOT)
-                }}>
-                    <HiOutlineChatBubbleOvalLeftEllipsis size={"24"} />
-                </button>} name={room.bot?.name}
+                <MessageBox message={displayCOT ? assistantCOT : assistantContent}
+                            extraNode={assistantCOT && <button onClick={() => {
+                                setDisplayCOT(!displayCOT)
+                            }}>
+                                <HiOutlineChatBubbleOvalLeftEllipsis size={"24"}/>
+                            </button>} name={room.bot?.name}
                             profileImageId={room.bot?.profileImageId}/>}
             {isInEditing &&
                 <Textarea value={editingText} maxRows={9999} onChange={(e) => setEditingText(e.target.value)}/>}

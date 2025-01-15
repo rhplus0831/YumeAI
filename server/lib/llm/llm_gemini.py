@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from dataclasses import asdict, dataclass
@@ -11,6 +12,7 @@ import configure
 import lib.prompt
 from database.sql_model import Prompt
 from lib.cbs import CBSHelper
+from lib.web import generate_event_stream_message
 
 default_key_path = configure.get_store_path('gemini_key')
 default_key = ''
@@ -128,17 +130,17 @@ async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver:
 
     async for chunk in client.aio.models.generate_content_stream(model=config.model, contents=contents,
                                                                  config=types.GenerateContentConfig(
-                                                                         system_instruction=system
+                                                                     system_instruction=system
                                                                  )):
         chunk_message = ''
         for candidate in chunk.candidates:
             chunk_message = process_content(candidate.content)
 
         collected_messages.append(chunk_message)
-        yield json.dumps({
-            "status": 'stream',
-            "message": chunk_message
-        }) + "\n"
+        yield generate_event_stream_message(
+            'stream',
+            chunk_message)
+        await asyncio.sleep(0.01)
 
     from lib.llm.llm_common import messages_dump
     messages_dump(messages, ''.join(collected_messages))

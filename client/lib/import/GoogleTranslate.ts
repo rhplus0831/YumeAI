@@ -4,7 +4,7 @@
 
 import {UsePendingAlertReturn} from "@/components/ui/PendingAlert/usePendingAlert";
 
-export async function googleTranslate(text: string, props: UsePendingAlertReturn, streamingReceiver?: (data: unknown) => void) {
+export async function googleTranslate(text: string, props: UsePendingAlertReturn, streamingReceiver?: (message: string) => void) {
     const messages = text.split("\n")
 
     const throwError = (props: UsePendingAlertReturn, detail: string = "") => {
@@ -28,9 +28,7 @@ export async function googleTranslate(text: string, props: UsePendingAlertReturn
             const index = messages.indexOf(message);
             updateStatus(index)
             const translated = await translateLine('auto', 'ko', message)
-            streamingReceiver?.({
-                "message": translated + '\n'
-            })
+            streamingReceiver?.(translated)
         }
     } catch (err: unknown) {
         console.log(err)

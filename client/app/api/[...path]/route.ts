@@ -38,12 +38,8 @@ async function handleProxy(req: NextRequest, params: { path: string[] }) {
         // 백엔드 서버로 요청 전송
         const backendResponse = await fetch(targetURL, fetchOptions);
 
-        // 스트리밍 처리
-        const { readable, writable } = new TransformStream();
-        backendResponse.body?.pipeTo(writable); // 백엔드의 응답을 그대로 연결
-
         // 스트리밍 데이터를 클라이언트로 전달
-        return new NextResponse(readable, {
+        return new NextResponse(backendResponse.body, {
             status: backendResponse.status,
             headers: backendResponse.headers, // 백엔드 헤더를 그대로 전달
         });

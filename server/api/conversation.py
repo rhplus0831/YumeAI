@@ -1,5 +1,4 @@
 import datetime
-import json
 import os
 from typing import Sequence
 
@@ -12,23 +11,24 @@ from starlette.responses import StreamingResponse
 import configure
 from api import common
 from api.common import ClientErrorException
-from lib.cbs import CBSHelper
-from lib.prompt import parse_prompt
 from database.sql_model import ConversationBase, Room, Conversation, Summary
-from lib.llm import llm_common
+from lib.cbs import CBSHelper
 from lib.filter import apply_filter
+from lib.llm import llm_common
+from lib.prompt import parse_prompt
 from lib.summary import summarize_conversation, need_summarize, summarize, get_re_summaries, get_summaries
+from lib.web import generate_event_stream_message
 
 engine: Engine
 room_not_exist_model: BaseModel | None = None
 
 
 def generate_error(msg: str):
-    return json.dumps({"status": 'error', "message": msg}) + '\n'
+    return generate_event_stream_message('error', msg)
 
 
 def generate_progress(msg: str):
-    return json.dumps({"status": 'progress', 'message': msg}) + '\n'
+    return generate_event_stream_message('progress', msg)
 
 
 class ConversationsResponse(BaseModel):
@@ -161,7 +161,7 @@ def register(router: APIRouter):
             session.commit()
             session.refresh(conversation)
 
-            yield conversation.model_dump_json() + '\n'
+            yield generate_event_stream_message('complete', conversation.model_dump_json())
         finally:
             session.close()
 
@@ -215,10 +215,7 @@ def register(router: APIRouter):
                     yield value
 
             yield generate_progress('봇의 메시지를 번역하는중...')
-            yield json.dumps({
-                'status': 'stream',
-                'message': 'yume||switch'
-            }) + '\n'
+            yield generate_event_stream_message('stream', 'yume||switch')
 
             assistant_response = ''
 
@@ -233,13 +230,14 @@ def register(router: APIRouter):
                 yield value
 
             conversation.user_message_translated = apply_filter(room, 'translate', user_response)
-            conversation.assistant_message_translated = "<COT>" + cot + "</COT>" + apply_filter(room, 'translate', assistant_response)
+            conversation.assistant_message_translated = "<COT>" + cot + "</COT>" + apply_filter(room, 'translate',
+                                                                                                assistant_response)
 
             session.add(conversation)
             session.commit()
             session.refresh(conversation)
 
-            yield conversation.model_dump_json() + '\n'
+            yield generate_event_stream_message('complete', conversation.model_dump_json())
         finally:
             session.close()
 
@@ -305,7 +303,8 @@ def register(router: APIRouter):
             for conversation in conversations:
                 if not conversation.user_message:
                     raise Exception("First message can't be re-rolled")
-                message_argument = SendMessageArgument(text=conversation.user_message, active_toggles=argument.active_toggles)
+                message_argument = SendMessageArgument(text=conversation.user_message,
+                                                       active_toggles=argument.active_toggles)
                 session.delete(conversation)
                 session.commit()
         except:

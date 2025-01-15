@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from dataclasses import dataclass, asdict
@@ -7,9 +8,9 @@ from openai import AsyncOpenAI
 
 import configure
 import lib.prompt
-from api import prompt
 from database.sql_model import Prompt
 from lib.cbs import CBSHelper
+from lib.web import generate_event_stream_message
 
 # Add prefix for prevent conflict with library
 
@@ -98,10 +99,8 @@ async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver:
     async for chunk in response:
         chunk_message = chunk.choices[0].delta.content or ""
         collected_messages.append(chunk_message)
-        yield json.dumps({
-            "status": 'stream',
-            "message": chunk_message
-        }) + "\n"
+        yield generate_event_stream_message('stream', chunk_message)
+        await asyncio.sleep(0.01)
 
     from lib.llm.llm_common import messages_dump
     messages_dump(messages, ''.join(collected_messages))

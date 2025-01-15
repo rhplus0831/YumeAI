@@ -1,6 +1,6 @@
 export function buildAPILink(pathname: string) {
     if (typeof window !== 'undefined') {
-        return `/api/${pathname}`
+        //return `/api/${pathname}`
     }
 
     return `http://127.0.0.1:39831/${pathname}` //TODO: Improve this placeholder.

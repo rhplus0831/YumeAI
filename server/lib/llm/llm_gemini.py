@@ -123,10 +123,7 @@ async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver:
     # TODO: Better COT Model Check
     if 'thinking' in config.model:
         collected_messages.append('<COT>')
-        yield json.dumps({
-            "status": 'stream',
-            "message": '<COT>'
-        }) + "\n"
+        yield generate_event_stream_message('stream', '<COT>')
 
     async for chunk in client.aio.models.generate_content_stream(model=config.model, contents=contents,
                                                                  config=types.GenerateContentConfig(

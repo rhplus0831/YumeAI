@@ -18,7 +18,8 @@ export default function SelectablePromptCardWithModal({prompt, displayName = "í”
 
     return (<>
         <SelectablePromptCard prompt={prompt} onSelect={async () => {
-            setPrompts(await getPrompts(useAll ? "all" : filterType))
+            setUseAll(false)
+            setPrompts(await getPrompts(filterType))
             disclosure.onOpen()
         }}/>
         <BaseSelectModal disclosure={disclosure} displayName={displayName} datas={prompts}

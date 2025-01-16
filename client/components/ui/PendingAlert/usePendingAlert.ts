@@ -49,20 +49,19 @@ function splitStream(separator: string) {
 
 function parseEvent(message: string) {
     const event: Record<string, string> = {};
-    const lines = message.trim().split('\n');
+    const lines = message.split('\n');
     for (const line of lines) {
         const spliter = line.indexOf(':');
         if(spliter === -1) {
             continue;
         }
         const key = line.slice(0, spliter).trim();
-        const value = line.slice(spliter + 1).trim().replaceAll("__YUME_LINE__", "\n");
+        const value = line.slice(spliter + 2).replaceAll("__YUME_LINE__", "\n");
 
         if (key && value) {
             event[key] = value;
         }
     }
-    // console.log(event)
     return event;
 }
 

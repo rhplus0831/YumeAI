@@ -80,6 +80,9 @@ def process_content(content) -> [str, bool]:
         result = content.parts[0].text or ""
         result += "</COT>"
         result += content.parts[1].text or ""
+    elif isinstance(content.parts[0].thought, bool) and not content.parts[0].thought:
+        result = "</COT>"
+        result += content.parts[0].text or ""
     else:
         result = content.parts[0].text or ""
 
@@ -97,7 +100,6 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
     response = await client.aio.models.generate_content(model=config.model, contents=contents,
                                                         config=types.GenerateContentConfig(
                                                             system_instruction=system
-
                                                         ))
 
     from lib.llm.llm_common import messages_dump

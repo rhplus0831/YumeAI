@@ -23,7 +23,11 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ path: 
 
 async function handleProxy(req: NextRequest, params: { path: string[] }) {
     const path = params.path.join('/'); // 경로를 만들어냄 (ex: /api/example/test => example/test)
-    const targetURL = buildAPILink(path); // 백엔드 서버로 포워드할 URL
+
+    const url = new URL(req.url);
+    const queryString = url.search;
+
+    const targetURL = buildAPILink(`${path}${queryString}`); // 백엔드 서버로 포워드할 URL
     const fetchOptions: RequestInit = {
         method: req.method || 'GET', // 요청 메서드 그대로 사용
         headers: {

@@ -1,10 +1,10 @@
 "use client";
 
-import {useMemo, useState} from "react";
-import {Input} from "@nextui-org/input";
+import {useState} from "react";
 import {Button, ButtonGroup, CircularProgress} from "@nextui-org/react";
 import {MdCheck, MdOutlineCancel} from "react-icons/md";
 import ErrorPopover from "@/components/ui/ErrorPopover";
+import {Input} from "@nextui-org/input";
 
 export default function SubmitSpan({value, label, placeholder, submit}: {
     value: string,
@@ -41,7 +41,7 @@ export default function SubmitSpan({value, label, placeholder, submit}: {
     </ButtonGroup>
 
     function getPlaceholder() {
-        if(placeholder) return placeholder;
+        if (placeholder) return placeholder;
 
         return "비어 있음..."
     }
@@ -53,17 +53,18 @@ export default function SubmitSpan({value, label, placeholder, submit}: {
 
     return (<ErrorPopover errorMessage={errorMessage}>
         {inEdit ?
-            <div className={"flex flex-row"}>
+            <div>
                 {/*클릭했을때 바로 나오는 항목이기 때문에, 이 항목은 autoFocus를 쓰는게 유저 경험상 더 바람직함*/}
                 {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
-                <Input className={"flex-1"} disabled={inSubmit} size={"sm"} autoFocus value={internalValue}
+                <Input className={"w-full"} disabled={inSubmit} autoFocus size={"sm"} defaultValue={internalValue}
                        label={label}
-                       onChange={(event) => {
-                           setInternalValue(event.target.value)
+                       onValueChange={(value) => {
+                           setInternalValue(value)
                        }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}/>
             </div>
             :
-            <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing} onTouchStart={startEditing}>
+            <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing}
+                    onTouchStart={startEditing}>
                 <span className={"text-xs"}>{label}</span>
                 <span className={value ? '' : 'text-gray-400 italic'}>{value ? value : getPlaceholder()}</span>
             </button>

@@ -12,6 +12,8 @@ export default function ErrorPopover({errorMessage, children}: { errorMessage: s
         }
     }, [errorMessage])
 
+    if (!isOpen) return children
+
     return (<Popover shouldBlockScroll={false} shouldCloseOnScroll={true} shouldCloseOnBlur={true} showArrow size={"lg"}
                      color={"danger"} isOpen={isOpen} onOpenChange={(open) => {
         if (!open) {

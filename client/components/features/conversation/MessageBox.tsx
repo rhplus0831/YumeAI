@@ -10,16 +10,16 @@ export default function MessageBox({message, name, profileImageId, extraNode}: {
 }) {
     return <article className={"flex flex-row gap-2"}>
         <YumeAvatar className={"min-w-[40px] min-h-[40px]"} src={buildImageLink(profileImageId, "avatar")}/>
-        <div className={`flex flex-col gap-1`}>
+        <div className={`flex flex-col gap-2`}>
             <div className={"flex flex-row gap-2 items-center"}>
                 <span>{name}</span>
                 {extraNode}
             </div>
-            <Card className={'w-fit'}>
+            {message.split("\n\n").map((line, index) => (line.trim() !== "" && <Card key={index} className={'w-fit'}>
                 <CardBody>
-                    <p className={"whitespace-pre-wrap"}>{message.trim()}</p>
+                    <p className={"whitespace-pre-wrap"}>{line}</p>
                 </CardBody>
-            </Card>
+            </Card>))}
         </div>
     </article>
 }

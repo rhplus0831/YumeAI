@@ -43,6 +43,12 @@ export async function putRoom(id: number, data: {}): Promise<Room> {
     })
 }
 
+export async function deleteRoom(id: number): Promise<Room> {
+    return await api(`room/${id}`, {
+        method: 'DELETE'
+    })
+}
+
 export async function getConversations(room: Room): Promise<Conversation[]> {
     return await api(`room/${room.id}/conversation`, {
         method: 'GET'

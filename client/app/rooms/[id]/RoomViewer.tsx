@@ -1,6 +1,6 @@
 "use client";
 
-import Room, {putRoom} from "@/lib/data/Room";
+import Room, {deleteRoom, putRoom} from "@/lib/data/Room";
 import YumeMenu from "@/components/MenuPortal";
 import {Divider, SelectItem} from "@nextui-org/react";
 import {useState} from "react";
@@ -12,8 +12,12 @@ import AsyncProgressSelect from "@/components/ui/AsyncProgressSelect";
 import ConversationList from "@/components/features/conversation/ConversationList";
 import PromptToggleSelect from "@/components/features/prompt/toggle/PromptToggleSelect";
 import AsyncProgressCheckbox from "@/components/ui/AsyncProgressCheckbox";
+import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
+import {useRouter} from "next/navigation";
 
 export default function RoomViewer({startRoom}: { startRoom: Room }) {
+    const router = useRouter()
+
     const [room, setRoom] = useState<Room>(startRoom)
     const [checkedToggles, setCheckedToggles] = useState("")
 
@@ -34,7 +38,7 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                 <SelectablePromptCardWithModal onSelect={async (prompt) => {
                     setRoom(await putRoom(room.id, {"prompt_id": prompt.id}))
                 }} filterType={"chat"} prompt={room.prompt}/>
-                {room.prompt && <PromptToggleSelect prompt={room.prompt} setCheckedToggles={setCheckedToggles} />}
+                {room.prompt && <PromptToggleSelect prompt={room.prompt} setCheckedToggles={setCheckedToggles}/>}
                 <span>요약용 프롬프트</span>
                 <SelectablePromptCardWithModal onSelect={async (prompt) => {
                     setRoom(await putRoom(room.id, {"summary_prompt_id": prompt.id}))
@@ -52,9 +56,10 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                     <SelectItem key={"google"}>구글</SelectItem>
                     <SelectItem key={"prompt"}>프롬프트</SelectItem>
                 </AsyncProgressSelect>
-                {room.translate_method && <AsyncProgressCheckbox isSelected={room.translate_only_assistant} onValueChangeAsync={async (value) => {
-                    setRoom(await putRoom(room.id, {"translate_only_assistant": value}))
-                }}>
+                {room.translate_method && <AsyncProgressCheckbox isSelected={room.translate_only_assistant}
+                                                                 onValueChangeAsync={async (value) => {
+                                                                     setRoom(await putRoom(room.id, {"translate_only_assistant": value}))
+                                                                 }}>
                     봇의 메시지만 번역하기
                 </AsyncProgressCheckbox>}
                 {
@@ -65,6 +70,10 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                         }} filterType={"translate"} prompt={room.translate_prompt}/>
                     </>
                 }
+                <DeleteConfirmButton className={"mt-10"} confirmCount={5} onConfirmed={async () => {
+                    await deleteRoom(room.id)
+                    router.replace("/rooms")
+                }}/>
             </div>
         </YumeMenu>
         <ConversationList room={room} checkedToggles={checkedToggles}/>

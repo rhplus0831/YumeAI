@@ -46,6 +46,11 @@ export default function SubmitSpan({value, label, placeholder, submit}: {
         return "비어 있음..."
     }
 
+    function startEditing() {
+        setInternalValue(value)
+        setInEdit(true)
+    }
+
     return (<ErrorPopover errorMessage={errorMessage}>
         {inEdit ?
             <div className={"flex flex-row"}>
@@ -58,10 +63,7 @@ export default function SubmitSpan({value, label, placeholder, submit}: {
                        }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}/>
             </div>
             :
-            <button className={"flex flex-col cursor-text text-left"} onClick={() => {
-                setInternalValue(value)
-                setInEdit(true)
-            }}>
+            <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing} onTouchStart={startEditing}>
                 <span className={"text-xs"}>{label}</span>
                 <span className={value ? '' : 'text-gray-400 italic'}>{value ? value : getPlaceholder()}</span>
             </button>

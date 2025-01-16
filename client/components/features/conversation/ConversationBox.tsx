@@ -224,7 +224,7 @@ export default function ConversationBox({
 
     const splitAssistantMessage = () => {
         const message = getAssistantMessage()
-        if (!message.startsWith("<COT>")) return ["", message];
+        if (!message.startsWith("<COT>") || !message.includes('</COT>')) return ["", message];
         const [cot, content] = message.split("</COT>")
         return [cot.slice(5), content]
     }

@@ -26,10 +26,12 @@ import {useMenuPortal} from "@/components/MenuPortal";
 import {useState} from "react";
 import {useRouter} from "next/navigation";
 import {RiChatAiFill} from "react-icons/ri";
+import {useCustomNavPortal} from "@/components/CustomNavPortal";
 
 export const Navbar = () => {
     const drawerClosure = useDisclosure()
     const {menuContent, setMenuContent} = useMenuPortal();
+    const {customNavContent, setCustomNavContent} = useCustomNavPortal();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const router = useRouter();
 
@@ -54,8 +56,12 @@ export const Navbar = () => {
                 />
                 <NavbarBrand as="li" className="gap-3 max-w-fit">
                     <NextLink className="flex justify-start items-center gap-2" href="/">
-                        <RiChatAiFill size={"24"}/>
-                        <p className="font-bold text-inherit">YumeAI</p>
+                        {customNavContent ? <div className={"flex flex-row max-w-[50vw]"}>{customNavContent}</div> :
+                            <>
+                                <RiChatAiFill size={"24"}/>
+                                <p className="font-bold text-inherit">YumeAI</p>
+                            </>
+                        }
                     </NextLink>
                 </NavbarBrand>
                 <ul className="hidden lg:flex gap-4 justify-start ml-2">

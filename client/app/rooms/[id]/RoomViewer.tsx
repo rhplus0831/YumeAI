@@ -14,6 +14,9 @@ import PromptToggleSelect from "@/components/features/prompt/toggle/PromptToggle
 import AsyncProgressCheckbox from "@/components/ui/AsyncProgressCheckbox";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {useRouter} from "next/navigation";
+import YumeCustomNav from "@/components/CustomNavPortal";
+import YumeAvatar from "@/components/ui/YumeAvatar";
+import {buildImageLink} from "@/lib/api-client";
 
 export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const router = useRouter()
@@ -22,6 +25,12 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const [checkedToggles, setCheckedToggles] = useState("")
 
     return (<>
+        <YumeCustomNav>
+            {room.bot ? <div className={"flex flex-row gap-2 items-center w-full"}>
+                <YumeAvatar className={"flex-0"} src={buildImageLink(room.bot.profileImageId, "avatar")} />
+                <span className={"flex-1 overflow-hidden overflow-ellipsis"}>{room.bot.displayName ?? room.bot.name}</span>
+            </div> : undefined}
+        </YumeCustomNav>
         <YumeMenu>
             <div className={"flex flex-col p-2 gap-1"}>
                 <span className={"text-lg"}>{room.name}</span>

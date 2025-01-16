@@ -8,7 +8,7 @@ import {buildAPILink} from "@/lib/api-client";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {Textarea} from "@nextui-org/input";
 import Filter from "@/lib/data/Filter";
-import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
+import FirstMessageSelectButtonWithModal from "@/components/features/firstMessage/FirstMessageSelectButtonWithModal";
 
 export default function ConversationList({room, checkedToggles}: {
     room: Room,
@@ -134,9 +134,11 @@ export default function ConversationList({room, checkedToggles}: {
         </section>
         <div className={"flex-0 flex flex-col gap-2 pb-2"}>
             <PendingAlert {...pendingAlertProps}/>
-            {isCanImportFirstMessage() && <AsyncProgressButton className={"w-full"} onPressAsync={async () => {
-                setConversations([await applyFirstMessage(room.id)])
-            }}>첫 메시지 적용하기</AsyncProgressButton>}
+            {(room.bot && isCanImportFirstMessage()) &&
+                <FirstMessageSelectButtonWithModal rawFirstMessage={room.bot.first_message}
+                                                   applyFirstMessage={async (firstMessage) => {
+                                                       setConversations([await applyFirstMessage(room.id, firstMessage.message)])
+                                                   }}/>}
             <div className={"flex flex-row w-full gap-2"}>
                 <Textarea className={"flex-1"} minRows={1} maxRows={9999} size={"sm"} value={userMessage}
                           onChange={(e) => setUserMessage(e.target.value)}/>

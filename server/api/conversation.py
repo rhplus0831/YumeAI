@@ -258,7 +258,7 @@ def register(router: APIRouter):
         })
 
     @router.post("/{id}/conversation/apply_first_message")
-    async def apply_first_message(id: int):
+    async def apply_first_message(argument: SingleTextArgument, id: int):
         with Session(engine) as session:
             room = get_room_or_404(id, session=session)
             if not room.bot.first_message:
@@ -280,7 +280,7 @@ def register(router: APIRouter):
             cbs = CBSHelper()
             cbs.user = room.persona.name
             cbs.char = room.bot.name
-            conversation.assistant_message, _ = parse_prompt(room.bot.first_message, cbs)
+            conversation.assistant_message, _ = parse_prompt(argument.text, cbs)
             conversation.room_id = room.id
             conversation.created_at = datetime.datetime.now()
 

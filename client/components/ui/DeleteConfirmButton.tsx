@@ -26,6 +26,7 @@ export default function DeleteConfirmButton(props: DeleteConfirmButtonProps) {
                         return
                     }
                     onConfirmed?.()
+                    setConfirm(0)
                 }}>{confirm ? `확실한가요? (${confirmCount - confirm}번 남음)` : "삭제"}</Button>
     )
 }

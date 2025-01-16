@@ -55,8 +55,11 @@ export async function getConversations(room: Room): Promise<Conversation[]> {
     })
 }
 
-export async function applyFirstMessage(id: number): Promise<Conversation> {
+export async function applyFirstMessage(id: number, text: string): Promise<Conversation> {
     return await api(`room/${id}/conversation/apply_first_message`, {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({
+            "text": text,
+        })
     })
 }

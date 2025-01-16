@@ -17,7 +17,7 @@ export default function MessageBox({message, name, profileImageId, extraNode}: {
             </div>
             <Card className={'w-fit'}>
                 <CardBody>
-                    <p className={"whitespace-pre-wrap"}>{message}</p>
+                    <p className={"whitespace-pre-wrap"}>{message.trim()}</p>
                 </CardBody>
             </Card>
         </div>

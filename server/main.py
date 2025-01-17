@@ -73,10 +73,8 @@ with open(password_file, "r") as f:
 
 class AuthorizationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        print(request.cookies)
         if request.url.path != "/login":
             auth_header = request.cookies.get("auth_token")
-            print(auth_header)
             if not auth_header:
                 return JSONResponse(status_code=401, content={"detail": "Authorization header is missing or invalid"})
 

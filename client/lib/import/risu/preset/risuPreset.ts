@@ -2,7 +2,7 @@
 // Copyright (C) 2024 Kwaroran. Licensed under the GNU General Public License v3.0.
 // Modifications Made by RH+ on 2025-01-13 for Change to fit with YumeAI
 
-import LoadedFile from "@/lib/data/LoadedFile";
+import LoadedFile from "@/lib/LoadedFile";
 import {decodeRPack} from "@/lib/import/rpack/rpack_bg";
 import * as fflate from "fflate";
 import {decode as decodeMsgpack} from "msgpackr";
@@ -129,6 +129,7 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
         prompt: prompt,
         filters: '',
         toggles: pre.customPromptTemplateToggle ?? '',
+        use_stream: false,
         id: -1
     }
 

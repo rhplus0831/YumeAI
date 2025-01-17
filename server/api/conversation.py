@@ -155,9 +155,12 @@ def register(router: APIRouter):
             conversation.user_message = user_new_message
             conversation.assistant_message = apply_filter(room, 'output', bot_response)
             conversation.room_id = room.id
+
             conversation.created_at = datetime.datetime.now()
+            room.last_message_time = datetime.datetime.now()
 
             session.add(conversation)
+            session.add(room)
             session.commit()
             session.refresh(conversation)
 

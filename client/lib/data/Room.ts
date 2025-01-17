@@ -2,7 +2,7 @@ import BaseData from "./BaseData"
 import Bot from "@/lib/data/bot/Bot";
 import Persona from "@/lib/data/Persona";
 import Prompt from "@/lib/data/Prompt";
-import {api, buildAPILink} from "@/lib/api-client";
+import {api} from "@/lib/api-client";
 import Conversation from "@/lib/data/Conversation";
 
 export default interface Room extends BaseData {
@@ -15,6 +15,7 @@ export default interface Room extends BaseData {
     translate_method: string | undefined
     translate_prompt: Prompt | undefined
     translate_only_assistant: boolean
+    last_message_time: Date | undefined
 }
 
 export async function createRoom(name: string): Promise<Room> {

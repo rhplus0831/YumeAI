@@ -93,7 +93,8 @@ app.add_middleware(AuthorizationMiddleware)
 room.engine = engine
 room.room_not_exist_model = common.insert_crud(room.router, RoomBase, Room, RoomUpdate, engine,
                                                handle_delete_side_effect=room.room_delete_side_effect,
-                                               get_model=RoomGet)
+                                               get_model=RoomGet, skip_get_list=True)
+room.register()
 
 conversation.engine = engine
 conversation.room_not_exist_model = room.room_not_exist_model

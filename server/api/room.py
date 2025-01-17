@@ -1,9 +1,11 @@
-from typing import Optional
+import datetime
+from typing import Optional, Sequence
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi.params import Query, Depends
+from pydantic import BaseModel, create_model
 from sqlalchemy import Engine
-from sqlmodel import Session, select
+from sqlmodel import Session, select, desc
 
 from api import common
 from database.sql_model import RoomBase, Room, Conversation, Bot, Persona, Prompt, Summary
@@ -24,6 +26,7 @@ class RoomUpdate(BaseModel):
     translate_prompt_id: int | None = None
     translate_only_assistant: bool | None = None
     filters: str | None = None
+    last_message_time: datetime.datetime | None = None
 
 
 class RoomGet(BaseModel):
@@ -38,6 +41,8 @@ class RoomGet(BaseModel):
     translate_prompt: Optional[Prompt] = None
     translate_only_assistant: bool
     filters: Optional[str] = None
+
+    last_message_time: datetime.datetime | None = None
 
 
 common.validate_update_model(RoomBase, RoomUpdate)
@@ -54,3 +59,25 @@ def room_delete_side_effect(session: Session, room: Room):
         session.delete(summary)
 
     session.commit()
+
+
+def register():
+    data_name = Room.__name__
+    lower_name = data_name.lower()
+    list_data = {
+        f'{lower_name}s': (Sequence[RoomGet], None)
+    }
+    list_model = create_model(f'{data_name}List', **list_data)
+
+    def get_session():
+        with Session(engine) as session:
+            yield session
+
+    @router.get("/", responses={200: {'model': list_model}, 404: {'model': room_not_exist_model}})
+    def gets(offset: int = 0, limit: int = Query(default=100, le=100), session: Session = Depends(get_session)) -> Sequence[
+        RoomGet]:
+        rooms = session.exec(
+            select(Room).order_by(desc(Room.last_message_time)).offset(offset).limit(limit)
+        ).all()
+
+        return rooms

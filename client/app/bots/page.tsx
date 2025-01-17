@@ -1,6 +1,6 @@
 import {PersonaBox} from "@/components/features/persona/PersonaBox";
 import NavigateButton from "@/components/ui/NavigateButton";
-import {getBots} from "@/lib/data/Bot";
+import {getBots} from "@/lib/data/bot/Bot";
 import BotCreateButton from "@/components/features/bot/BotCreateButton";
 
 export const dynamic = 'force-dynamic'

@@ -1,5 +1,5 @@
 import Conversation from "@/lib/data/Conversation";
-import ConversationBox from "@/components/features/conversation/ConversationBox";
+import ConversationBox from "@/components/features/room/conversation/ConversationBox";
 import Room, {applyFirstMessage, getConversations} from "@/lib/data/Room";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {Button, CircularProgress} from "@nextui-org/react";
@@ -8,7 +8,8 @@ import {buildAPILink} from "@/lib/api-client";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {Textarea} from "@nextui-org/input";
 import Filter from "@/lib/data/Filter";
-import FirstMessageSelectButtonWithModal from "@/components/features/firstMessage/FirstMessageSelectButtonWithModal";
+import FirstMessageSelectButtonWithModal from "@/components/features/bot/firstMessage/FirstMessageSelectButtonWithModal";
+import ImageAsset from "@/lib/data/bot/ImageAsset";
 
 export default function ConversationList({room, checkedToggles}: {
     room: Room,
@@ -18,13 +19,26 @@ export default function ConversationList({room, checkedToggles}: {
     const [conversations, setConversations] = useState<Conversation[]>([])
 
     let [filters, setFilters] = useState<Filter[]>([])
+    let [imageAssets, setImageAssets] = useState<ImageAsset[]>([])
     useEffect(() => {
         if (!room) return
         let making: Filter[] = []
         if (room.prompt?.filters) {
-            making = making.concat(JSON.parse(room.prompt.filters))
+            try {
+                making = making.concat(JSON.parse(room.prompt.filters))
+            } catch {
+
+            }
         }
         setFilters(making)
+
+        if(room.bot?.image_assets) {
+            try {
+                setImageAssets(JSON.parse(room.bot.image_assets))
+            } catch {
+                setImageAssets([])
+            }
+        }
     }, [room])
 
     const updateConversation = (conversation: Conversation) => {
@@ -121,6 +135,7 @@ export default function ConversationList({room, checkedToggles}: {
                 removeConversation={removeConversation}
                 isLast={index === conversations.length - 1}
                 filters={filters}
+                imageAssets={imageAssets}
                 checkedToggles={checkedToggles}
             />
         ));

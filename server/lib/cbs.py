@@ -10,6 +10,8 @@ def yume_cutter_check(text: str) -> [str, bool]:
         return text[8:], True
     if text.startswith("YUMECut"):
         return '', True
+    if text.startswith("YUMEMismatch "):
+        return '{{' + text[13:] + '}}', True
 
     return text, False
 

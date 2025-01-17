@@ -1,9 +1,9 @@
 import YumeAvatar from "@/components/ui/YumeAvatar";
 import {buildImageLink} from "@/lib/api-client";
-import {Card, CardBody} from "@nextui-org/card";
+import {ReactNode} from "react";
 
 export default function MessageBox({message, name, profileImageId, extraNode}: {
-    message: string,
+    message: ReactNode,
     name: string | undefined,
     profileImageId: string | undefined,
     extraNode?: React.ReactNode
@@ -15,11 +15,7 @@ export default function MessageBox({message, name, profileImageId, extraNode}: {
                 <span>{name}</span>
                 {extraNode}
             </div>
-            {message.split("\n\n").map((line, index) => (line.trim() !== "" && <Card key={index} className={'w-fit'}>
-                <CardBody>
-                    <p className={"whitespace-pre-wrap"}>{line}</p>
-                </CardBody>
-            </Card>))}
+            {message}
         </div>
     </article>
 }

@@ -32,6 +32,8 @@ def parse_tag(text: str, check: Callable[[str], [[str, bool]]], start_word: str,
             processed_content, found = check(content)
             if not found:
                 mismatch.append(content)
+                processed_content = f"[[YUMEMismatch {processed_content}]]"
+
             elif processed_content.strip() == '':
                 if head.endswith("\n"):
                     head = head[:-1]

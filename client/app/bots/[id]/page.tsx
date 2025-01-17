@@ -1,4 +1,4 @@
-import {getBot} from "@/lib/data/Bot";
+import {getBot} from "@/lib/data/bot/Bot";
 import BotViewer from "@/app/bots/[id]/BotViewer";
 
 interface BotPageParams {

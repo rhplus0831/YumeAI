@@ -1,5 +1,5 @@
 import BaseData from "./BaseData"
-import Bot from "@/lib/data/Bot";
+import Bot from "@/lib/data/bot/Bot";
 import Persona from "@/lib/data/Persona";
 import Prompt from "@/lib/data/Prompt";
 import {api, buildAPILink} from "@/lib/api-client";

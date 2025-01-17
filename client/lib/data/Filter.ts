@@ -34,6 +34,5 @@ export function ApplyFilter(filters: Filter[], types: string[], text: string) {
 
         building = dynamicRegexReplace(building, filter.regex, filter.replace)
     })
-    console.log(`Filtered: ${text} -> ${building}`)
     return building.trim()
 }

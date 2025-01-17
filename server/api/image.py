@@ -61,6 +61,8 @@ async def read_image(file_id: str, size: str) -> FileResponse:
         number_size = 100
         if size == "avatar":
             number_size = 100
+        if size == "display":
+            number_size = 1024
 
         resized_file_path = file_path + f"_{size}"
         if not os.path.exists(resized_file_path):

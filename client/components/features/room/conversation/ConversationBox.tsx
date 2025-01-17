@@ -1,17 +1,19 @@
 import Conversation from "@/lib/data/Conversation";
-import MessageBox from "@/components/features/conversation/MessageBox";
+import MessageBox from "@/components/features/room/conversation/MessageBox";
 import Room from "@/lib/data/Room";
 import Filter, {ApplyFilter} from "@/lib/data/Filter";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {pendingFetch, usePendingAlert} from "@/components/ui/PendingAlert/usePendingAlert";
 import {useEffect, useRef, useState} from "react";
 import {googleTranslate} from "@/lib/import/GoogleTranslate";
-import {buildAPILink} from "@/lib/api-client";
-import {Button, ButtonGroup} from "@nextui-org/react";
+import {buildAPILink, buildImageLink} from "@/lib/api-client";
+import {Button, ButtonGroup, Chip} from "@nextui-org/react";
 import {MdModeEdit, MdOutlineCancel, MdOutlineCheck, MdOutlineTranslate, MdRepeat} from "react-icons/md";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {Textarea} from "@nextui-org/input";
 import {HiOutlineChatBubbleOvalLeftEllipsis} from "react-icons/hi2";
+import {Card, CardBody} from "@nextui-org/card";
+import ImageAsset from "@/lib/data/bot/ImageAsset";
 
 export default function ConversationBox({
                                             room,
@@ -20,6 +22,7 @@ export default function ConversationBox({
                                             removeConversation,
                                             isLast,
                                             filters,
+                                            imageAssets,
                                             checkedToggles
                                         }: {
     room: Room | null,
@@ -28,6 +31,7 @@ export default function ConversationBox({
     removeConversation: (conversation: Conversation) => void,
     isLast: boolean,
     filters: Filter[],
+    imageAssets: ImageAsset[],
     checkedToggles: string,
 }) {
     const pendingProps = usePendingAlert()
@@ -207,11 +211,63 @@ export default function ConversationBox({
         }
     }
 
+    const imgPattern = /{{img::(.*?)}}/g;
+
+    function replaceImgTag(text: string) {
+        const parts = text.split(imgPattern);
+        const result: React.ReactNode[] = [];
+
+        for (let i = 0; i < parts.length; i++) {
+            // 홀수 인덱스는 파일 이름 부분이므로 <img> 태그로 변환합니다.
+            if (i % 2 === 1) {
+                const assetName = parts[i];
+                const asset = imageAssets.find(asset => {
+                    if (asset.name === assetName) return true;
+                    const alias = asset.alias.split(",").map(alias => alias.trim())
+                    return alias.includes(assetName);
+                });
+                if (!asset) {
+                    result.push(<Chip className={"block"} key={i} size={"sm"}>{assetName} - 없는 이미지 에셋</Chip>)
+                } else {
+                    result.push(<img key={i} src={buildImageLink(asset.imageId, 'display')} alt={asset.name}/>);
+                }
+            } else {
+                // 짝수 인덱스는 일반 텍스트이므로 그대로 추가합니다.
+                result.push(<span key={i}>{parts[i].trim()}</span>);
+            }
+        }
+
+        return <>{result}</>;
+    }
+
+    function applyMessageFilter(text: string) {
+        if (true) {
+            return <div className={"flex flex-col gap-2"}>
+                {text.split("\n\n").map((line, index) => (line.trim() !== "" &&
+                    <Card key={line + index} className={'w-fit'}>
+                        <CardBody>
+                            <div className={"whitespace-pre-wrap"}>{replaceImgTag(line.trim())}</div>
+                        </CardBody>
+                    </Card>))}
+            </div>
+        } else {
+            return <Card className={'w-fit'}>
+                <CardBody>
+                    <div className={"whitespace-pre-wrap"}>{replaceImgTag(text.trim())}</div>
+                </CardBody>
+            </Card>
+        }
+    }
+
+    function transformMessage(filters: Filter[], types: string[], text: string) {
+        return applyMessageFilter(ApplyFilter(filters, types, text))
+    }
+
     const getUserMessage = () => {
         if (!room) return "";
-        if (isInTranslate && !room.translate_only_assistant) return ApplyFilter(filters, ["display", "display_final"], receivingUserMessage);
-        if (conversation.user_message_translated && isInTranslateView && !room.translate_only_assistant) return ApplyFilter(filters, ["display", "display_final"], conversation.user_message_translated);
-        if (conversation.user_message) return ApplyFilter(filters, ["display", "display_final"], conversation.user_message);
+        if (isInTranslate && !room.translate_only_assistant) return transformMessage(filters, ["display", "display_final"], receivingUserMessage);
+        if (conversation.user_message_translated && isInTranslateView && !room.translate_only_assistant) return transformMessage(filters, ["display", "display_final"], conversation.user_message_translated);
+        if (conversation.user_message) return transformMessage(filters, ["display", "display_final"], conversation.user_message);
         return "";
     }
 
@@ -224,9 +280,9 @@ export default function ConversationBox({
 
     const splitAssistantMessage = () => {
         const message = getAssistantMessage()
-        if (!message.startsWith("<COT>") || !message.includes('</COT>')) return ["", message];
+        if (!message.startsWith("<COT>") || !message.includes('</COT>')) return ["", applyMessageFilter(message)];
         const [cot, content] = message.split("</COT>")
-        return [cot.slice(5), content]
+        return [cot.slice(5), applyMessageFilter(content)]
     }
 
     const [assistantCOT, assistantContent] = splitAssistantMessage()
@@ -254,8 +310,9 @@ export default function ConversationBox({
     if (!room) return undefined
 
     return <article ref={containerRef} className={"flex flex-col gap-4"}>
-        {conversation.user_message && <MessageBox message={getUserMessage()} name={room.persona?.displayName ?? room.persona?.name}
-                                                  profileImageId={room.persona?.profileImageId}/>}
+        {conversation.user_message &&
+            <MessageBox message={getUserMessage()} name={room.persona?.displayName ?? room.persona?.name}
+                        profileImageId={room.persona?.profileImageId}/>}
         {conversation.assistant_message && <>
             {!isInSummaryView && !isInEditing &&
                 <MessageBox message={displayCOT ? assistantCOT : assistantContent}

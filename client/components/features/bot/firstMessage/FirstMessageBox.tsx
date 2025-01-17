@@ -1,4 +1,4 @@
-import FirstMessage from "@/lib/data/FirstMessage";
+import FirstMessage from "@/lib/data/bot/FirstMessage";
 
 export default function FirstMessageBox({firstMessage}: { firstMessage: FirstMessage }) {
     return (

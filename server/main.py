@@ -73,6 +73,9 @@ with open(password_file, "r") as f:
 
 class AuthorizationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith("/docs") or request.url.path.startswith("/openapi.json"):
+            return await call_next(request)
+
         if request.url.path != "/login":
             auth_header = request.cookies.get("auth_token")
             if not auth_header:

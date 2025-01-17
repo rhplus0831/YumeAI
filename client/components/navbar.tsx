@@ -24,7 +24,7 @@ import {ThemeSwitch} from "@/components/theme-switch";
 import {MdOutlineSettings} from "react-icons/md";
 import {useMenuPortal} from "@/components/MenuPortal";
 import {useState} from "react";
-import {useRouter} from "next/navigation";
+import {usePathname, useRouter} from "next/navigation";
 import {RiChatAiFill} from "react-icons/ri";
 import {useCustomNavPortal} from "@/components/CustomNavPortal";
 
@@ -34,6 +34,9 @@ export const Navbar = () => {
     const {customNavContent, setCustomNavContent} = useCustomNavPortal();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const router = useRouter();
+    const pathname = usePathname()
+
+    if(pathname === "/login") return <></>;
 
     return (<>
         <Drawer isOpen={drawerClosure.isOpen} placement={"left"} onOpenChange={drawerClosure.onOpenChange}>

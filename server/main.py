@@ -1,13 +1,16 @@
-import asyncio
-import random
+import hashlib
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from openai import BaseModel
 from sqlmodel import SQLModel
-from starlette.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
+import configure
 from api import room, persona, common, image, bot, prompt, conversation
 from api.bot import BotUpdate, BotGet
 from api.common import ClientErrorException
@@ -30,22 +33,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-# DISABLED
-# @app.middleware("http")
-async def debugging_delay(request: Request, call_next):
-    delay = random.random() * 5
-    await asyncio.sleep(delay)
-    response = await call_next(request)
-    response.headers["X-Debugging-Delay"] = str(delay)
-    return response
-
-
 @app.exception_handler(StarletteHTTPException)
 async def custom_404_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"status": "error", "message": exc.detail}
     )
+
 
 @app.exception_handler(ClientErrorException)
 async def handle_client_error(request: Request, error: ClientErrorException):
@@ -63,6 +57,37 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# TODO: Better Auth
+
+password_file = configure.get_store_path("password.txt")
+if not os.path.exists(password_file):
+    print("First run or password file is gone. Create new password file.")
+    text = input("Password : ")
+    with open(password_file, "w") as f:
+        f.write(hashlib.sha512(text.encode()).hexdigest())
+
+with open(password_file, "r") as f:
+    password = f.read()
+
+
+class AuthorizationMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        print(request.cookies)
+        if request.url.path != "/login":
+            auth_header = request.cookies.get("auth_token")
+            print(auth_header)
+            if not auth_header:
+                return JSONResponse(status_code=401, content={"detail": "Authorization header is missing or invalid"})
+
+            if auth_header != password:
+                return JSONResponse(status_code=401, content={"detail": "Invalid credentials"})
+
+        response = await call_next(request)
+        return response
+
+
+app.add_middleware(AuthorizationMiddleware)
 
 room.engine = engine
 room.room_not_exist_model = common.insert_crud(room.router, RoomBase, Room, RoomUpdate, engine,
@@ -92,3 +117,22 @@ prompt.engine = engine
 common.insert_crud(prompt.router, PromptBase, Prompt, PromptUpdate, engine, skip_get_list=True)
 prompt.register()
 app.include_router(prompt.router)
+
+
+class LoginData(BaseModel):
+    password: str  # sha512
+
+
+@app.get("/verify-self")
+def verify_self(request: Request):
+    return JSONResponse(content={}, status_code=200)
+
+
+@app.post("/login")
+def login(data: LoginData):
+    if data.password != password:
+        raise ClientErrorException(status_code=401, detail="Invalid credentials")
+
+    response = JSONResponse({"status": "ok"})
+    response.set_cookie(key="auth_token", value=data.password, httponly=True)
+    return response

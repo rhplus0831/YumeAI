@@ -27,12 +27,17 @@ async function handleProxy(req: NextRequest, params: { path: string[] }) {
     const url = new URL(req.url);
     const queryString = url.search;
 
+    // Next.js 클라이언트에서 요청된 쿠키를 가져옴
+    const cookies = req.cookies; // NextRequest의 쿠키 API 사용
+    const cookieHeader = cookies.toString(); // 쿠키를 "key=value; key2=value2" 형식으로 변환
+
     const targetURL = buildAPILink(`${path}${queryString}`); // 백엔드 서버로 포워드할 URL
     const fetchOptions: RequestInit = {
         method: req.method || 'GET', // 요청 메서드 그대로 사용
         headers: {
             // 헤더 복사 및 필요한 경우 수정
             ...Object.fromEntries(req.headers),
+            ...(cookieHeader ? { cookie: cookieHeader } : {}), // 쿠키를 추가적으로 포함 (존재하는 경우)
         },
         body: req.method !== 'GET' && req.method !== 'HEAD' ? await req.blob() : undefined,
         // GET이나 HEAD 요청은 body를 포함하지 않음

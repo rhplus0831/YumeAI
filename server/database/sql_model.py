@@ -31,6 +31,8 @@ class BotBase(SQLModel):
 
     filters: Optional[str] = Field(default=None)
 
+    image_assets: Optional[str] = Field(default=None)
+
 
 class Bot(BotBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

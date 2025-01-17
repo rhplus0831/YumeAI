@@ -1,9 +1,9 @@
-from typing import Optional, List
+from typing import Optional
 
 from fastapi import APIRouter, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import Engine
-from sqlmodel import Session, Field
+from sqlmodel import Session
 
 from api import common, image
 from database.sql_model import BotBase, Bot
@@ -21,6 +21,7 @@ class BotUpdate(BaseModel):
     prompt: str | None = None
     first_message: str | None = None
     filters: str | None = None
+    image_assets: str | None = None
 
 
 class BotGet(BaseModel):
@@ -31,6 +32,7 @@ class BotGet(BaseModel):
     prompt: str
     first_message: Optional[str] = None
     filters: Optional[str] = None
+    image_assets: Optional[str] = None
 
 
 common.validate_update_model(BotBase, BotUpdate)

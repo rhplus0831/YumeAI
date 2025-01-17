@@ -11,12 +11,16 @@ export default function FirstMessageSelectButtonWithModal({rawFirstMessage, appl
     const [firstMessages, setFirstMessages] = useState<FirstMessage[]>([])
 
     useEffect(() => {
-        setFirstMessages(JSON.parse(rawFirstMessage))
+        try {
+            setFirstMessages(JSON.parse(rawFirstMessage))
+        } catch {
+            setFirstMessages([])
+        }
     }, [rawFirstMessage])
 
     const disclosure = useDisclosure()
     return <>
-        <Button onPress={disclosure.onOpen}>첫 메시지 적용하기</Button>
+        <Button isDisabled={rawFirstMessage.length === 0} onPress={disclosure.onOpen}>첫 메시지 적용하기</Button>
         <BaseSelectModal disclosure={disclosure} displayName={'첫 메시지'}
                          generateBox={(firstMessage) => (<FirstMessageBox firstMessage={firstMessage}/>)}
                          datas={firstMessages} onSelect={async (firstMessage) => {

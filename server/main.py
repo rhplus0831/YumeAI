@@ -106,7 +106,7 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         if auth_id in engines:
             request.state.db = engines[auth_id]
         else:
-            engine = get_engine(configure.get_store_path(f"{auth_id}/yumeAI.db"))
+            engine = get_engine(configure.get_fast_store_path(f"{auth_id}/yumeAI.db"))
             engines[auth_id] = engine
             request.state.db = engine
 

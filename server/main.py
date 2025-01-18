@@ -62,7 +62,7 @@ def get_password(username: str):
     if username in passwords:
         password = passwords[username]
     else:
-        path = configure.get_store_path(f"{username}/password")
+        path = configure.get_fast_store_path(f"{username}/password")
         if not os.path.exists(path):
             return 'INVALID'
         with open(path, "r") as f:
@@ -176,10 +176,11 @@ def register(data: LoginData):
     if not check_id_valid(data.username):
         raise ClientErrorException(status_code=400, detail="Username is invalid")
 
-    path = configure.get_store_path(f"{data.username}/password")
+    path = configure.get_fast_store_path(f"{data.username}/password")
     if os.path.exists(path):
         raise ClientErrorException(status_code=409, detail="Username already exists")
 
+    os.makedirs(configure.get_fast_store_path(f"{data.username}"), exist_ok=True)
     os.makedirs(configure.get_store_path(f"{data.username}"), exist_ok=True)
 
     with open(path, "w") as f:

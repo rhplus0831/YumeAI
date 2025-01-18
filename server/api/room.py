@@ -2,14 +2,16 @@ import datetime
 from typing import Optional, Sequence
 
 from fastapi import APIRouter
-from fastapi.params import Query, Depends
+from fastapi.params import Query
 from pydantic import BaseModel, create_model
 from sqlalchemy import Engine
 from sqlmodel import Session, select, desc
+from starlette.responses import JSONResponse
 
 from api import common
-from api.common import EngineDependency, SessionDependency
+from api.common import SessionDependency, UsernameDependency
 from database.sql_model import RoomBase, Room, Conversation, Bot, Persona, Prompt, Summary
+from lib.backup.exporter import DataExporter
 
 router = APIRouter(prefix="/room", tags=["room"])
 engine: Engine
@@ -82,3 +84,12 @@ def register():
         ).all()
 
         return rooms
+
+    @router.post("/{id}/export")
+    def export(session: SessionDependency, username: UsernameDependency, id: str):
+        room = common.get_or_404(Room, session, id)
+        exporter = DataExporter(session, username)
+        exporter.export_room(room)
+        exporter.finish()
+
+        return JSONResponse({"uuid": exporter.uuid})

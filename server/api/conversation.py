@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Sequence
+from typing import Sequence, Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -64,7 +64,7 @@ def register(router: APIRouter):
     with open(key_path, 'r', encoding='utf-8') as f:
         key = f.read().strip()
 
-    async def send_message_streamer(argument: SendMessageArgument, room: Room, session: Session):
+    async def send_message_streamer(argument: SendMessageArgument, room: Room, session: Session, custom_conversation_id: Optional[str] = None):
         try:
             if room.prompt is None:
                 yield generate_error("프롬프트를 선택해야 합니다")
@@ -154,6 +154,8 @@ def register(router: APIRouter):
             conversation.user_message = user_new_message
             conversation.assistant_message = apply_filter(room, 'output', bot_response)
             conversation.room_id = room.id
+            if custom_conversation_id:
+                conversation.id = custom_conversation_id
 
             conversation.created_at = datetime.datetime.now()
             room.last_message_time = datetime.datetime.now()
@@ -295,6 +297,7 @@ def register(router: APIRouter):
     @router.post("/{id}/conversation/re_roll")
     async def re_roll(engine: EngineDependency, argument: ReRollArgument, id: str):
         session = Session(engine)
+        conversation_id = None
         try:
             room = get_room_or_404(id, session=session)
             conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
@@ -307,13 +310,14 @@ def register(router: APIRouter):
                     raise Exception("First message can't be re-rolled")
                 message_argument = SendMessageArgument(text=conversation.user_message,
                                                        active_toggles=argument.active_toggles)
+                conversation_id = conversation.id
                 session.delete(conversation)
                 session.commit()
         except:
             session.close()
             raise
 
-        return StreamingResponse(send_message_streamer(message_argument, room, session), headers={
+        return StreamingResponse(send_message_streamer(message_argument, room, session, conversation_id), headers={
             'Content-Type': 'text/event-stream'
         })
 

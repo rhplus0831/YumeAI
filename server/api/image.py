@@ -17,7 +17,7 @@ from database.sql_model import Image
 router = APIRouter(prefix="/image", tags=["image"])
 
 
-async def get_image_and_file_path_or_404(session: Session, user_id: str, file_id: str) -> (Image, str):
+def get_image_and_file_path_or_404(session: Session, user_id: str, file_id: str) -> (Image, str):
     image = session.exec(select(Image).where(Image.file_id == file_id)).one_or_none()
     if image is None:
         raise ClientErrorException(status_code=404, detail="Image not found")
@@ -50,7 +50,7 @@ async def upload_image(engine: EngineDependency, username: UsernameDependency, i
 @router.get('/{file_id}/{size}')
 async def read_image(engine: EngineDependency, username: UsernameDependency, file_id: str, size: str) -> FileResponse:
     with Session(engine) as session:
-        image, file_path = await get_image_and_file_path_or_404(session, username, file_id)
+        image, file_path = get_image_and_file_path_or_404(session, username, file_id)
     if not os.path.exists(file_path):
         raise ClientErrorException(status_code=404, detail="Image file is gone?")
 
@@ -87,7 +87,7 @@ class ImageDeleted(BaseModel):
 @router.delete('/{file_id}')
 async def delete_image(engine: EngineDependency, username: UsernameDependency, file_id: str) -> ImageDeleted:
     with Session(engine) as session:
-        image, file_path = await get_image_and_file_path_or_404(session, username, file_id)
+        image, file_path = get_image_and_file_path_or_404(session, username, file_id)
 
     if not os.path.exists(file_path):
         logging.warning("Image file is gone: " + file_path)

@@ -1,6 +1,6 @@
 "use client";
 
-import Room, {deleteRoom, putRoom} from "@/lib/data/Room";
+import Room, {deleteRoom, exportRoom, putRoom} from "@/lib/data/Room";
 import YumeMenu from "@/components/MenuPortal";
 import {Divider, SelectItem} from "@nextui-org/react";
 import {useState} from "react";
@@ -16,7 +16,8 @@ import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {useRouter} from "next/navigation";
 import YumeCustomNav from "@/components/CustomNavPortal";
 import YumeAvatar from "@/components/ui/YumeAvatar";
-import {buildImageLink} from "@/lib/api-client";
+import {buildAPILink, buildImageLink} from "@/lib/api-client";
+import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 
 export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const router = useRouter()
@@ -79,6 +80,10 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                         }} filterType={"translate"} prompt={room.translate_prompt}/>
                     </>
                 }
+                <AsyncProgressButton className={"w-full mt-5"} onPressAsync={async () => {
+                    const uuid = await exportRoom(room.id)
+                    window.open(buildAPILink(`/exported/${uuid}`), "_blank")
+                }}>대화 내보내기</AsyncProgressButton>
                 <DeleteConfirmButton className={"mt-10"} confirmCount={5} onConfirmed={async () => {
                     await deleteRoom(room.id)
                     router.replace("/rooms")

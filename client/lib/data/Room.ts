@@ -64,3 +64,10 @@ export async function applyFirstMessage(id: string, text: string): Promise<Conve
         })
     })
 }
+
+export async function exportRoom(id: string): Promise<string> {
+    const uuidData = await api(`room/${id}/export`, {
+        method: 'POST'
+    })
+    return uuidData.uuid
+}

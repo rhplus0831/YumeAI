@@ -1,20 +1,24 @@
+import json
 import os
+import uuid
 from contextlib import asynccontextmanager
 from typing import Annotated
+from zipfile import ZipFile
 
-from fastapi import FastAPI, Request
+import aiofiles
+from fastapi import FastAPI, Request, BackgroundTasks, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.params import Depends
 from openai import BaseModel
 from sqlmodel import SQLModel, Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, FileResponse
 
 import configure
 from api import room, persona, common, image, bot, prompt, conversation
 from api.bot import BotUpdate, BotGet
-from api.common import ClientErrorException
+from api.common import ClientErrorException, UsernameDependency, SessionDependency
 from api.persona import PersonaUpdate
 from api.prompt import PromptUpdate
 from api.room import RoomUpdate, RoomGet
@@ -185,3 +189,31 @@ def register(data: LoginData):
     response.set_cookie(key="auth_id", value=data.username, httponly=True)
     response.set_cookie(key="auth_token", value=data.password, httponly=True)
     return response
+
+
+@app.post("/import")
+async def import_data(in_file: UploadFile, session: SessionDependency, username: UsernameDependency):
+    path = configure.get_store_path(f'{username}/import_{uuid.uuid4().hex}.zip')
+    try:
+        async with aiofiles.open(path, 'wb') as out_file:
+            while content := await in_file.read(1024):  # async read chunk
+                await out_file.write(content)  # async write chunk
+
+        from lib.backup.importer import import_zip_file
+        await import_zip_file(session, username, path)
+        return JSONResponse({"status": "ok"})
+    finally:
+        os.remove(path)
+
+
+@app.get("/exported/{id}")
+def download_exported(id: str, username: UsernameDependency, background_tasks: BackgroundTasks):
+    path = configure.get_store_path(f"{username}/export/{id}.zip")
+    if not os.path.exists(path):
+        raise ClientErrorException(status_code=404, detail="Exported file is gone")
+
+    def delete_file(file_path: str):
+        os.remove(file_path)
+
+    background_tasks.add_task(delete_file, path)
+    return FileResponse(path, media_type="application/zip")

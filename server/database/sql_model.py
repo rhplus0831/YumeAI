@@ -119,12 +119,12 @@ class SummaryBase(SQLModel):
     room_id: str = Field(foreign_key="room.id", index=True)
     created_at: datetime.datetime = Field(default=datetime.datetime.now(), index=True)
 
-    conversation_id: str = Field(foreign_key="conversation.id", default=None, nullable=True, index=True)
-    parent: int = Field(foreign_key="summary.id", default=None, nullable=True, index=True)
+    conversation_id: Optional[str] = Field(foreign_key="conversation.id", default=None, nullable=True, index=True)
+    parent: Optional[str] = Field(foreign_key="summary.id", default=None, nullable=True, index=True)
 
     content: str
     # 미래에 사용할 가능성?
-    keyword: str = Field(nullable=True, default=None)
+    keyword: Optional[str] = Field(nullable=True, default=None)
 
     # 최상위 요약인지의 여부입니다.
     # 요약 시스템은 대화를 요약하고, 필요한경우 요약을 요약하기 때문에

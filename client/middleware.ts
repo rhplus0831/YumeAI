@@ -8,6 +8,10 @@ export function middleware(request: NextRequest): NextResponse {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
+    if (request.nextUrl.pathname === "/") {
+        return NextResponse.redirect(new URL("/rooms", request.url));
+    }
+
     // 쿠키가 있으면 요청을 그대로 통과
     return NextResponse.next();
 }

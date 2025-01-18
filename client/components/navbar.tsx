@@ -36,7 +36,7 @@ export const Navbar = () => {
     const router = useRouter();
     const pathname = usePathname()
 
-    if(pathname === "/login") return <></>;
+    if (pathname === "/login") return <></>;
 
     return (<>
         <Drawer isOpen={drawerClosure.isOpen} placement={"left"} onOpenChange={drawerClosure.onOpenChange}>
@@ -58,14 +58,12 @@ export const Navbar = () => {
                     className="sm:hidden"
                 />
                 <NavbarBrand as="li" className="gap-3 max-w-fit">
-                    <NextLink className="flex justify-start items-center gap-2" href="/">
-                        {customNavContent ? <div className={"flex flex-row max-w-[50vw]"}>{customNavContent}</div> :
-                            <>
-                                <RiChatAiFill size={"24"}/>
-                                <p className="font-bold text-inherit">YumeAI</p>
-                            </>
-                        }
-                    </NextLink>
+                    {customNavContent ? <div className={"flex flex-row max-w-[50vw]"}>{customNavContent}</div> :
+                        <>
+                            <RiChatAiFill size={"24"}/>
+                            <p className="font-bold text-inherit">YumeAI</p>
+                        </>
+                    }
                 </NavbarBrand>
                 <ul className="hidden lg:flex gap-4 justify-start ml-2">
                     {siteConfig.navItems.map((item) => (

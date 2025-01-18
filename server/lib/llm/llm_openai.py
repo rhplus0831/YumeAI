@@ -56,8 +56,6 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
     key = get_key(config)
     oai = AsyncOpenAI(api_key=key, base_url=base_url)
 
-    print(f"key: {key} / base_url: {base_url}")
-
     response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=config.temperature,
                                                  max_tokens=config.max_tokens,
                                                  top_p=config.top_p,
@@ -79,8 +77,6 @@ async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver:
     if config.endpoint:
         base_url = config.endpoint
     oai = AsyncOpenAI(api_key=get_key(config), base_url=base_url)
-
-    print(config.model)
 
     response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=config.temperature,
                                                  max_tokens=config.max_tokens,

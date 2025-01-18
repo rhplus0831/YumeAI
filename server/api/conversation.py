@@ -104,6 +104,9 @@ def register(router: APIRouter):
             conversation_converted = []
 
             for conversation in conversations:
+                if custom_conversation_id:
+                    if conversation.id == custom_conversation_id:
+                        continue
                 conversation_converted.append(f'||user||\n{conversation.user_message}\n')
                 conversation_converted.append(f'||assistant||\n{conversation.assistant_message}\n')
 
@@ -146,7 +149,7 @@ def register(router: APIRouter):
                     select(Conversation).where(Conversation.id == custom_conversation_id)).one_or_none()
             else:
                 conversation = Conversation()
-            
+
             conversation.user_message = user_new_message
             conversation.assistant_message = apply_filter(room, 'output', bot_response)
             conversation.room_id = room.id

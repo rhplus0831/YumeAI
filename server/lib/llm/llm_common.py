@@ -1,4 +1,5 @@
 import datetime
+import os
 from collections.abc import Callable
 
 import configure
@@ -8,17 +9,18 @@ from lib.llm import llm_gemini, llm_openai
 
 
 def messages_dump(messages, response_text):
-    # TODO: Remove or Improve this debug process
-    datestr = datetime.datetime.today().strftime('%Y%m%d_%H%M%S')
-    with open(configure.get_store_path(f'message.log'), 'a', encoding='utf-8') as f:
-        f.write(f'================== {datestr} ==================\n')
-        for message in messages:
-            if 'content' in message:
-                f.write(message['role'] + ': ' + message['content'] + '\n')
-            elif 'parts' in message:
-                f.write(message['role'] + ': ' + message['parts'][0] + '\n')
+    if os.getenv('DUMP_LLM_MESSAGES') == 'TRUE':
+        # TODO: Remove or Improve this debug process
+        datestr = datetime.datetime.today().strftime('%Y%m%d_%H%M%S')
+        with open(configure.get_store_path(f'message.log'), 'a', encoding='utf-8') as f:
+            f.write(f'================== {datestr} ==================\n')
+            for message in messages:
+                if 'content' in message:
+                    f.write(message['role'] + ': ' + message['content'] + '\n')
+                elif 'parts' in message:
+                    f.write(message['role'] + ': ' + message['parts'][0] + '\n')
 
-        f.write('result: ' + response_text + '\n')
+            f.write('result: ' + response_text + '\n')
 
 
 async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):

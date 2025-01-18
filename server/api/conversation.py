@@ -1,10 +1,8 @@
 import datetime
-import os
 from typing import Sequence, Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel
-from sqlalchemy import Engine
 from sqlmodel import Session, select, SQLModel
 from starlette.responses import StreamingResponse
 
@@ -56,15 +54,8 @@ def register(router: APIRouter):
         text: str
         active_toggles: str
 
-    key_path = configure.get_store_path('openai_key')
-    if not os.path.exists(key_path):
-        print("테스트용 키가 설정되어 있지 않습니다, 대화 API의 등록을 하지 않습니다.")
-        return
-
-    with open(key_path, 'r', encoding='utf-8') as f:
-        key = f.read().strip()
-
-    async def send_message_streamer(argument: SendMessageArgument, room: Room, session: Session, custom_conversation_id: Optional[str] = None):
+    async def send_message_streamer(argument: SendMessageArgument, room: Room, session: Session,
+                                    custom_conversation_id: Optional[str] = None):
         try:
             if room.prompt is None:
                 yield generate_error("프롬프트를 선택해야 합니다")

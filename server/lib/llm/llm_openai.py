@@ -12,14 +12,6 @@ from database.sql_model import Prompt
 from lib.cbs import CBSHelper
 from lib.web import generate_event_stream_message
 
-# Add prefix for prevent conflict with library
-
-default_key_path = configure.get_store_path('openai_key')
-default_key = ''
-if os.path.exists(default_key_path):
-    with open(default_key_path, 'r', encoding='utf-8') as f:
-        default_key = f.read().strip()
-
 
 @dataclass
 class OpenAIConfig:
@@ -50,7 +42,7 @@ class OpenAIConfig:
 def get_key(config: OpenAIConfig) -> str:
     if config.key:
         return config.key
-    return default_key
+    raise NotImplementedError("OpenAI API Key is not set.")
 
 
 async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):

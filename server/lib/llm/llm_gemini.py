@@ -1,24 +1,15 @@
 import asyncio
 import json
-import os
 from dataclasses import asdict, dataclass
 from typing import Optional, Callable
 
 from google import genai
 from google.genai import types
-from google.genai._api_client import HttpOptions
 
-import configure
 import lib.prompt
 from database.sql_model import Prompt
 from lib.cbs import CBSHelper
 from lib.web import generate_event_stream_message
-
-default_key_path = configure.get_store_path('gemini_key')
-default_key = ''
-if os.path.exists(default_key_path):
-    with open(default_key_path, 'r', encoding='utf-8') as f:
-        default_key = f.read().strip()
 
 
 @dataclass
@@ -44,7 +35,7 @@ class GeminiConfig:
 def get_key(config: GeminiConfig) -> str:
     if config.key:
         return config.key
-    return default_key
+    raise NotImplementedError("Gemini API Key is not set.")
 
 
 def convert_to_gemini(messages: list) -> (list, str):

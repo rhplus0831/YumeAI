@@ -141,12 +141,15 @@ def register(router: APIRouter):
             else:
                 bot_response = await llm_common.perform_prompt(room.prompt, cbs)
 
-            conversation = Conversation()
+            if custom_conversation_id:
+                conversation = session.exec(
+                    select(Conversation).where(Conversation.id == custom_conversation_id)).one_or_none()
+            else:
+                conversation = Conversation()
+            
             conversation.user_message = user_new_message
             conversation.assistant_message = apply_filter(room, 'output', bot_response)
             conversation.room_id = room.id
-            if custom_conversation_id:
-                conversation.id = custom_conversation_id
 
             conversation.created_at = datetime.datetime.now()
             room.last_message_time = datetime.datetime.now()
@@ -304,8 +307,7 @@ def register(router: APIRouter):
                 message_argument = SendMessageArgument(text=conversation.user_message,
                                                        active_toggles=argument.active_toggles)
                 conversation_id = conversation.id
-                session.delete(conversation)
-                session.commit()
+                break
         except:
             session.close()
             raise

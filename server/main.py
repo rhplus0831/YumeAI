@@ -1,11 +1,12 @@
-import hashlib
 import os
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.params import Depends
 from openai import BaseModel
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
@@ -19,18 +20,9 @@ from api.prompt import PromptUpdate
 from api.room import RoomUpdate, RoomGet
 from database.sql import get_engine
 from database.sql_model import Persona, PersonaBase, Room, RoomBase, BotBase, Bot, Prompt, PromptBase
+from lib.auth import check_id_valid
 
-engine = get_engine(create_meta=False)
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    SQLModel.metadata.create_all(engine)
-    yield
-    engine.dispose()
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -58,31 +50,59 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# TODO: Better Auth
+passwords = {}
+engines = {}
 
-password_file = configure.get_store_path("password.txt")
-if not os.path.exists(password_file):
-    print("First run or password file is gone. Create new password file.")
-    text = input("Password : ")
-    with open(password_file, "w") as f:
-        f.write(hashlib.sha512(text.encode()).hexdigest())
 
-with open(password_file, "r") as f:
-    password = f.read()
+def get_password(username: str):
+    if username in passwords:
+        password = passwords[username]
+    else:
+        path = configure.get_store_path(f"{username}/password")
+        if not os.path.exists(path):
+            return 'INVALID'
+        with open(path, "r") as f:
+            password = f.read()
+            passwords[username] = password
+
+    return password
+
+
+def get_register_allowed():
+    return os.getenv("ALLOW_REGISTER") == "true" or os.getenv("ALLOW_REGISTER") == "True"
 
 
 class AuthorizationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        invalid_string = "Credentials is missing or invalid"
+
         if request.url.path.startswith("/docs") or request.url.path.startswith("/openapi.json"):
             return await call_next(request)
 
-        if request.url.path != "/login":
-            auth_header = request.cookies.get("auth_token")
-            if not auth_header:
-                return JSONResponse(status_code=401, content={"detail": "Authorization header is missing or invalid"})
+        if request.url.path == '/register' or request.url.path == '/login' or request.url.path == '/check-register-available':
+            return await call_next(request)
 
-            if auth_header != password:
-                return JSONResponse(status_code=401, content={"detail": "Invalid credentials"})
+        auth_id = request.cookies.get("auth_id")
+        auth_token = request.cookies.get("auth_token")
+
+        if not auth_id or not auth_token:
+            return JSONResponse(status_code=401, content={"detail": invalid_string})
+
+        if not check_id_valid(auth_id):
+            return JSONResponse(status_code=401, content={"detail": invalid_string})
+
+        password = get_password(auth_id)
+        if auth_token != password:
+            return JSONResponse(status_code=401, content={"detail": invalid_string})
+
+        request.state.username = auth_id
+
+        if auth_id in engines:
+            request.state.db = engines[auth_id]
+        else:
+            engine = get_engine(configure.get_store_path(f"{auth_id}/yumeAI.db"))
+            engines[auth_id] = engine
+            request.state.db = engine
 
         response = await call_next(request)
         return response
@@ -90,38 +110,33 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(AuthorizationMiddleware)
 
-room.engine = engine
-room.room_not_exist_model = common.insert_crud(room.router, RoomBase, Room, RoomUpdate, engine,
+room.room_not_exist_model = common.insert_crud(room.router, RoomBase, Room, RoomUpdate,
                                                handle_delete_side_effect=room.room_delete_side_effect,
                                                get_model=RoomGet, skip_get_list=True)
 room.register()
 
-conversation.engine = engine
 conversation.room_not_exist_model = room.room_not_exist_model
 conversation.register(room.router)
 
 app.include_router(room.router)
 
-persona.engine = engine
-persona.persona_not_exist_model = common.insert_crud(persona.router, PersonaBase, Persona, PersonaUpdate, engine)
+persona.persona_not_exist_model = common.insert_crud(persona.router, PersonaBase, Persona, PersonaUpdate)
 persona.register()
 app.include_router(persona.router)
 
-bot.engine = engine
-bot.bot_not_exist_model = common.insert_crud(bot.router, BotBase, Bot, BotUpdate, engine, get_model=BotGet)
+bot.bot_not_exist_model = common.insert_crud(bot.router, BotBase, Bot, BotUpdate, get_model=BotGet)
 bot.register()
 app.include_router(bot.router)
 
-image.engine = engine
 app.include_router(image.router)
 
-prompt.engine = engine
-common.insert_crud(prompt.router, PromptBase, Prompt, PromptUpdate, engine, skip_get_list=True)
+common.insert_crud(prompt.router, PromptBase, Prompt, PromptUpdate, skip_get_list=True)
 prompt.register()
 app.include_router(prompt.router)
 
 
 class LoginData(BaseModel):
+    username: str
     password: str  # sha512
 
 
@@ -132,9 +147,41 @@ def verify_self(request: Request):
 
 @app.post("/login")
 def login(data: LoginData):
+    password = get_password(data.username)
     if data.password != password:
         raise ClientErrorException(status_code=401, detail="Invalid credentials")
 
     response = JSONResponse({"status": "ok"})
+    response.set_cookie(key="auth_id", value=data.username, httponly=True)
+    response.set_cookie(key="auth_token", value=data.password, httponly=True)
+    return response
+
+
+@app.get("/check-register-available")
+def check_register_available():
+    if not get_register_allowed():
+        raise ClientErrorException(status_code=403, detail="Register is not allowed")
+    return JSONResponse(content={}, status_code=200)
+
+
+@app.post("/register")
+def register(data: LoginData):
+    if not get_register_allowed():
+        raise ClientErrorException(status_code=403, detail="Register is not allowed")
+
+    if not check_id_valid(data.username):
+        raise ClientErrorException(status_code=400, detail="Username is invalid")
+
+    path = configure.get_store_path(f"{data.username}/password")
+    if os.path.exists(path):
+        raise ClientErrorException(status_code=409, detail="Username already exists")
+
+    os.makedirs(configure.get_store_path(f"{data.username}"), exist_ok=True)
+
+    with open(path, "w") as f:
+        f.write(data.password)
+
+    response = JSONResponse({"status": "ok"})
+    response.set_cookie(key="auth_id", value=data.username, httponly=True)
     response.set_cookie(key="auth_token", value=data.password, httponly=True)
     return response

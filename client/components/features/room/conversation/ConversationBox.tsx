@@ -4,7 +4,7 @@ import Room from "@/lib/data/Room";
 import Filter, {ApplyFilter} from "@/lib/data/Filter";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {pendingFetch, usePendingAlert} from "@/components/ui/PendingAlert/usePendingAlert";
-import {useEffect, useRef, useState} from "react";
+import {ReactNode, useEffect, useRef, useState} from "react";
 import {googleTranslate} from "@/lib/import/GoogleTranslate";
 import {buildAPILink, buildImageLink} from "@/lib/api-client";
 import {Button, ButtonGroup, Chip} from "@nextui-org/react";
@@ -309,6 +309,47 @@ export default function ConversationBox({
 
     if (!room) return undefined
 
+    function buildButtonGroup() {
+        let inner: ReactNode[] = []
+
+        if(isInEditing) {
+            inner.push(<Button key={"editSaveButton"} startContent={<MdOutlineCheck size={"20"}/>} onPress={editSelf}>저장</Button>)
+            inner.push(<Button key={"editCancelButton"} startContent={<MdOutlineCancel size={"20"}/>} onPress={() => {
+                setIsInEditing(false)
+            }}>취소</Button>)
+        }
+
+        if(isLast) {
+            inner.push(<Button key={"reRollButton"} aria-label={"리롤"} isIconOnly onPress={reRollSelf}><MdRepeat size={"20"}/></Button>)
+            inner.push(<Button key={"editButton"} aria-label={"수정"} isIconOnly onPress={() => {
+                if (!conversation.assistant_message) return;
+                setEditingText(conversation.assistant_message)
+                setIsInEditing(true)
+            }}><MdModeEdit size={"20"}/></Button>)
+            inner.push(<DeleteConfirmButton key={"deleteButton"} confirmCount={2} onConfirmed={() => {
+                revertSelf().then()
+            }}/>)
+        }
+
+        if (room?.translate_method) {
+            if(isInTranslateView) {
+                inner.push(<Button key={"reTranslateButton"} startContent={<MdRepeat size={"20"}/>} onPress={translateSelf}>다시 번역</Button>)
+                inner.push(<Button key={"disableTranslateViewButton"} aria-label={"번역"} disableAnimation isIconOnly
+                        onPress={switchTranslate}><MdOutlineTranslate color={"green"}
+                                                                      size={20}/></Button>)
+            } else {
+                inner.push(<Button key={"enableTranslateViewButton"} aria-label={"번역"} disableAnimation onPress={switchTranslate}
+                                   isIconOnly><MdOutlineTranslate size={20}/></Button>)
+            }
+        }
+
+        if (inner.length === 0) return <></>
+
+        return <ButtonGroup isDisabled={isInSending} variant={"bordered"}>
+            <>{inner}</>
+        </ButtonGroup>
+    }
+
     return <article ref={containerRef} className={"flex flex-col gap-4"}>
         {conversation.user_message &&
             <MessageBox message={getUserMessage()} name={room.persona?.displayName ?? room.persona?.name}
@@ -325,35 +366,7 @@ export default function ConversationBox({
             {isInEditing &&
                 <Textarea value={editingText} maxRows={9999} onChange={(e) => setEditingText(e.target.value)}/>}
             <div className={"w-full flex flex-row gap-2 justify-end"}>
-                <ButtonGroup isDisabled={isInSending} variant={"bordered"}>
-                    {isInEditing ? <>
-                        <Button startContent={<MdOutlineCheck size={"20"}/>} onPress={editSelf}>저장</Button>
-                        <Button startContent={<MdOutlineCancel size={"20"}/>} onPress={() => {
-                            setIsInEditing(false)
-                        }}>취소</Button>
-                    </> : <>
-                        {isLast && <>
-                            <Button aria-label={"리롤"} isIconOnly onPress={reRollSelf}><MdRepeat size={"20"}/></Button>
-                            <Button aria-label={"수정"} isIconOnly onPress={() => {
-                                if (!conversation.assistant_message) return;
-                                setEditingText(conversation.assistant_message)
-                                setIsInEditing(true)
-                            }}><MdModeEdit size={"20"}/></Button>
-                            <DeleteConfirmButton confirmCount={2} onConfirmed={() => {
-                                revertSelf().then()
-                            }}/>
-                        </>}
-                        {isInTranslateView ? <>
-                            <Button startContent={<MdRepeat size={"20"}/>} onPress={translateSelf}>다시 번역</Button>
-                            <Button aria-label={"번역"} disableAnimation isIconOnly
-                                    onPress={switchTranslate}><MdOutlineTranslate color={"green"}
-                                                                                  size={20}/></Button>
-                        </> : <>
-                            <Button aria-label={"번역"} disableAnimation onPress={switchTranslate}
-                                    isIconOnly><MdOutlineTranslate size={20}/></Button>
-                        </>}
-                    </>}
-                </ButtonGroup>
+                {buildButtonGroup()}
             </div>
         </>}
         <PendingAlert {...pendingProps} />

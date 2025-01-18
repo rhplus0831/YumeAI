@@ -1,10 +1,32 @@
-from typing import Type, Sequence, Callable, Any
+from typing import Type, Sequence, Callable, Any, Annotated
 
 from fastapi import APIRouter
 from fastapi.params import Query, Depends
 from pydantic import BaseModel, create_model
-from sqlalchemy import Engine
 from sqlmodel import SQLModel, Session, select
+from starlette.requests import Request
+
+
+def get_db(request: Request):
+    return request.state.db
+
+
+EngineDependency = Annotated[Session, Depends(get_db)]
+
+
+def get_username(request: Request):
+    return request.state.username
+
+
+UsernameDependency = Annotated[str, Depends(get_username)]
+
+
+def get_session(request: Request):
+    with Session(request.state.db) as session:
+        yield session
+
+
+SessionDependency = Annotated[Session, Depends(get_session)]
 
 
 class ClientErrorException(Exception):
@@ -21,7 +43,7 @@ def validate_update_model(base_model: Type[SQLModel], update_model: Type[BaseMod
         raise Exception(f"{base_model.__name__} is not matching with {update_model.__name__}")
 
 
-def validate_get_model(base_model: Type[SQLModel], get_model: Type[BaseModel], exclude_list = []):
+def validate_get_model(base_model: Type[SQLModel], get_model: Type[BaseModel], exclude_list=[]):
     base_keys = dict(base_model.__dict__)['__annotations__'].keys()
     get_keys = dict(get_model.__dict__)['__annotations__'].keys()
 
@@ -43,12 +65,8 @@ def get_or_404(db_model: Type[SQLModel], session: Session, id: int):
 
 
 def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQLModel], update_model: Type[BaseModel],
-                engine: Engine, handle_delete_side_effect: Callable[[Session, Any], None] | None = None,
-                get_model: Type[BaseModel] | None = None, skip_get_list = False) -> BaseModel:
-    def get_session():
-        with Session(engine) as session:
-            yield session
-
+                handle_delete_side_effect: Callable[[Session, Any], None] | None = None,
+                get_model: Type[BaseModel] | None = None, skip_get_list=False) -> BaseModel:
     data_name = db_model.__name__
     lower_name = data_name.lower()
 

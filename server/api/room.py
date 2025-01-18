@@ -8,6 +8,7 @@ from sqlalchemy import Engine
 from sqlmodel import Session, select, desc
 
 from api import common
+from api.common import EngineDependency, SessionDependency
 from database.sql_model import RoomBase, Room, Conversation, Bot, Persona, Prompt, Summary
 
 router = APIRouter(prefix="/room", tags=["room"])
@@ -74,7 +75,7 @@ def register():
             yield session
 
     @router.get("/", responses={200: {'model': list_model}, 404: {'model': room_not_exist_model}})
-    def gets(offset: int = 0, limit: int = Query(default=100, le=100), session: Session = Depends(get_session)) -> Sequence[
+    def gets(session: SessionDependency, offset: int = 0, limit: int = Query(default=100, le=100)) -> Sequence[
         RoomGet]:
         rooms = session.exec(
             select(Room).order_by(desc(Room.last_message_time)).offset(offset).limit(limit)

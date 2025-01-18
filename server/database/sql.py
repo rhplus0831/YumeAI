@@ -9,7 +9,7 @@ from sqlmodel import SQLModel
 import configure
 
 
-def get_engine(path: str = "_DEF_", create_meta: bool = True):
+def get_engine(path: str = "_DEF_"):
     if path == "_DEF_":
         path = configure.get_store_path("yumeAI.db")
 

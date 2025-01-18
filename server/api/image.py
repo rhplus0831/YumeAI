@@ -1,41 +1,38 @@
-import io
 import logging
 import os
 import uuid
 
+import PIL.Image as PILImage
 import aiofiles
 from PIL import ImageSequence
-import PIL.Image as PILImage
 from fastapi import APIRouter, UploadFile
 from pydantic import BaseModel
-from sqlalchemy import Engine
 from sqlmodel import Session, select
 from starlette.responses import FileResponse
 
 import configure
-from api.common import ClientErrorException
+from api.common import ClientErrorException, EngineDependency, UsernameDependency
 from database.sql_model import Image
 
 router = APIRouter(prefix="/image", tags=["image"])
-engine: Engine
 
 
-async def get_image_and_file_path_or_404(session: Session, file_id: str) -> (Image, str):
+async def get_image_and_file_path_or_404(session: Session, user_id: str, file_id: str) -> (Image, str):
     image = session.exec(select(Image).where(Image.file_id == file_id)).one_or_none()
     if image is None:
         raise ClientErrorException(status_code=404, detail="Image not found")
-    file_path = os.path.join(configure.get_store_path('image'), image.file_id)
+    file_path = os.path.join(configure.get_store_path(f'{user_id}/image'), image.file_id)
     return image, file_path
 
 
 @router.post('/')
-async def upload_image(in_file: UploadFile) -> Image:
+async def upload_image(engine: EngineDependency, username: UsernameDependency, in_file: UploadFile) -> Image:
     if in_file.size > 20 * 1024 * 1024:
         raise ClientErrorException(status_code=413, detail="File too large")
 
-    os.makedirs(configure.get_store_path('image'), exist_ok=True)
+    os.makedirs(configure.get_store_path(f'{username}/image'), exist_ok=True)
     file_id = uuid.uuid4().hex
-    file_path = os.path.join(configure.get_store_path('image'), file_id)
+    file_path = os.path.join(configure.get_store_path(f'{username}/image'), file_id)
 
     async with aiofiles.open(file_path, 'wb') as out_file:
         while content := await in_file.read(1024):  # async read chunk
@@ -51,9 +48,9 @@ async def upload_image(in_file: UploadFile) -> Image:
 
 
 @router.get('/{file_id}/{size}')
-async def read_image(file_id: str, size: str) -> FileResponse:
+async def read_image(engine: EngineDependency, username: UsernameDependency, file_id: str, size: str) -> FileResponse:
     with Session(engine) as session:
-        image, file_path = await get_image_and_file_path_or_404(session, file_id)
+        image, file_path = await get_image_and_file_path_or_404(session, username, file_id)
     if not os.path.exists(file_path):
         raise ClientErrorException(status_code=404, detail="Image file is gone?")
 
@@ -80,7 +77,6 @@ async def read_image(file_id: str, size: str) -> FileResponse:
                     img.save(resized_file_path, format=img.format)
         return FileResponse(resized_file_path, media_type=image.file_type)
 
-
     return FileResponse(file_path, media_type=image.file_type)
 
 
@@ -89,9 +85,9 @@ class ImageDeleted(BaseModel):
 
 
 @router.delete('/{file_id}')
-async def delete_image(file_id: str) -> ImageDeleted:
+async def delete_image(engine: EngineDependency, username: UsernameDependency, file_id: str) -> ImageDeleted:
     with Session(engine) as session:
-        image, file_path = await get_image_and_file_path_or_404(session, file_id)
+        image, file_path = await get_image_and_file_path_or_404(session, username, file_id)
 
     if not os.path.exists(file_path):
         logging.warning("Image file is gone: " + file_path)

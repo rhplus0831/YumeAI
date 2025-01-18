@@ -20,10 +20,7 @@ const modifyRequestOptions = async (options: RequestInit): Promise<RequestInit> 
 
     if (typeof window === 'undefined') {
         const serverCookies = await getCookie();
-        const token = serverCookies.get('auth_token')
-        if(token) {
-            cookieString = `auth_token=${token.value}`
-        }
+        cookieString = serverCookies.toString();
     }
 
     if (currentHeaders instanceof Headers) {
@@ -66,10 +63,21 @@ export async function verifySelf() {
     })
 }
 
-export async function login(password: string) {
+export async function login(id: string, password: string) {
     await api('login', {
         method: 'POST',
         body: JSON.stringify({
+            username: id,
+            password: password
+        })
+    })
+}
+
+export async function register(id: string, password: string) {
+    await api('register', {
+        method: 'POST',
+        body: JSON.stringify({
+            username: id,
             password: password
         })
     })

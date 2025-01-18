@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 from starlette.responses import JSONResponse
 
 from api import common
+from api.common import EngineDependency
 from database.sql_model import PromptBase, Prompt
 from lib.cbs import CBSHelper
 from lib.prompt import lint_chat, lint_summary, lint_content_only, parse_prompt
@@ -34,7 +35,7 @@ common.validate_update_model(PromptBase, PromptUpdate)
 
 def register():
     @router.get("/")
-    def gets_with_filter(type: str = "all", offset: int = 0, limit: int = Query(default=100, le=100)) -> Sequence[
+    def gets_with_filter(engine: EngineDependency, type: str = "all", offset: int = 0, limit: int = Query(default=100, le=100)) -> Sequence[
         Prompt]:
         with Session(engine) as session:
             if type == 'all':
@@ -48,7 +49,7 @@ def register():
             return prompts
 
     @router.post("/{id}/lint", response_model=PromptUpdate)
-    def lint(id: int):
+    def lint(engine: EngineDependency, id: int):
         with Session(engine) as session:
             prompt = common.get_or_404(Prompt, session, id)
 
@@ -78,7 +79,7 @@ def register():
         active_toggles: str
 
     @router.post("/{id}/test", response_model=PromptUpdate)
-    def test(info: PromptTestInfoModel, id: int):
+    def test(engine: EngineDependency, info: PromptTestInfoModel, id: int):
         with Session(engine) as session:
             prompt: Prompt = common.get_or_404(Prompt, session, id)
 

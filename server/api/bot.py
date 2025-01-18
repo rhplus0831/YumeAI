@@ -6,11 +6,10 @@ from sqlalchemy import Engine
 from sqlmodel import Session
 
 from api import common, image
+from api.common import EngineDependency
 from database.sql_model import BotBase, Bot
 
 router = APIRouter(prefix="/bot", tags=["bot"])
-# noinspection DuplicatedCode
-engine: Engine
 bot_not_exist_model: BaseModel | None = None
 
 
@@ -45,7 +44,7 @@ def get_bot_or_404(bot_id: int, session: Session) -> Bot:
 
 def register():
     @router.post('/{id}/profile_image', responses={200: {'model': Bot}, 404: {'model': bot_not_exist_model}})
-    async def update_profile_image(id: int, image_file: UploadFile) -> Bot:
+    async def update_profile_image(engine: EngineDependency, id: int, image_file: UploadFile) -> Bot:
         with Session(engine) as session:
             bot = get_bot_or_404(id, session)
 

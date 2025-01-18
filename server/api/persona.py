@@ -4,11 +4,11 @@ from sqlalchemy import Engine
 from sqlmodel import Session
 
 from api import common, image
+from api.common import EngineDependency
 from database.sql_model import PersonaBase, Persona
 
 router = APIRouter(prefix="/persona", tags=["persona"])
 # noinspection DuplicatedCode
-engine: Engine
 persona_not_exist_model: BaseModel | None = None
 
 
@@ -28,7 +28,7 @@ def get_persona_or_404(persona_id: int, session: Session) -> Persona:
 
 def register():
     @router.post('/{id}/profile_image', responses={200: {'model': Persona}, 404: {'model': persona_not_exist_model}})
-    async def update_profile_image(id: int, image_file: UploadFile) -> Persona:
+    async def update_profile_image(engine: EngineDependency, id: int, image_file: UploadFile) -> Persona:
         with Session(engine) as session:
             persona = get_persona_or_404(id, session)
 

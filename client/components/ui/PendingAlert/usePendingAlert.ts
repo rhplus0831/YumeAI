@@ -116,6 +116,8 @@ export async function pendingFetch(url: string, props: UsePendingAlertReturn, ex
                             props.setAlertDescription?.(event.data)
                         } else if (event.type === "stream") {
                             streamingReceiver?.(event.data)
+                        } else if (event.type === "error") {
+                            throwError(props, event.data)
                         }
                     }
                 }

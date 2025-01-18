@@ -37,9 +37,11 @@ async def custom_404_handler(request: Request, exc: StarletteHTTPException):
     )
 
 
-@app.exception_handler(ClientErrorException)
-async def handle_client_error(request: Request, error: ClientErrorException):
-    return JSONResponse(status_code=error.status_code, content={"status": "error", "detail": error.detail})
+@app.exception_handler(Exception)
+async def handle_client_error(request: Request, error: Exception):
+    if isinstance(error, ClientErrorException):
+        return JSONResponse(status_code=error.status_code, content={"status": "error", "detail": error.detail})
+    return JSONResponse(status_code=500, content={"status": "error", "detail": str(error)})
 
 
 origins = [

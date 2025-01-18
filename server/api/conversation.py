@@ -157,6 +157,8 @@ def register(router: APIRouter):
             session.refresh(conversation)
 
             yield generate_event_stream_message('complete', conversation.model_dump_json())
+        except Exception as e:
+            yield generate_event_stream_message('error', str(e))
         finally:
             session.close()
 

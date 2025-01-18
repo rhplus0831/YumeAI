@@ -1,3 +1,3 @@
 export default interface BaseData {
-    id: number
+    id: string
 }

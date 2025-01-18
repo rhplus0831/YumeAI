@@ -4,12 +4,15 @@ from typing import Optional
 from sqlalchemy import Enum
 from sqlmodel import SQLModel, Field, Relationship
 from sqlmodel import main as _sqlmodel_main
+from uuid import UUID, uuid4
 
 _sqlmodel_main.sa_Enum = lambda _: _sqlmodel_main.AutoString  # type: ignore
 
 
 # TODO: CombineIt to this_format
 
+def uuid4_hex():
+    return uuid4().hex
 
 class PersonaBase(SQLModel):
     name: str
@@ -19,7 +22,7 @@ class PersonaBase(SQLModel):
 
 
 class Persona(PersonaBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
 
 
 class BotBase(SQLModel):
@@ -35,7 +38,7 @@ class BotBase(SQLModel):
 
 
 class Bot(BotBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
 
 
 class LLMModel(Enum):
@@ -60,20 +63,20 @@ class PromptBase(SQLModel):
 
 
 class Prompt(PromptBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
 
 
 class RoomBase(SQLModel):
     name: str
-    bot_id: Optional[int] = Field(foreign_key="bot.id", default=None)
-    persona_id: Optional[int] = Field(foreign_key="persona.id", default=None)
+    bot_id: Optional[str] = Field(foreign_key="bot.id", default=None)
+    persona_id: Optional[str] = Field(foreign_key="persona.id", default=None)
 
-    prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
-    summary_prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
-    re_summary_prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
+    prompt_id: Optional[str] = Field(default=None, foreign_key="prompt.id")
+    summary_prompt_id: Optional[str] = Field(default=None, foreign_key="prompt.id")
+    re_summary_prompt_id: Optional[str] = Field(default=None, foreign_key="prompt.id")
 
     translate_method: Optional[str] = Field(default=None)
-    translate_prompt_id: Optional[int] = Field(default=None, foreign_key="prompt.id")
+    translate_prompt_id: Optional[str] = Field(default=None, foreign_key="prompt.id")
     translate_only_assistant: bool = Field(default=False)
 
     filters: Optional[str] = Field(default=None)
@@ -82,7 +85,7 @@ class RoomBase(SQLModel):
 
 
 class Room(RoomBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
 
     bot: Optional[Bot] = Relationship()
     persona: Optional[Persona] = Relationship()
@@ -97,7 +100,7 @@ class Room(RoomBase, table=True):
 
 
 class ConversationBase(SQLModel):
-    room_id: int = Field(foreign_key="room.id", index=True)
+    room_id: str = Field(foreign_key="room.id", index=True)
 
     created_at: datetime.datetime = Field(default=datetime.datetime.now(), index=True)
     user_message: str
@@ -108,15 +111,15 @@ class ConversationBase(SQLModel):
 
 
 class Conversation(ConversationBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
     room: Room = Relationship()
 
 
 class SummaryBase(SQLModel):
-    room_id: int = Field(foreign_key="room.id", index=True)
+    room_id: str = Field(foreign_key="room.id", index=True)
     created_at: datetime.datetime = Field(default=datetime.datetime.now(), index=True)
 
-    conversation_id: int = Field(foreign_key="conversation.id", default=None, nullable=True, index=True)
+    conversation_id: str = Field(foreign_key="conversation.id", default=None, nullable=True, index=True)
     parent: int = Field(foreign_key="summary.id", default=None, nullable=True, index=True)
 
     content: str
@@ -130,10 +133,10 @@ class SummaryBase(SQLModel):
 
 
 class Summary(SummaryBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
 
 
 class Image(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
     file_id: str = Field(index=True)
     file_type: str = ''

@@ -2,7 +2,7 @@ import {getPrompt} from "@/lib/data/Prompt";
 import PromptViewer from "@/app/prompts/[id]/PromptViewer";
 
 interface PersonaPageParams {
-    id: number
+    id: string
 }
 
 export const dynamic = 'force-dynamic'

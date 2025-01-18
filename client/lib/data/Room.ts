@@ -31,20 +31,20 @@ export async function getRooms(): Promise<Room[]> {
     })
 }
 
-export async function getRoom(id: number): Promise<Room> {
+export async function getRoom(id: string): Promise<Room> {
     return await api(`room/${id}`, {
         method: 'GET'
     })
 }
 
-export async function putRoom(id: number, data: {}): Promise<Room> {
+export async function putRoom(id: string, data: {}): Promise<Room> {
     return await api(`room/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
     })
 }
 
-export async function deleteRoom(id: number): Promise<Room> {
+export async function deleteRoom(id: string): Promise<Room> {
     return await api(`room/${id}`, {
         method: 'DELETE'
     })
@@ -56,7 +56,7 @@ export async function getConversations(room: Room): Promise<Conversation[]> {
     })
 }
 
-export async function applyFirstMessage(id: number, text: string): Promise<Conversation> {
+export async function applyFirstMessage(id: string, text: string): Promise<Conversation> {
     return await api(`room/${id}/conversation/apply_first_message`, {
         method: 'POST',
         body: JSON.stringify({

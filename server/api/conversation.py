@@ -34,14 +34,14 @@ class ConversationsResponse(BaseModel):
     conversations: Sequence[ConversationBase]
 
 
-def get_room_or_404(room_id: int, session: Session) -> Room:
+def get_room_or_404(room_id: str, session: Session) -> Room:
     return common.get_or_404(Room, session, room_id)
 
 
 def register(router: APIRouter):
     @router.get('/{id}/conversation',
                 responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def list_conversations(engine: EngineDependency, id: int):
+    async def list_conversations(engine: EngineDependency, id: str):
         with Session(engine) as session:
             room = get_room_or_404(id, session)
             return session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
@@ -169,7 +169,7 @@ def register(router: APIRouter):
 
     @router.post("/{id}/conversation/send",
                  responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def send_message(engine: EngineDependency, id: int, argument: SendMessageArgument) -> StreamingResponse:
+    async def send_message(engine: EngineDependency, id: str, argument: SendMessageArgument) -> StreamingResponse:
         session = Session(engine)
         try:
             room = get_room_or_404(id, session=session)
@@ -245,7 +245,7 @@ def register(router: APIRouter):
 
     @router.post("/{id}/conversation/{conversation_id}/translate",
                  responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def translate_conversation(engine: EngineDependency, id: int, conversation_id: int) -> StreamingResponse:
+    async def translate_conversation(engine: EngineDependency, id: str, conversation_id: str) -> StreamingResponse:
         session = Session(engine)
         try:
             room = get_room_or_404(id, session=session)
@@ -260,7 +260,7 @@ def register(router: APIRouter):
         })
 
     @router.post("/{id}/conversation/apply_first_message")
-    async def apply_first_message(engine: EngineDependency, argument: SingleTextArgument, id: int):
+    async def apply_first_message(engine: EngineDependency, argument: SingleTextArgument, id: str):
         with Session(engine) as session:
             room = get_room_or_404(id, session=session)
             if not room.bot.first_message:
@@ -293,7 +293,7 @@ def register(router: APIRouter):
             return conversation.model_dump()
 
     @router.post("/{id}/conversation/re_roll")
-    async def re_roll(engine: EngineDependency, argument: ReRollArgument, id: int):
+    async def re_roll(engine: EngineDependency, argument: ReRollArgument, id: str):
         session = Session(engine)
         try:
             room = get_room_or_404(id, session=session)
@@ -318,7 +318,7 @@ def register(router: APIRouter):
         })
 
     @router.post("/{id}/conversation/edit")
-    async def edit(engine: EngineDependency, id: int, argument: SingleTextArgument):
+    async def edit(engine: EngineDependency, id: str, argument: SingleTextArgument):
         session = Session(engine)
         try:
             room = get_room_or_404(id, session=session)
@@ -345,7 +345,7 @@ def register(router: APIRouter):
         })
 
     @router.post("/{id}/conversation/revert")
-    async def revert(engine: EngineDependency, id: int):
+    async def revert(engine: EngineDependency, id: str):
         session = Session(engine)
         try:
             room = get_room_or_404(id, session=session)
@@ -368,7 +368,7 @@ def register(router: APIRouter):
         assistant_message_translated: str
 
     @router.post('/{id}/conversation/put_translate/{conversation_id}')
-    async def put_translate(engine: EngineDependency, id: int, conversation_id: int, put: PutTranslateModel):
+    async def put_translate(engine: EngineDependency, id: str, conversation_id: str, put: PutTranslateModel):
         with Session(engine) as session:
             conversation = common.get_or_404(Conversation, session, conversation_id)
 
@@ -380,7 +380,7 @@ def register(router: APIRouter):
             return conversation.model_dump()
 
     @router.get('/{id}/conversation/get_summary/{conversation_id}')
-    async def get_summary(engine: EngineDependency, id: int, conversation_id: int):
+    async def get_summary(engine: EngineDependency, id: str, conversation_id: str):
         with Session(engine) as session:
             summary: Summary = session.exec(
                 select(Summary).where(Summary.conversation_id == conversation_id)).one_or_none()

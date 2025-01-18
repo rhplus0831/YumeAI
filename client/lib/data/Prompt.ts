@@ -29,19 +29,19 @@ export async function getPrompts(type: string = "all"): Promise<Prompt[]> {
     })
 }
 
-export async function getPrompt(id: number): Promise<Prompt> {
+export async function getPrompt(id: string): Promise<Prompt> {
     return await api(`prompt/${id}`, {
         method: 'GET'
     })
 }
 
-export async function lintPrompt(id: number): Promise<PromptLint> {
+export async function lintPrompt(id: string): Promise<PromptLint> {
     return await api(`prompt/${id}/lint`, {
         method: 'POST'
     })
 }
 
-export async function testPrompt(id: number, active_toggles: string): Promise<TestPrompt> {
+export async function testPrompt(id: string, active_toggles: string): Promise<TestPrompt> {
     return await api(`prompt/${id}/test`, {
         method: 'POST',
         body: JSON.stringify({
@@ -63,14 +63,14 @@ export async function createPrompt(name: string): Promise<Prompt> {
     })
 }
 
-export async function putPrompt(id: number, data: PartialPrompt): Promise<Prompt> {
+export async function putPrompt(id: string, data: PartialPrompt): Promise<Prompt> {
     return await api(`prompt/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
     })
 }
 
-export async function deletePrompt(id: number): Promise<void> {
+export async function deletePrompt(id: string): Promise<void> {
     return await api(`prompt/${id}`, {
         method: 'DELETE'
     })

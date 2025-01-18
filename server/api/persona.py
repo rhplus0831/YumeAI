@@ -4,7 +4,7 @@ from sqlalchemy import Engine
 from sqlmodel import Session
 
 from api import common, image
-from api.common import EngineDependency
+from api.common import EngineDependency, UsernameDependency
 from database.sql_model import PersonaBase, Persona
 
 router = APIRouter(prefix="/persona", tags=["persona"])
@@ -22,20 +22,20 @@ class PersonaUpdate(BaseModel):
 common.validate_update_model(PersonaBase, PersonaUpdate)
 
 
-def get_persona_or_404(persona_id: int, session: Session) -> Persona:
+def get_persona_or_404(persona_id: str, session: Session) -> Persona:
     return common.get_or_404(Persona, session, persona_id)
 
 
 def register():
     @router.post('/{id}/profile_image', responses={200: {'model': Persona}, 404: {'model': persona_not_exist_model}})
-    async def update_profile_image(engine: EngineDependency, id: int, image_file: UploadFile) -> Persona:
+    async def update_profile_image(engine: EngineDependency, username: UsernameDependency, id: str, image_file: UploadFile) -> Persona:
         with Session(engine) as session:
             persona = get_persona_or_404(id, session)
 
         if persona.profileImageId is not None:
-            await image.delete_image(file_id=persona.profileImageId)
+            await image.delete_image(engine, username, file_id=persona.profileImageId)
 
-        uploaded = await image.upload_image(image_file)
+        uploaded = await image.upload_image(engine, username, image_file)
         persona.profileImageId = uploaded.file_id
 
         with Session(engine) as session:

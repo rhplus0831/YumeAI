@@ -18,20 +18,20 @@ room_not_exist_model: BaseModel | None = None
 
 class RoomUpdate(BaseModel):
     name: str | None = None
-    bot_id: int | None = None
-    persona_id: int | None = None
-    prompt_id: int | None = None
-    summary_prompt_id: int | None = None
-    re_summary_prompt_id: int | None = None
+    bot_id: str | None = None
+    persona_id: str | None = None
+    prompt_id: str | None = None
+    summary_prompt_id: str | None = None
+    re_summary_prompt_id: str | None = None
     translate_method: str | None = None
-    translate_prompt_id: int | None = None
+    translate_prompt_id: str | None = None
     translate_only_assistant: bool | None = None
     filters: str | None = None
     last_message_time: datetime.datetime | None = None
 
 
 class RoomGet(BaseModel):
-    id: int
+    id: str
     name: str
     bot: Optional[Bot] = None
     persona: Optional[Persona] = None

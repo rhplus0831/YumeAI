@@ -46,7 +46,7 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
         let firstMessageData: FirstMessage[] = [{
             "name": "기본",
             "message": "",
-            id: simpleStringHash("기본")
+            id: simpleStringHash("기본").toString()
         }]
         if (bot.first_message) {
             try {
@@ -89,8 +89,11 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
                 body: formData,
             }, false)
 
+            const filename = fileList[0].name
+            const assetName = filename.substring(0, filename.lastIndexOf('.'));
+
             const newImageAssetData = [...imageAssets, {
-                name: fileList[0].name,
+                name: assetName,
                 alias: '',
                 imageId: data.file_id
             }]

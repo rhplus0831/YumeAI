@@ -2,7 +2,7 @@ import {getRoom} from "@/lib/data/Room";
 import RoomViewer from "@/app/rooms/[id]/RoomViewer";
 
 interface RoomPageParams {
-    id: number
+    id: string
 }
 
 export const dynamic = 'force-dynamic'

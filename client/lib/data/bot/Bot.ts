@@ -16,7 +16,7 @@ export async function getBots(): Promise<Bot[]> {
     })
 }
 
-export async function getBot(id: number): Promise<Bot> {
+export async function getBot(id: string): Promise<Bot> {
     return await api(`bot/${id}`, {
         method: 'GET'
     })
@@ -34,14 +34,14 @@ export async function createBot(name: string): Promise<Bot> {
     })
 }
 
-export async function putBot(id: number, data: PartialBot): Promise<Bot> {
+export async function putBot(id: string, data: PartialBot): Promise<Bot> {
     return await api(`bot/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
     })
 }
 
-export async function deleteBot(id: number): Promise<void> {
+export async function deleteBot(id: string): Promise<void> {
     return await api(`bot/${id}`, {
         method: 'DELETE'
     })

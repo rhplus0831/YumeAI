@@ -49,7 +49,7 @@ def register():
             return prompts
 
     @router.post("/{id}/lint", response_model=PromptUpdate)
-    def lint(engine: EngineDependency, id: int):
+    def lint(engine: EngineDependency, id: str):
         with Session(engine) as session:
             prompt = common.get_or_404(Prompt, session, id)
 
@@ -79,7 +79,7 @@ def register():
         active_toggles: str
 
     @router.post("/{id}/test", response_model=PromptUpdate)
-    def test(engine: EngineDependency, info: PromptTestInfoModel, id: int):
+    def test(engine: EngineDependency, info: PromptTestInfoModel, id: str):
         with Session(engine) as session:
             prompt: Prompt = common.get_or_404(Prompt, session, id)
 

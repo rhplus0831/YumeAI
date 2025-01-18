@@ -2,7 +2,7 @@ import BaseData from "@/lib/data/BaseData";
 import Summary from "@/lib/data/Summary";
 
 export default interface Conversation extends BaseData {
-    room_id: number
+    room_id: string
     created_at: Date
     user_message: string | null
     user_message_translated: string | null

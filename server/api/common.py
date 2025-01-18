@@ -56,7 +56,7 @@ def validate_get_model(base_model: Type[SQLModel], get_model: Type[BaseModel], e
         raise Exception(f"{base_model.__name__} is not matching with {get_model.__name__}")
 
 
-def get_or_404(db_model: Type[SQLModel], session: Session, id: int):
+def get_or_404(db_model: Type[SQLModel], session: Session, id: str):
     statement = select(db_model).where(db_model.id == id)
     item = session.exec(statement).one_or_none()
     if item is None:
@@ -85,7 +85,7 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
         session.refresh(item)
         return item
 
-    def get(id: int, session: Session = Depends(get_session)) -> get_model:
+    def get(id: str, session: Session = Depends(get_session)) -> get_model:
         return get_or_404(db_model, session, id)
 
     list_data = {
@@ -98,7 +98,7 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
         items = session.exec(select(db_model).offset(offset).limit(limit)).all()
         return items
 
-    def update(id: int, base_update: update_model, session: Session = Depends(get_session)) -> get_model:
+    def update(id: str, base_update: update_model, session: Session = Depends(get_session)) -> get_model:
         data = get_or_404(db_model, session, id)
         update_data = base_update.model_dump(exclude_unset=True)
         data.sqlmodel_update(update_data)
@@ -112,7 +112,7 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
     }
     deleted_model = create_model(f'{data_name}Deleted', **deleted_data)
 
-    def delete(id: int, session: Session = Depends(get_session)):
+    def delete(id: str, session: Session = Depends(get_session)):
         data = get_or_404(db_model, session, id)
         session.delete(data)
         session.commit()

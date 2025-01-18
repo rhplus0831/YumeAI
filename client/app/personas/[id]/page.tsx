@@ -2,7 +2,7 @@ import PersonaViewer from "@/app/personas/[id]/PersonaViewer";
 import {getPersona} from "@/lib/data/Persona";
 
 interface PersonaPageParams {
-    id: number
+    id: string
 }
 
 export const dynamic = 'force-dynamic'

@@ -6,7 +6,7 @@ from sqlalchemy import Engine
 from sqlmodel import Session
 
 from api import common, image
-from api.common import EngineDependency
+from api.common import EngineDependency, UsernameDependency
 from database.sql_model import BotBase, Bot
 
 router = APIRouter(prefix="/bot", tags=["bot"])
@@ -24,7 +24,7 @@ class BotUpdate(BaseModel):
 
 
 class BotGet(BaseModel):
-    id: int
+    id: str
     name: str
     displayName: str
     profileImageId: Optional[str] = None
@@ -38,20 +38,20 @@ common.validate_update_model(BotBase, BotUpdate)
 common.validate_get_model(BotBase, BotGet)
 
 
-def get_bot_or_404(bot_id: int, session: Session) -> Bot:
+def get_bot_or_404(bot_id: str, session: Session) -> Bot:
     return common.get_or_404(Bot, session, bot_id)
 
 
 def register():
     @router.post('/{id}/profile_image', responses={200: {'model': Bot}, 404: {'model': bot_not_exist_model}})
-    async def update_profile_image(engine: EngineDependency, id: int, image_file: UploadFile) -> Bot:
+    async def update_profile_image(engine: EngineDependency, username: UsernameDependency, id: str, image_file: UploadFile) -> Bot:
         with Session(engine) as session:
             bot = get_bot_or_404(id, session)
 
         if bot.profileImageId is not None:
-            await image.delete_image(file_id=bot.profileImageId)
+            await image.delete_image(engine, username, file_id=bot.profileImageId)
 
-        uploaded = await image.upload_image(image_file)
+        uploaded = await image.upload_image(engine, username, image_file)
         bot.profileImageId = uploaded.file_id
 
         with Session(engine) as session:

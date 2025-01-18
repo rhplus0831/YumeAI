@@ -1,7 +1,7 @@
 import BaseData from "@/lib/data/BaseData";
 import {api} from "@/lib/api-client";
 
-export default interface Prompt extends BaseData {
+export interface PromptBase {
     name: string
     prompt: string
     type: string
@@ -10,6 +10,9 @@ export default interface Prompt extends BaseData {
     use_stream: boolean
     filters: string | null
     toggles: string | null
+}
+
+export default interface Prompt extends PromptBase, BaseData {
 }
 
 export interface PromptLint {

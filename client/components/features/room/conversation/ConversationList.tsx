@@ -76,7 +76,7 @@ export default function ConversationList({room, checkedToggles}: {
             "created_at": new Date(),
             "user_message": userMessage,
             "assistant_message": null,
-            "id": -1
+            "id": "sending"
         } as Conversation]
         // keep in temp variable because react state is async
         const tempConversations = conversations.slice(0).concat(sendTemp)

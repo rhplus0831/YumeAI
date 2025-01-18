@@ -6,7 +6,7 @@ import LoadedFile from "@/lib/LoadedFile";
 import {decodeRPack} from "@/lib/import/rpack/rpack_bg";
 import * as fflate from "fflate";
 import {decode as decodeMsgpack} from "msgpackr";
-import Prompt from "@/lib/data/Prompt";
+import {PromptBase} from "@/lib/data/Prompt";
 import {decryptBuffer} from "@/lib/import/risu/risuUtil";
 import {presetTemplate, RisuPromptPreset} from "@/lib/import/risu/preset/RisuPromptPreset";
 import {getLLMByModal} from "@/lib/import/risu/preset/modelList";
@@ -27,21 +27,21 @@ export async function decodeRisuPreset(file: LoadedFile): Promise<RisuPromptPres
         data = await decodeRPack(data)
     }
     const decoded: RisuPresetHeader = await decodeMsgpack(fflate.decompressSync(data))
-    if(decoded.presetVersion !== 0 && decoded.presetVersion !== 2) {
+    if (decoded.presetVersion !== 0 && decoded.presetVersion !== 2) {
         throw new Error('Invalid Risu preset version')
     }
-    if(decoded.type !== 'preset'){
+    if (decoded.type !== 'preset') {
         throw new Error('Invalid Risu preset')
     }
 
-    return {...presetTemplate,...decodeMsgpack(Buffer.from(await decryptBuffer(decoded.preset ?? decoded.pres, 'risupreset')))}
+    return {...presetTemplate, ...decodeMsgpack(Buffer.from(await decryptBuffer(decoded.preset ?? decoded.pres, 'risupreset')))}
 }
 
-export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
+export async function parseRisuPrompt(file: LoadedFile): Promise<PromptBase> {
     const pre = await decodeRisuPreset(file)
     const llm = getLLMByModal(pre.aiModel)
     let llm_config = ""
-    switch(llm) {
+    switch (llm) {
         case "openai":
             const openAIConfig: OpenAIConfig = {
                 endpoint: '',
@@ -66,20 +66,20 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
 
     let prompt = ''
 
-    function putRole(role: 'user'|'bot'|'system') {
-        if(role === 'user') {
+    function putRole(role: 'user' | 'bot' | 'system') {
+        if (role === 'user') {
             prompt += '||user||\n'
-        } else if(role === 'bot') {
+        } else if (role === 'bot') {
             prompt += '||assistant||\n'
-        } else if(role === 'system') {
+        } else if (role === 'system') {
             prompt += '||system||\n'
         }
     }
 
     function putSlot(p: PromptItemTyped, ...slot: string[]) {
-        if(slot.length === 0) return
+        if (slot.length === 0) return
         let mySlot = ''
-        for(const s of slot) {
+        for (const s of slot) {
             mySlot += `{{${s}}}\n`
         }
         mySlot = mySlot.slice(0, -1)
@@ -90,7 +90,7 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
         prompt += `//YUME ${p.name?.trim() ?? PromptTypeToStr(p.type)}\n`
         switch (p.type) {
             case 'plain':
-                if(p.text.trim() === '') return
+                if (p.text.trim() === '') return
                 putRole(p.role)
                 prompt += p.text + '\n'
                 break
@@ -108,9 +108,9 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
                 break
             case 'chat':
                 const pp = p as PromptItemChat
-                if(pp.rangeStart === 0 && pp.rangeEnd === 'end') {
+                if (pp.rangeStart === 0 && pp.rangeEnd === 'end') {
                     prompt += '{{chat}}\n'
-                }  else if (pp.rangeStart === 0 && pp.rangeEnd === -1) {
+                } else if (pp.rangeStart === 0 && pp.rangeEnd === -1) {
                     prompt += '{{conversations}}\n'
                 } else if (pp.rangeStart === -1 && pp.rangeEnd === 'end') {
                     prompt += '{{message}}\n'
@@ -121,7 +121,7 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
         }
     })
 
-    let result: Prompt = {
+    let result: PromptBase = {
         name: pre.name ?? 'Imported',
         type: 'chat',
         llm: getLLMByModal(pre.aiModel),
@@ -130,7 +130,6 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<Prompt> {
         filters: '',
         toggles: pre.customPromptTemplateToggle ?? '',
         use_stream: false,
-        id: -1
     }
 
     return result

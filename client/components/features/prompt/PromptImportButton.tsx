@@ -47,7 +47,7 @@ export default function PromptImportButton(props: ButtonProps) {
                 <Button {...props} onPress={() => {
                     hiddenFileInput.current?.click()
                 }}>
-                    프롬프트 가져오기
+                    리스 프롬프트 가져오기
                 </Button>
             </div>
         </ErrorPopover>

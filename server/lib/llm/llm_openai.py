@@ -42,6 +42,9 @@ class OpenAIConfig:
 def get_key(config: OpenAIConfig) -> str:
     if config.key:
         return config.key
+    if config.endpoint:
+        # Custom endpoint may doesn't need to set key?
+        return 'yume-ai'
     raise NotImplementedError("OpenAI API Key is not set.")
 
 

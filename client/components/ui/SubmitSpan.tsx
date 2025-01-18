@@ -6,11 +6,12 @@ import {MdCheck, MdOutlineCancel} from "react-icons/md";
 import ErrorPopover from "@/components/ui/ErrorPopover";
 import {Input} from "@nextui-org/input";
 
-export default function SubmitSpan({value, label, placeholder, submit}: {
+export default function SubmitSpan({value, label, placeholder, submit, hideOnIdle}: {
     value: string,
     label: string,
     placeholder?: string,
     submit: (value: string) => Promise<unknown>
+    hideOnIdle?: boolean
 }) {
     const [internalValue, setInternalValue] = useState("")
     const [inEdit, setInEdit] = useState(false)
@@ -50,6 +51,16 @@ export default function SubmitSpan({value, label, placeholder, submit}: {
         setInternalValue(value)
         setInEdit(true)
     }
+    
+    function getDisplayValue() {
+        if(!value) return getPlaceholder();
+
+        if(hideOnIdle) {
+            return "눌러서 확인하기"
+        }
+
+        return value
+    }
 
     return (<ErrorPopover errorMessage={errorMessage}>
         {inEdit ?
@@ -66,7 +77,7 @@ export default function SubmitSpan({value, label, placeholder, submit}: {
             <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing}
                     onTouchStart={startEditing}>
                 <span className={"text-xs"}>{label}</span>
-                <span className={value ? '' : 'text-gray-400 italic'}>{value ? value : getPlaceholder()}</span>
+                <span className={value ? '' : 'text-gray-400 italic'}>{getDisplayValue()}</span>
             </button>
         }
     </ErrorPopover>)

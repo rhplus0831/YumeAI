@@ -54,7 +54,7 @@ export default function OpenAIBox({prompt, onEdited}: { prompt: Prompt, onEdited
             config.endpoint = value
             await onEdited(JSON.stringify(config))
         }} />
-        <SubmitSpan value={key} label={"API 키"} placeholder={"기본 값"} submit={async (value) => {
+        <SubmitSpan value={key} label={"API 키"} hideOnIdle placeholder={"기본 값"} submit={async (value) => {
             const config = getConfig()
             config.key = value
             await onEdited(JSON.stringify(config))

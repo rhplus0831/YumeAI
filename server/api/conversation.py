@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from sqlmodel import Session, select, SQLModel
 from starlette.responses import StreamingResponse
 
-import configure
 import settings
 from api import common
 from api.common import ClientErrorException, EngineDependency
@@ -73,12 +72,17 @@ def register(router: APIRouter):
             user_new_message = apply_filter(room, 'input', argument.text)
 
             max_conversation_count = settings.get_max_conversation_count(session)
-            print(max_conversation_count)
 
             statement = select(Conversation).where(Conversation.room_id == room.id).order_by(
                 Conversation.created_at.desc()).limit(max_conversation_count)
             conversations = session.exec(statement).all()
             conversations = sorted(conversations, key=lambda c: c.created_at)
+
+            if custom_conversation_id:
+                def cut_selected(conversation: Conversation):
+                    return conversation.id == custom_conversation_id
+
+                conversations = list(filter(cut_selected, conversations))
 
             # 유저가 메시지를 새로 보내어 이전 대화를 확정한경우 요약합니다.
             if len(conversations) != 0:
@@ -96,8 +100,12 @@ def register(router: APIRouter):
             for summary in await get_re_summaries(session, room):
                 combined_re_summary += summary.content + '\r\n'
 
-            for summary in (await get_summaries(session, room))[:max_conversation_count]:
-                combined_summary += summary.content + '\r\n'
+            summaries = await get_summaries(session, room)
+            if len(summaries) > max_conversation_count:
+                # max_conversation_count 보다 메시지의 요약이 많아 진경우 이전 메시지는 잘리기 때문에 요약을 넣어줌
+                summaries = summaries[0:len(summaries) - max_conversation_count]
+                for summary in summaries:
+                    combined_summary += summary.content + '\r\n'
 
             combined_summary = combined_summary.rstrip('\r\n')
             combined_re_summary = combined_re_summary.rstrip('\r\n')
@@ -105,9 +113,6 @@ def register(router: APIRouter):
             conversation_converted = []
 
             for conversation in conversations:
-                if custom_conversation_id:
-                    if conversation.id == custom_conversation_id:
-                        continue
                 conversation_converted.append(f'||user||\n{conversation.user_message}\n')
                 conversation_converted.append(f'||assistant||\n{conversation.assistant_message}\n')
 

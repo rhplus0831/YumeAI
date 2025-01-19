@@ -1,7 +1,7 @@
 "use client";
 
 import YumeMenu from "@/components/MenuPortal";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import SubmitSpan from "@/components/ui/SubmitSpan";
 import PromptTextarea from "@/components/ui/PromptTextarea";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
@@ -12,21 +12,31 @@ import {SelectItem} from "@nextui-org/react";
 import PromptLintButton from "@/components/features/prompt/PromptLintButton";
 import EditableFilterList from "@/components/features/filter/EditableFilterList";
 import OpenAIBox from "@/components/features/prompt/llm/OpenAIBox";
-import GeminiBox from "@/components/features/prompt/llm/GeminiBox";
 import PromptTestButton from "@/components/features/prompt/PromptTestButton";
 import EditablePromptToggleList from "@/components/features/prompt/toggle/EditablePromptToggleList";
 import AsyncProgressCheckbox from "@/components/ui/AsyncProgressCheckbox";
+import GeminiBox from "@/components/features/prompt/llm/GeminiBox";
 
 export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
     const [prompt, setPrompt] = useState<Prompt>(startPrompt)
     const [status, setStatus] = useState<string>("normal")
     const router = useRouter()
 
-    async function onLLMConfigChange(value: string) {
+    async function submitLLMConfig(value: string) {
         setPrompt(await putPrompt(prompt.id, {
             llm_config: value
         }))
     }
+
+    const [config, setConfig] = useState<Record<string, any>>({})
+
+    useEffect(() => {
+        try {
+            setConfig(JSON.parse(prompt.llm_config))
+        } catch {
+            setConfig({})
+        }
+    }, [prompt])
 
     return <>
         <YumeMenu>
@@ -39,14 +49,13 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                 <AsyncProgressSelect label={"LLM"} selectedKeys={[prompt.llm]} onValueChangeAsync={async (value) => {
                     setPrompt(await putPrompt(prompt.id, {
                         "llm": value,
-                        "llm_config": ''
                     }))
                 }}>
                     <SelectItem key={"openai"}>OpenAI</SelectItem>
                     <SelectItem key={"gemini"}>Gemini</SelectItem>
                 </AsyncProgressSelect>
-                {prompt.llm == "openai" && <OpenAIBox prompt={prompt} onEdited={onLLMConfigChange}/>}
-                {prompt.llm == "gemini" && <GeminiBox prompt={prompt} onEdited={onLLMConfigChange}/>}
+                {prompt.llm == "openai" && <OpenAIBox config={config} submitConfig={submitLLMConfig}/>}
+                {prompt.llm == "gemini" && <GeminiBox config={config} submitConfig={submitLLMConfig}/>}
                 <AsyncProgressSelect label={"프롬프트 타입"} selectedKeys={[prompt.type]}
                                      onValueChangeAsync={async (value) => {
                                          setPrompt(await putPrompt(prompt.id, {
@@ -76,7 +85,7 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                     setPrompt(await putPrompt(prompt.id, {
                         toggles: toggles,
                     }))
-                }} />}
+                }}/>}
                 <DeleteConfirmButton className={"mt-10"} confirmCount={3} onConfirmed={async () => {
                     await deletePrompt(prompt.id)
                     router.replace("/prompts")

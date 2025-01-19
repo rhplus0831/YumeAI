@@ -65,14 +65,17 @@ export default function SettingsViewer({settings}: { settings: GlobalSettings })
                     </TableBody>
                 </Table>
                 <SubmitSingleSettingSpan startValue={settings.max_conversation_count}
-                                         valueKey={'max_conversation_count'} placeholder={"3"} enforceNumber
+                                         enforceNumberRange={[1, 1000000]}
+                                         valueKey={'max_conversation_count'} placeholder={"3"} enforceInteger
                                          label={'최대 대화 갯수'}/>
                 <SubmitSingleSettingSpan startValue={settings.max_summary_count} placeholder={"3"}
+                                         enforceNumberRange={[1, 1000000]}
                                          valueKey={'max_summary_count'}
-                                         enforceNumber label={'최대 요약 갯수'}/>
+                                         enforceInteger label={'최대 요약 갯수'}/>
                 <SubmitSingleSettingSpan startValue={settings.max_re_summary_count} placeholder={"3"}
                                          valueKey={'max_re_summary_count'}
-                                         enforceNumber label={'최대 재 요약 갯수'}/>
+                                         enforceNumberRange={[1, 1000000]}
+                                         enforceInteger label={'최대 재 요약 갯수'}/>
             </div>
         </AccordionItem>
     </Accordion>

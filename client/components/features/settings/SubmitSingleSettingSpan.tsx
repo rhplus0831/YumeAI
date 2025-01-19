@@ -1,19 +1,18 @@
 import {putSingleSetting} from "@/lib/data/GlobalSettings";
-import SubmitSpan from "@/components/ui/SubmitSpan";
-import {ReactNode, useState} from "react";
+import SubmitSpan, {SubmitSpanProps} from "@/components/ui/SubmitSpan";
+import {useState} from "react";
 
-export default function SubmitSingleSettingSpan({startValue, valueKey, label, description, enforceNumber, hideOnIdle, placeholder}: {
+export interface SubmitSingleSettingSpanProps extends Omit<SubmitSpanProps, "value" | "submit"> {
     startValue?: string,
     valueKey: string,
-    label: string,
-    description?: ReactNode,
-    hideOnIdle?: boolean,
-    enforceNumber?: boolean,
-    placeholder?: string,
-}) {
+}
+
+export default function SubmitSingleSettingSpan(props: SubmitSingleSettingSpanProps) {
+    const {startValue, valueKey, ...restProps} = props
+
     const [value, setValue] = useState(startValue ?? '');
 
-    return <SubmitSpan value={value} placeholder={placeholder} label={label} hideOnIdle={hideOnIdle} description={description} enforceNumber={enforceNumber} submit={async (value) => {
+    return <SubmitSpan {...restProps} value={value} submit={async (value) => {
         await putSingleSetting(valueKey, value)
         setValue(value)
     }}/>

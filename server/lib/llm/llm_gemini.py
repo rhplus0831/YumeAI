@@ -1,38 +1,40 @@
 import asyncio
-import json
-from dataclasses import asdict, dataclass
 from typing import Optional, Callable
 
 from google import genai
 from google.genai import types
+from google.genai.types import SafetySetting
 from sqlmodel import Session
 
-import configure
 import lib.prompt
 import settings
 from database.sql_model import Prompt
 from lib.cbs import CBSHelper
+from lib.llm.config_helper import JsonConfigHelper
 from lib.web import generate_event_stream_message
 
+safety_settings = [
+    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_CIVIC_INTEGRITY"),
+    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_DANGEROUS_CONTENT"),
+    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_HARASSMENT"),
+    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_HATE_SPEECH"),
+    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_SEXUALLY_EXPLICIT"),
+]
 
-@dataclass
-class GeminiConfig:
-    model: str = 'gemini-1.5-pro'
-    key: str = ''
 
-    @staticmethod
-    def from_json(config: Optional[str] = None) -> 'GeminiConfig':
-        if not config:
-            return GeminiConfig()  # 기본값으로 초기화
-        data = json.loads(config)
+class GeminiConfig(JsonConfigHelper):
+    def __init__(self, config: Optional[str] = None):
+        super().__init__(config)
+        self.key = self.get_string_data('key', None)
+        self.model = self.get_string_data('model', 'gemini-1.5-pro')
+        self.max_input = self.get_integer_data('max_input', None)
+        self.max_output = self.get_integer_data('max_output', None)
 
-        # noinspection PyTypeChecker
-        defaults = asdict(GeminiConfig())  # dataclass 기본값을 dict로 추출
-        defaults.update(data)  # JSON 데이터로 기본값 덮어쓰기
-        return GeminiConfig(**defaults)
-
-    def to_json(self) -> str:
-        return json.dumps(self.__dict__)
+        self.presence_penalty = self.get_float_data('presence_penalty', None)
+        self.frequency_penalty = self.get_float_data('frequency_penalty', None)
+        self.temperature = self.get_float_data('temperature', None)
+        self.top_p = self.get_float_data('top_p', None)
+        self.top_k = self.get_float_data('top_k', None)
 
 
 def get_key(config: GeminiConfig, session: Session) -> str:
@@ -88,22 +90,38 @@ def process_content(content) -> [str, bool]:
     return result
 
 
-async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session):
+def generate_client(prompt_value: Prompt, cbs: CBSHelper, session: Session):
     parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
     contents, system = convert_to_gemini(messages)
-    config = GeminiConfig.from_json(prompt_value.llm_config)
+    config = GeminiConfig(prompt_value.llm_config)
 
     client = genai.Client(api_key=get_key(config, session))
+    generate_config = types.GenerateContentConfig(
+        system_instruction=system,
+        safety_settings=safety_settings
+    )
+
+    if config.max_input:
+        contents_tokens = client.models.count_tokens(model=config.model, contents=contents)
+        system_tokens = client.models.count_tokens(model=config.model, contents=system)
+        num_tokens = contents_tokens.total_tokens + system_tokens.total_tokens
+        if num_tokens > config.max_input:
+            raise ValueError(f"Input too long. (max_input={config.max_input}, num_tokens={num_tokens})")
+
+    return parsed_prompt, messages, contents, client, generate_config, config
+
+
+async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session):
+    parsed_prompt, messages, contents, client, generate_config, config = generate_client(prompt_value, cbs, session)
 
     response = await client.aio.models.generate_content(model=config.model, contents=contents,
-                                                        config=types.GenerateContentConfig(
-                                                            system_instruction=system
-                                                        ))
+                                                        config=generate_config)
 
     from lib.llm.llm_common import messages_dump
     result = process_content(response.candidates[0].content)
 
+    # TODO: Better COT Model Check
     if 'thinking' in config.model:
         result = '<COT>' + result
 
@@ -114,12 +132,7 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session)
 
 async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
                         complete_receiver: Callable[[str], None]):
-    parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
-    messages = lib.prompt.generate_openai_messages(parsed_prompt)
-    contents, system = convert_to_gemini(messages)
-    config = GeminiConfig.from_json(prompt_value.llm_config)
-
-    client = genai.Client(api_key=get_key(config, session))
+    parsed_prompt, messages, contents, client, generate_config, config = generate_client(prompt_value, cbs, session)
     collected_messages = []
 
     # TODO: Better COT Model Check
@@ -128,9 +141,7 @@ async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
         yield generate_event_stream_message('stream', '<COT>')
 
     async for chunk in client.aio.models.generate_content_stream(model=config.model, contents=contents,
-                                                                 config=types.GenerateContentConfig(
-                                                                     system_instruction=system
-                                                                 )):
+                                                                 config=generate_config):
         chunk_message = ''
         for candidate in chunk.candidates:
             chunk_message = process_content(candidate.content)

@@ -1,40 +1,30 @@
-import Prompt from "@/lib/data/Prompt";
-import {useEffect, useState} from "react";
-import SubmitSpan from "@/components/ui/SubmitSpan";
-import GeminiConfig from "@/lib/data/llm/GeminiConfig";
+import SubmitLLMConfigSpan from "@/components/features/prompt/llm/SubmitLLMConfigSpan";
+import LLMEditBoxProps from "@/components/features/prompt/llm/LLMEditBoxProps";
 
-export default function GeminiBox({prompt, onEdited}: {
-    prompt: Prompt,
-    onEdited: (llm_config: string) => Promise<void>
-}) {
-    const [model, setModel] = useState<string>("")
-    const [key, setKey] = useState<string>("")
+//Reference: https://platform.openai.com/docs/api-reference/chat/object
 
-    const getConfig = () => {
-        if (!prompt.llm_config) return {
-            "model": "gemini-1.5-pro",
-            "key": "",
-        } as GeminiConfig
-        return JSON.parse(prompt.llm_config) as GeminiConfig
-    }
-
-    useEffect(() => {
-        const config = getConfig()
-        if (!config) return
-        setModel(config.model)
-        setKey(config.key)
-    }, [prompt])
+export default function GeminiBox(props: LLMEditBoxProps) {
+    const {config, submitConfig} = props
 
     return <>
-        <SubmitSpan value={model} label={"모델명"} submit={async (value) => {
-            const config = getConfig()
-            config.model = value
-            await onEdited(JSON.stringify(config))
-        }}/>
-        <SubmitSpan value={key} label={"API 키"} hideOnIdle placeholder={"기본 값"} submit={async (value) => {
-            const config = getConfig()
-            config.key = value
-            await onEdited(JSON.stringify(config))
-        }}/>
+        <SubmitLLMConfigSpan config={config} configKey={'key'} hideOnIdle placeholder={'기본 값'} defaultValue={''}
+                             submitConfig={submitConfig} label={'API 키'}/>
+        <SubmitLLMConfigSpan config={config} configKey={'model'} placeholder={'gemini-1.5-pro'} submitConfig={submitConfig}
+                             label={'모델'}/>
+        <SubmitLLMConfigSpan config={config} configKey={'max_input'} enforceInteger
+                             enforceNumberRange={[1, Number.MAX_VALUE]} placeholder={'제한 없음'} defaultValue={''}
+                             submitConfig={submitConfig} label={'최대 입력 토큰'}/>
+        <SubmitLLMConfigSpan config={config} configKey={'max_output'} enforceInteger
+                             enforceNumberRange={[1, Number.MAX_VALUE]} placeholder={'제한 없음'} defaultValue={''}
+                             submitConfig={submitConfig} label={'최대 출력 토큰'}/>
+
+        <SubmitLLMConfigSpan config={config} configKey={'temperature'} placeholder={'모델 기본값'} enforceNumber enforceNumberRange={[0, 2]} submitConfig={submitConfig} label={'온도'} />
+        <SubmitLLMConfigSpan config={config} configKey={'top_p'} placeholder={'모델 기본값'} enforceNumber enforceNumberRange={[0, 1]} submitConfig={submitConfig} label={'Top P'} />
+        <SubmitLLMConfigSpan config={config} configKey={'top_k'} placeholder={'모델 기본값'} enforceInteger enforceNumberRange={[1, Number.MAX_VALUE]} submitConfig={submitConfig} label={'Top K'} />
+
+        <SubmitLLMConfigSpan config={config} configKey={'presence_penalty'} enforceNumber enforceNumberRange={[-2, 2]}
+                             placeholder={'0'} submitConfig={submitConfig} label={'프레전스 패널티'}/>
+        <SubmitLLMConfigSpan config={config} configKey={'frequency_penalty'} enforceNumber enforceNumberRange={[-2, 2]}
+                             placeholder={'0'} submitConfig={submitConfig} label={'빈도 패널티'}/>
     </>
 }

@@ -6,7 +6,7 @@ import {MdCheck, MdOutlineCancel} from "react-icons/md";
 import ErrorPopover from "@/components/ui/ErrorPopover";
 import {Input} from "@nextui-org/input";
 
-export default function SubmitSpan({value, label, placeholder, submit, hideOnIdle, description, inputType, enforceNumber}: {
+export interface SubmitSpanProps {
     value: string,
     label: string,
     placeholder?: string,
@@ -15,7 +15,24 @@ export default function SubmitSpan({value, label, placeholder, submit, hideOnIdl
     description?: ReactNode
     inputType?: 'text' | 'search' | 'url' | 'tel' | 'email' | 'password' | (string & {})
     enforceNumber?: boolean
-}) {
+    enforceInteger?: boolean
+    enforceNumberRange?: [number, number]
+}
+
+export default function SubmitSpan(props: SubmitSpanProps) {
+    const {
+        value,
+        label,
+        placeholder,
+        submit,
+        hideOnIdle,
+        description,
+        inputType,
+        enforceNumber,
+        enforceInteger,
+        enforceNumberRange
+    } = props;
+
     const [internalValue, setInternalValue] = useState("")
     const [inEdit, setInEdit] = useState(false)
 
@@ -27,14 +44,36 @@ export default function SubmitSpan({value, label, placeholder, submit, hideOnIdl
             setInSubmit(true)
             setErrorMessage("")
 
-            if(internalValue && enforceNumber) {
-                const parsed = parseInt(internalValue)
-                if(isNaN(parsed)) {
+            if (internalValue && (enforceNumber || enforceInteger)) {
+                const parsed = parseFloat(internalValue)
+                if (enforceInteger) {
+                    if (parsed != parseInt(internalValue)) {
+                        await new Promise(resolve => setTimeout(resolve, 10))
+                        setErrorMessage("정수만 입력 가능한 필드입니다.")
+                        return;
+                    }
+                }
+                if (isNaN(parsed)) {
                     // 잠시 여유를 주어서 ErrorMessage의 변경 사항을 React가 인식할 수 있도록 함?
                     // 이 방법이 최선은 아닌것 같은데 다른 방법을 찾아봐야 할듯
                     await new Promise(resolve => setTimeout(resolve, 10))
                     setErrorMessage("숫자만 입력 가능한 필드입니다.")
                     return;
+                }
+                if (enforceNumberRange) {
+                    if (enforceNumberRange[0] > parsed || parsed > enforceNumberRange[1]) {
+                        let range = `${enforceNumberRange[0]} ~ ${enforceNumberRange[1]}`
+                        if (enforceNumberRange[0] == Number.MIN_VALUE) {
+                            range = `${enforceNumberRange[1]} 이하`
+                        }
+                        if (enforceNumberRange[1] == Number.MAX_VALUE) {
+                            range = `${enforceNumberRange[0]} 이상`
+                        }
+
+                        await new Promise(resolve => setTimeout(resolve, 10))
+                        setErrorMessage(`적정 범위(${range}) 를 벗어났습니다.`)
+                        return;
+                    }
                 }
             }
 
@@ -66,11 +105,11 @@ export default function SubmitSpan({value, label, placeholder, submit, hideOnIdl
         setInternalValue(value)
         setInEdit(true)
     }
-    
-    function getDisplayValue() {
-        if(!value) return getPlaceholder();
 
-        if(hideOnIdle) {
+    function getDisplayValue() {
+        if (!value) return getPlaceholder();
+
+        if (hideOnIdle) {
             return "눌러서 확인하기"
         }
 
@@ -86,17 +125,21 @@ export default function SubmitSpan({value, label, placeholder, submit, hideOnIdl
                        label={label}
                        description={description}
                        type={inputType}
+                       placeholder={placeholder}
                        onValueChange={(value) => {
                            setInternalValue(value)
                        }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}/>
             </div>
             :
-            <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing}
-                    onTouchStart={startEditing}>
-                <span className={"text-xs"}>{label}</span>
-                <span className={value && !hideOnIdle ? '' : 'text-foreground-400 italic'}>{getDisplayValue()}</span>
-                {description && <span className={"text-xs text-foreground-400"}>{description}</span>}
-            </button>
+            <>
+                <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing}
+                        onTouchStart={startEditing}>
+                    <span className={"text-xs"}>{label}</span>
+                    <span
+                        className={value && !hideOnIdle ? '' : 'text-foreground-400 italic'}>{getDisplayValue()}</span>
+                </button>
+                {description && <span className={"w-full text-xs text-foreground-400"}>{description}</span>}
+            </>
         }
     </ErrorPopover>)
 }

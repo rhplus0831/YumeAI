@@ -1,7 +1,6 @@
 import datetime
 import os
 from collections.abc import Callable
-from typing import Optional
 
 from sqlmodel import Session
 
@@ -35,7 +34,8 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session)
     raise NotImplementedError(f"{prompt_value.llm} is not implemented.")
 
 
-async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session, complete_receiver: Callable[[str], None]):
+async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
+                        complete_receiver: Callable[[str], None]):
     # TODO: 완성된 문자열을 전달하는 더 이쁜 방법(complete_receiver) 없을까?
 
     if prompt_value.llm == LLMModel.OPENAI:

@@ -4,6 +4,7 @@ import {Textarea} from "@nextui-org/input";
 import {useEffect, useRef, useState} from "react";
 import {MdOutlineCheck, MdOutlineEditNote, MdOutlineError} from "react-icons/md";
 import {Button, CircularProgress} from "@nextui-org/react";
+import {useNavigationGuard} from "next-navigation-guard";
 
 export interface PromptTextareaProps {
     onSave: (text: string) => Promise<void>;
@@ -17,46 +18,33 @@ export default function PromptTextarea(props: PromptTextareaProps) {
     const [errorMessage, setErrorMessage] = useState("")
     const [status, setStatus] = useState("normal")
 
+    useNavigationGuard({
+        enabled: status !== "normal",
+        confirm: () => window.confirm("변경 사항이 있는것 같습니다, 계속하는 경우 변경 사항이 손실될 수 있습니다.")
+    })
+
     useEffect(() => {
         setPrompt(props.prompt)
     }, [props.prompt]);
 
-    useEffect(() => {
-        props?.setStatus?.(status)
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            // status가 normal이 아니면 경고 메시지 띄우기
-            if (status !== "normal") {
-                e.preventDefault();
-                e.returnValue = ""; // 일부 브라우저에서 경고를 보여주기 위한 설정
-            }
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-
-        // 컴포넌트 언마운트 시 이벤트 리스너 해제
-        return () => {
-            window.removeEventListener("beforeunload", handleBeforeUnload);
-        };
-    }, [status]); // status가 변경될 때마다 효과 재실행
-
     function getStatusElement() {
-        if(errorMessage) return <>
-            <MdOutlineError className={"text-red-500"} size={"32"} />
+        if (errorMessage) return <>
+            <MdOutlineError className={"text-red-500"} size={"32"}/>
             {errorMessage}
         </>
 
-        if(status === "normal") return (<>
-            <MdOutlineCheck className={"text-green-500"} size={"32"} />
+        if (status === "normal") return (<>
+            <MdOutlineCheck className={"text-green-500"} size={"32"}/>
             최신 상태
         </>)
 
-        if(status === "progress") return (<>
-            <CircularProgress />
+        if (status === "progress") return (<>
+            <CircularProgress/>
             저장중
         </>)
 
-        if(status === "edited") return <>
-            <MdOutlineEditNote className={"text-yellow-500"} size={"32"} />
+        if (status === "edited") return <>
+            <MdOutlineEditNote className={"text-yellow-500"} size={"32"}/>
             수정됨
         </>
 
@@ -66,7 +54,7 @@ export default function PromptTextarea(props: PromptTextareaProps) {
     const isProcessing = useRef(false)
 
     async function save() {
-        if(isProcessing.current) return;
+        if (isProcessing.current) return;
 
         isProcessing.current = true;
         setStatus("progress")
@@ -74,7 +62,7 @@ export default function PromptTextarea(props: PromptTextareaProps) {
             await props.onSave(prompt)
             setStatus("normal")
         } catch (e: unknown) {
-            if(e instanceof Error) {
+            if (e instanceof Error) {
                 setErrorMessage(e.message)
             }
         } finally {

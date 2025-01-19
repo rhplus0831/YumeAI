@@ -12,9 +12,10 @@ import {
     TableRow
 } from "@nextui-org/react";
 import SubmitSingleSettingSpan from "@/components/features/settings/SubmitSingleSettingSpan";
+import {siteConfig} from "@/config/site";
 
 export default function SettingsViewer({settings}: { settings: GlobalSettings }) {
-    return <Accordion variant={"splitted"} selectionMode={"multiple"}>
+    return <><Accordion variant={"splitted"} selectionMode={"multiple"}>
         <AccordionItem key={"key"} title={"기본 API 키"}>
             <div className={"flex flex-col gap-4"}>
                 <SubmitSingleSettingSpan startValue={settings.openai_api_key} hideOnIdle valueKey={'openai_api_key'}
@@ -79,4 +80,6 @@ export default function SettingsViewer({settings}: { settings: GlobalSettings })
             </div>
         </AccordionItem>
     </Accordion>
+        <div className={"mt-5 w-full text-center"}>YumeAI {siteConfig.version} - Yume like Ai with your AI</div>
+    </>
 }

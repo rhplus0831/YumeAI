@@ -3,6 +3,7 @@ export type SiteConfig = typeof siteConfig;
 export const siteConfig = {
   name: "YumeAI",
   description: "Yume like Ai with Your AI",
+  version: "0.39",
   navItems: [
     {
       label: "채팅",

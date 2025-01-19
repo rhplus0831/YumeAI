@@ -1,10 +1,11 @@
 "use client";
 
 import {ReactNode, useState} from "react";
-import {Button, ButtonGroup, CircularProgress} from "@nextui-org/react";
+import {Autocomplete, AutocompleteItem, Button, ButtonGroup, CircularProgress} from "@nextui-org/react";
 import {MdCheck, MdOutlineCancel} from "react-icons/md";
 import ErrorPopover from "@/components/ui/ErrorPopover";
 import {Input} from "@nextui-org/input";
+
 
 export interface SubmitSpanProps {
     value: string,
@@ -17,6 +18,7 @@ export interface SubmitSpanProps {
     enforceNumber?: boolean
     enforceInteger?: boolean
     enforceNumberRange?: [number, number]
+    autoComplete?: ReactNode
 }
 
 export default function SubmitSpan(props: SubmitSpanProps) {
@@ -30,7 +32,8 @@ export default function SubmitSpan(props: SubmitSpanProps) {
         inputType,
         enforceNumber,
         enforceInteger,
-        enforceNumberRange
+        enforceNumberRange,
+        autoComplete
     } = props;
 
     const [internalValue, setInternalValue] = useState("")
@@ -120,15 +123,30 @@ export default function SubmitSpan(props: SubmitSpanProps) {
         {inEdit ?
             <div>
                 {/*클릭했을때 바로 나오는 항목이기 때문에, 이 항목은 autoFocus를 쓰는게 유저 경험상 더 바람직함*/}
-                {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
-                <Input className={"w-full"} disabled={inSubmit} autoFocus size={"sm"} defaultValue={internalValue}
-                       label={label}
-                       description={description}
-                       type={inputType}
-                       placeholder={placeholder}
-                       onValueChange={(value) => {
-                           setInternalValue(value)
-                       }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}/>
+                {autoComplete ?
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
+                    <Autocomplete className={"w-full"} disabled={inSubmit} autoFocus size={"sm"}
+                                  allowsCustomValue
+                                  defaultInputValue={internalValue}
+                                  label={label}
+                                  description={description}
+                                  type={inputType}
+                                  placeholder={placeholder}
+                                  onInputChange={(value) => {
+                                      setInternalValue(value)
+                                  }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}>
+                        <>{autoComplete}</>
+                    </Autocomplete>
+                    :
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
+                    <Input className={"w-full"} disabled={inSubmit} autoFocus size={"sm"} defaultValue={internalValue}
+                           label={label}
+                           description={description}
+                           type={inputType}
+                           placeholder={placeholder}
+                           onValueChange={(value) => {
+                               setInternalValue(value)
+                           }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}/>}
             </div>
             :
             <>

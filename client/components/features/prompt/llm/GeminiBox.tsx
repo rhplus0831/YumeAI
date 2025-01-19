@@ -1,5 +1,6 @@
 import SubmitLLMConfigSpan from "@/components/features/prompt/llm/SubmitLLMConfigSpan";
 import LLMEditBoxProps from "@/components/features/prompt/llm/LLMEditBoxProps";
+import {AutocompleteItem, AutocompleteSection} from "@nextui-org/react";
 
 //Reference: https://platform.openai.com/docs/api-reference/chat/object
 
@@ -10,7 +11,17 @@ export default function GeminiBox(props: LLMEditBoxProps) {
         <SubmitLLMConfigSpan config={config} configKey={'key'} hideOnIdle placeholder={'기본 값'} defaultValue={''}
                              submitConfig={submitConfig} label={'API 키'}/>
         <SubmitLLMConfigSpan config={config} configKey={'model'} placeholder={'gemini-1.5-pro'} submitConfig={submitConfig}
-                             label={'모델'}/>
+                             label={'모델'} autoComplete={<>
+            <AutocompleteSection showDivider title="권장 모델">
+                <AutocompleteItem key="gemini-2.0-flash-exp">gemini-2.0-flash-exp</AutocompleteItem>
+                <AutocompleteItem key="gemini-2.0-flash-thinking-exp">gemini-2.0-flash-thinking-exp</AutocompleteItem>
+                <AutocompleteItem key="gemini-exp-1206">gemini-exp-1206</AutocompleteItem>
+                <AutocompleteItem key="gemini-1.5-pro">gemini-1.5-pro</AutocompleteItem>
+                <AutocompleteItem key="gemini-1.5-flash">gemini-1.5-flash</AutocompleteItem>
+            </AutocompleteSection>
+            <AutocompleteItem key="gemini-1.5-flash-8b">gemini-1.5-flash-8b</AutocompleteItem>
+            <AutocompleteItem key="gemini-1.0-pro">gemini-1.0-pro</AutocompleteItem>
+        </>}/>
         <SubmitLLMConfigSpan config={config} configKey={'max_input'} enforceInteger
                              enforceNumberRange={[1, Number.MAX_VALUE]} placeholder={'제한 없음'} defaultValue={''}
                              submitConfig={submitConfig} label={'최대 입력 토큰'}/>

@@ -1,6 +1,6 @@
 import Conversation from "@/lib/data/Conversation";
 import ConversationBox from "@/components/features/room/conversation/ConversationBox";
-import Room, {applyFirstMessage, getConversations} from "@/lib/data/Room";
+import Room, {applyFirstMessage, getConversations, RoomDisplayOption} from "@/lib/data/Room";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {Button, CircularProgress} from "@nextui-org/react";
 import {pendingFetch, usePendingAlert} from "@/components/ui/PendingAlert/usePendingAlert";
@@ -8,18 +8,21 @@ import {buildAPILink} from "@/lib/api-client";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {Textarea} from "@nextui-org/input";
 import Filter from "@/lib/data/Filter";
-import FirstMessageSelectButtonWithModal from "@/components/features/bot/firstMessage/FirstMessageSelectButtonWithModal";
+import FirstMessageSelectButtonWithModal
+    from "@/components/features/bot/firstMessage/FirstMessageSelectButtonWithModal";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
 
-export default function ConversationList({room, checkedToggles}: {
+export default function ConversationList({room, checkedToggles, displayOption}: {
     room: Room,
-    checkedToggles: string
+    checkedToggles: string,
+    displayOption: RoomDisplayOption,
 }) {
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [conversations, setConversations] = useState<Conversation[]>([])
 
     let [filters, setFilters] = useState<Filter[]>([])
     let [imageAssets, setImageAssets] = useState<ImageAsset[]>([])
+
     useEffect(() => {
         if (!room) return
         let making: Filter[] = []
@@ -32,7 +35,7 @@ export default function ConversationList({room, checkedToggles}: {
         }
         setFilters(making)
 
-        if(room.bot?.image_assets) {
+        if (room.bot?.image_assets) {
             try {
                 setImageAssets(JSON.parse(room.bot.image_assets))
             } catch {
@@ -137,6 +140,7 @@ export default function ConversationList({room, checkedToggles}: {
                 filters={filters}
                 imageAssets={imageAssets}
                 checkedToggles={checkedToggles}
+                displayOption={displayOption}
             />
         ));
     }, [conversations, room, filters]);

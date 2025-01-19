@@ -30,6 +30,7 @@ class RoomUpdate(BaseModel):
     translate_only_assistant: bool | None = None
     filters: str | None = None
     last_message_time: datetime.datetime | None = None
+    display_option: str | None = None
 
 
 class RoomGet(BaseModel):
@@ -46,6 +47,7 @@ class RoomGet(BaseModel):
     filters: Optional[str] = None
 
     last_message_time: datetime.datetime | None = None
+    display_option: Optional[str] = None
 
 
 common.validate_update_model(RoomBase, RoomUpdate)

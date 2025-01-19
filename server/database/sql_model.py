@@ -83,6 +83,7 @@ class RoomBase(SQLModel):
     filters: Optional[str] = Field(default=None)
 
     last_message_time: Optional[datetime.datetime] = Field(default_factory=datetime.datetime.now)
+    display_option: Optional[str] = Field(default=None)
 
 
 class Room(RoomBase, table=True):

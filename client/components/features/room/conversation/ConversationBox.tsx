@@ -1,6 +1,6 @@
 import Conversation from "@/lib/data/Conversation";
 import MessageBox from "@/components/features/room/conversation/MessageBox";
-import Room from "@/lib/data/Room";
+import Room, {RoomDisplayOption} from "@/lib/data/Room";
 import Filter, {ApplyFilter} from "@/lib/data/Filter";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {pendingFetch, usePendingAlert} from "@/components/ui/PendingAlert/usePendingAlert";
@@ -15,16 +15,7 @@ import {HiOutlineChatBubbleOvalLeftEllipsis} from "react-icons/hi2";
 import {Card, CardBody} from "@nextui-org/card";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
 
-export default function ConversationBox({
-                                            room,
-                                            conversation,
-                                            updateConversation,
-                                            removeConversation,
-                                            isLast,
-                                            filters,
-                                            imageAssets,
-                                            checkedToggles
-                                        }: {
+export interface ConversationBoxProps {
     room: Room | null,
     conversation: Conversation,
     updateConversation: (conversation: Conversation) => void,
@@ -32,8 +23,13 @@ export default function ConversationBox({
     isLast: boolean,
     filters: Filter[],
     imageAssets: ImageAsset[],
+    displayOption: RoomDisplayOption,
     checkedToggles: string,
-}) {
+}
+
+export default function ConversationBox(props: ConversationBoxProps) {
+    const {room, conversation, updateConversation, removeConversation, isLast, filters, imageAssets, displayOption, checkedToggles} = props;
+
     const pendingProps = usePendingAlert()
     const blockInSending = useRef(false);
     const [isInSending, setIsInSending] = useState<boolean>(false)
@@ -233,34 +229,38 @@ export default function ConversationBox({
                 }
             } else {
                 // 짝수 인덱스는 일반 텍스트이므로 그대로 추가합니다.
-                result.push(<span key={i}>{parts[i].trim()}</span>);
+                result.push(<span key={i}>{parts[i]}</span>);
             }
         }
 
         return <>{result}</>;
     }
 
-    function applyMessageFilter(text: string) {
-        if (true) {
+    function applyImageAndDisplayOption(text: string) {
+        if(!displayOption.use_card) {
+            return <span className={"whitespace-pre-line"}>{replaceImgTag(text)}</span>
+        }
+
+        if (displayOption.use_card_split) {
             return <div className={"flex flex-col gap-2"}>
                 {text.split("\n\n").map((line, index) => (line.trim() !== "" &&
                     <Card key={line + index} className={'w-fit'}>
                         <CardBody>
-                            <div className={"whitespace-pre-wrap"}>{replaceImgTag(line.trim())}</div>
+                            <div className={"whitespace-pre-line"}>{replaceImgTag(line.trim())}</div>
                         </CardBody>
                     </Card>))}
             </div>
         } else {
             return <Card className={'w-fit'}>
                 <CardBody>
-                    <div className={"whitespace-pre-wrap"}>{replaceImgTag(text.trim())}</div>
+                    <div className={"whitespace-pre-line"}>{replaceImgTag(text.trim())}</div>
                 </CardBody>
             </Card>
         }
     }
 
     function transformMessage(filters: Filter[], types: string[], text: string) {
-        return applyMessageFilter(ApplyFilter(filters, types, text))
+        return applyImageAndDisplayOption(ApplyFilter(filters, types, text))
     }
 
     const getUserMessage = () => {
@@ -280,9 +280,9 @@ export default function ConversationBox({
 
     const splitAssistantMessage = () => {
         const message = getAssistantMessage()
-        if (!message.startsWith("<COT>") || !message.includes('</COT>')) return ["", applyMessageFilter(message)];
+        if (!message.startsWith("<COT>") || !message.includes('</COT>')) return ["", applyImageAndDisplayOption(message)];
         const [cot, content] = message.split("</COT>")
-        return [cot.slice(5), applyMessageFilter(content)]
+        return [applyImageAndDisplayOption(cot.slice(5)), applyImageAndDisplayOption(content)]
     }
 
     const [assistantCOT, assistantContent] = splitAssistantMessage()

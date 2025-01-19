@@ -16,6 +16,12 @@ export default interface Room extends BaseData {
     translate_prompt: Prompt | undefined
     translate_only_assistant: boolean
     last_message_time: Date | undefined
+    display_option: string | undefined
+}
+
+export interface RoomDisplayOption {
+    use_card: boolean | undefined,
+    use_card_split: boolean | undefined
 }
 
 export async function createRoom(name: string): Promise<Room> {

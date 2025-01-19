@@ -1,9 +1,9 @@
 "use client";
 
-import Room, {deleteRoom, exportRoom, putRoom} from "@/lib/data/Room";
+import Room, {deleteRoom, exportRoom, putRoom, RoomDisplayOption} from "@/lib/data/Room";
 import YumeMenu from "@/components/MenuPortal";
 import {Divider, SelectItem} from "@nextui-org/react";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import SelectablePersonaCardWithModal from "@/components/features/persona/SelectablePersonaCardWithModal";
 import {getBots} from "@/lib/data/bot/Bot";
 import {getPersonas} from "@/lib/data/Persona";
@@ -24,6 +24,23 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
 
     const [room, setRoom] = useState<Room>(startRoom)
     const [checkedToggles, setCheckedToggles] = useState("")
+    let [displayOption, setDisplayOption] = useState<RoomDisplayOption>({
+        use_card: undefined,
+        use_card_split: undefined
+    })
+
+    useEffect(() => {
+        if (room.display_option) {
+            try {
+                setDisplayOption(JSON.parse(room.display_option))
+            } catch {
+                setDisplayOption({
+                    use_card: undefined,
+                    use_card_split: undefined
+                })
+            }
+        }
+    }, [room])
 
     return (<>
         <YumeCustomNav>
@@ -80,6 +97,21 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                         }} filterType={"translate"} prompt={room.translate_prompt}/>
                     </>
                 }
+                <span>표시 옵션</span>
+                <AsyncProgressCheckbox isSelected={displayOption.use_card} onValueChangeAsync={async (value) => {
+                    const json = room.display_option ? JSON.parse(room.display_option) : {}
+                    json['use_card'] = value;
+                    setRoom(await putRoom(room.id, {"display_option": JSON.stringify(json)}))
+                }}>
+                    메시지를 카드로 감싸기
+                </AsyncProgressCheckbox>
+                <AsyncProgressCheckbox isSelected={displayOption.use_card_split} onValueChangeAsync={async (value) => {
+                    const json = room.display_option ? JSON.parse(room.display_option) : {}
+                    json['use_card_split'] = value;
+                    setRoom(await putRoom(room.id, {"display_option": JSON.stringify(json)}))
+                }}>
+                    두번 개행 되었을때 카드를 나누기
+                </AsyncProgressCheckbox>
                 <AsyncProgressButton className={"w-full mt-5"} onPressAsync={async () => {
                     const uuid = await exportRoom(room.id)
                     window.open(buildAPILink(`/exported/${uuid}`), "_blank")
@@ -90,6 +122,6 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                 }}/>
             </div>
         </YumeMenu>
-        <ConversationList room={room} checkedToggles={checkedToggles}/>
+        <ConversationList room={room} displayOption={displayOption} checkedToggles={checkedToggles}/>
     </>)
 }

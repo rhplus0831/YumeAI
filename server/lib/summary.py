@@ -25,7 +25,7 @@ async def summarize_conversation(session: Session, conversation: Conversation):
     cbs.char = conversation.room.bot.name
     cbs.char_message = conversation.assistant_message
 
-    summarized = await llm_common.perform_prompt(conversation.room.summary_prompt, cbs)
+    summarized = await llm_common.perform_prompt(conversation.room.summary_prompt, cbs, session)
     summary = Summary()
     summary.created_at = datetime.datetime.now()
     summary.room_id = conversation.room.id
@@ -82,7 +82,7 @@ async def summarize(session: Session, room: Room):
         combined = combined.rstrip('\r\n')
         cbs = CBSHelper()
         cbs.content = combined
-        combined = await llm_common.perform_prompt(room.re_summary_prompt, cbs)
+        combined = await llm_common.perform_prompt(room.re_summary_prompt, cbs, session)
 
         parent_summary.content = combined
         session.add(parent_summary)

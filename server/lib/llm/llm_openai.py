@@ -5,10 +5,11 @@ from dataclasses import dataclass, asdict
 from typing import Optional, Callable
 
 from openai import AsyncOpenAI
+from sqlmodel import Session, select
 
 import configure
 import lib.prompt
-from database.sql_model import Prompt
+from database.sql_model import Prompt, GlobalSetting, SettingKey
 from lib.cbs import CBSHelper
 from lib.web import generate_event_stream_message
 
@@ -39,16 +40,21 @@ class OpenAIConfig:
         return json.dumps(self.__dict__)
 
 
-def get_key(config: OpenAIConfig) -> str:
+def get_key(config: OpenAIConfig, session: Session) -> str:
     if config.key:
         return config.key
+
+    global_key = session.exec(select(GlobalSetting).where(GlobalSetting.key == SettingKey.openai_api_key)).one_or_none()
+    if global_key:
+        return global_key.value
+
     if config.endpoint:
         # Custom endpoint may doesn't need to set key?
         return 'yume-ai'
     raise NotImplementedError("OpenAI API Key is not set.")
 
 
-async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
+async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session):
     parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
 
@@ -56,7 +62,7 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
     base_url = None
     if config.endpoint:
         base_url = config.endpoint
-    key = get_key(config)
+    key = get_key(config, session)
     oai = AsyncOpenAI(api_key=key, base_url=base_url)
 
     response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=config.temperature,
@@ -71,7 +77,7 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
     return response.choices[0].message.content
 
 
-async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver: Callable[[str], None]):
+async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session, complete_receiver: Callable[[str], None]):
     parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
 
@@ -79,7 +85,7 @@ async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver:
     base_url = None
     if config.endpoint:
         base_url = config.endpoint
-    oai = AsyncOpenAI(api_key=get_key(config), base_url=base_url)
+    oai = AsyncOpenAI(api_key=get_key(config, session), base_url=base_url)
 
     response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=config.temperature,
                                                  max_tokens=config.max_tokens,

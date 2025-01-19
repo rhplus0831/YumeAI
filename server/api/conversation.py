@@ -139,10 +139,10 @@ def register(router: APIRouter):
                     cbs.global_vars[f"toggle_{active_toggle}"] = '1'
 
             if room.prompt.use_stream:
-                async for value in llm_common.stream_prompt(room.prompt, cbs, receiver):
+                async for value in llm_common.stream_prompt(room.prompt, cbs, session, receiver):
                     yield value
             else:
-                bot_response = await llm_common.perform_prompt(room.prompt, cbs)
+                bot_response = await llm_common.perform_prompt(room.prompt, cbs, session)
 
             if custom_conversation_id:
                 conversation = session.exec(
@@ -213,7 +213,7 @@ def register(router: APIRouter):
 
                 cbs = CBSHelper()
                 cbs.content = filtered_user_message
-                async for value in llm_common.stream_prompt(room.translate_prompt, cbs,
+                async for value in llm_common.stream_prompt(room.translate_prompt, cbs, session,
                                                             user_receiver):
                     yield value
 
@@ -228,7 +228,7 @@ def register(router: APIRouter):
 
             cbs = CBSHelper()
             cbs.content = filtered_assistant_message
-            async for value in llm_common.stream_prompt(room.translate_prompt, cbs,
+            async for value in llm_common.stream_prompt(room.translate_prompt, cbs, session,
                                                         assistant_receiver):
                 yield value
 

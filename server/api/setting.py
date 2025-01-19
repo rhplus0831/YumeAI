@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi import APIRouter
 from sqlmodel import select
 from starlette.responses import JSONResponse
@@ -17,13 +19,15 @@ def register():
 
         return JSONResponse(content=result)
 
-    @router.put("/{key}/{value}")
-    def put_setting(session: SessionDependency, key: str, value: str):
-        session.exec(select(GlobalSetting).where(GlobalSetting.key == key)).update({GlobalSetting.value: value})
-        session.commit()
-
     @router.put("/")
     def put_settings(session: SessionDependency, settings: dict):
         for key, value in settings.items():
-            session.exec(select(GlobalSetting).where(GlobalSetting.key == key)).update({GlobalSetting.value: value})
+            data = session.exec(select(GlobalSetting).where(GlobalSetting.key == key)).one_or_none()
+            if data:
+                data.value = value
+                data.updated_at = datetime.datetime.now()
+            else:
+                data = GlobalSetting(key=key, value=value)
+            session.add(data)
+
         session.commit()

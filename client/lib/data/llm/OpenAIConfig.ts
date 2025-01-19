@@ -1,10 +1,7 @@
-export default interface OpenAIConfig {
-    endpoint: string
-    model: string
-    key: string
+import BaseLLMConfig from "@/lib/data/llm/BaseLLMConfig";
 
-    temperature: number
-    max_tokens: number
+export default interface OpenAIConfig extends BaseLLMConfig {
+    endpoint: string
     top_p: number
     frequency_penalty: number
     presence_penalty: number

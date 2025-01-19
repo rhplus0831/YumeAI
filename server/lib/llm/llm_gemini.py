@@ -5,9 +5,10 @@ from typing import Optional, Callable
 
 from google import genai
 from google.genai import types
+from sqlmodel import Session, select
 
 import lib.prompt
-from database.sql_model import Prompt
+from database.sql_model import Prompt, GlobalSetting, SettingKey
 from lib.cbs import CBSHelper
 from lib.web import generate_event_stream_message
 
@@ -32,9 +33,14 @@ class GeminiConfig:
         return json.dumps(self.__dict__)
 
 
-def get_key(config: GeminiConfig) -> str:
+def get_key(config: GeminiConfig, session: Session) -> str:
     if config.key:
         return config.key
+
+    global_key = session.exec(select(GlobalSetting).where(GlobalSetting.key == SettingKey.gemini_api_key)).one_or_none()
+    if global_key:
+        return global_key.value
+
     raise NotImplementedError("Gemini API Key is not set.")
 
 
@@ -80,13 +86,13 @@ def process_content(content) -> [str, bool]:
     return result
 
 
-async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
+async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session):
     parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
     contents, system = convert_to_gemini(messages)
     config = GeminiConfig.from_json(prompt_value.llm_config)
 
-    client = genai.Client(api_key=get_key(config))
+    client = genai.Client(api_key=get_key(config, session))
 
     response = await client.aio.models.generate_content(model=config.model, contents=contents,
                                                         config=types.GenerateContentConfig(
@@ -104,13 +110,13 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
     return result
 
 
-async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver: Callable[[str], None]):
+async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session, complete_receiver: Callable[[str], None]):
     parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
     contents, system = convert_to_gemini(messages)
     config = GeminiConfig.from_json(prompt_value.llm_config)
 
-    client = genai.Client(api_key=get_key(config))
+    client = genai.Client(api_key=get_key(config, session))
     collected_messages = []
 
     # TODO: Better COT Model Check

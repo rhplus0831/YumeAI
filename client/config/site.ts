@@ -20,5 +20,9 @@ export const siteConfig = {
       label: "프롬프트",
       href: "/prompts",
     },
+    {
+      label: "설정",
+      href: "/settings",
+    },
   ],
 };

@@ -1,16 +1,10 @@
-import json
 import os
 import uuid
-from contextlib import asynccontextmanager
-from typing import Annotated
-from zipfile import ZipFile
 
 import aiofiles
 from fastapi import FastAPI, Request, BackgroundTasks, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.params import Depends
 from openai import BaseModel
-from sqlmodel import SQLModel, Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, FileResponse
@@ -140,7 +134,9 @@ common.insert_crud(prompt.router, PromptBase, Prompt, PromptUpdate, skip_get_lis
 prompt.register()
 app.include_router(prompt.router)
 
+setting.register()
 app.include_router(setting.router)
+
 
 class LoginData(BaseModel):
     username: str

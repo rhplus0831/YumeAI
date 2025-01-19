@@ -1,6 +1,9 @@
 import datetime
 import os
 from collections.abc import Callable
+from typing import Optional
+
+from sqlmodel import Session
 
 import configure
 from database.sql_model import Prompt, LLMModel
@@ -23,24 +26,24 @@ def messages_dump(messages, response_text):
             f.write('result: ' + response_text + '\n')
 
 
-async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper):
+async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session):
     if prompt_value.llm == LLMModel.OPENAI:
-        return await llm_openai.perform_prompt(prompt_value, cbs)
+        return await llm_openai.perform_prompt(prompt_value, cbs, session)
     if prompt_value.llm == LLMModel.GEMINI:
-        return await llm_gemini.perform_prompt(prompt_value, cbs)
+        return await llm_gemini.perform_prompt(prompt_value, cbs, session)
 
     raise NotImplementedError(f"{prompt_value.llm} is not implemented.")
 
 
-async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, complete_receiver: Callable[[str], None]):
+async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session, complete_receiver: Callable[[str], None]):
     # TODO: 완성된 문자열을 전달하는 더 이쁜 방법(complete_receiver) 없을까?
 
     if prompt_value.llm == LLMModel.OPENAI:
-        async for value in llm_openai.stream_prompt(prompt_value, cbs, complete_receiver):
+        async for value in llm_openai.stream_prompt(prompt_value, cbs, session, complete_receiver):
             yield value
         return
     if prompt_value.llm == LLMModel.GEMINI:
-        async for value in llm_gemini.stream_prompt(prompt_value, cbs, complete_receiver):
+        async for value in llm_gemini.stream_prompt(prompt_value, cbs, session, complete_receiver):
             yield value
         return
 

@@ -3,7 +3,6 @@ from typing import Sequence
 from fastapi import APIRouter
 from fastapi.params import Query
 from pydantic import BaseModel
-from sqlalchemy import Engine
 from sqlmodel import Session, select
 from starlette.responses import JSONResponse
 
@@ -14,7 +13,6 @@ from lib.cbs import CBSHelper
 from lib.prompt import lint_chat, lint_summary, lint_content_only, parse_prompt
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
-engine: Engine
 
 
 class PromptUpdate(BaseModel):
@@ -35,7 +33,8 @@ common.validate_update_model(PromptBase, PromptUpdate)
 
 def register():
     @router.get("/")
-    def gets_with_filter(engine: EngineDependency, type: str = "all", offset: int = 0, limit: int = Query(default=100, le=100)) -> Sequence[
+    def gets_with_filter(engine: EngineDependency, type: str = "all", offset: int = 0,
+                         limit: int = Query(default=100, le=100)) -> Sequence[
         Prompt]:
         with Session(engine) as session:
             if type == 'all':

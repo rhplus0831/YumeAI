@@ -1,10 +1,10 @@
 import datetime
-from typing import Optional
+from typing import Optional, Union
+from uuid import uuid4
 
 from sqlalchemy import Enum
 from sqlmodel import SQLModel, Field, Relationship
 from sqlmodel import main as _sqlmodel_main
-from uuid import UUID, uuid4
 
 _sqlmodel_main.sa_Enum = lambda _: _sqlmodel_main.AutoString  # type: ignore
 
@@ -13,6 +13,7 @@ _sqlmodel_main.sa_Enum = lambda _: _sqlmodel_main.AutoString  # type: ignore
 
 def uuid4_hex():
     return uuid4().hex
+
 
 class PersonaBase(SQLModel):
     name: str
@@ -140,3 +141,22 @@ class Image(SQLModel, table=True):
     id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
     file_id: str = Field(index=True)
     file_type: str = ''
+
+
+class SettingKey(str, Enum):
+    openai_api_key = "openai_api_key"
+    gemini_api_key = "gemini_api_key"
+
+
+class GlobalSettingBase(SQLModel):
+    key: str = Field(index=True, unique=True)  # 설정 키
+    value: Optional[str] = None  # 설정 값
+    type: Optional[str] = Field(default="string", index=True)  # 설정의 데이터 유형 (예: string, int, json 등)
+
+    description: Optional[str] = None  # 설정 설명
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)  # 생성 시간
+    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)  # 수정 시간
+
+
+class GlobalSetting(GlobalSettingBase, table=True):
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)

@@ -16,7 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, FileResponse
 
 import configure
-from api import room, persona, common, image, bot, prompt, conversation
+from api import room, persona, common, image, bot, prompt, conversation, setting
 from api.bot import BotUpdate, BotGet
 from api.common import ClientErrorException, UsernameDependency, SessionDependency
 from api.persona import PersonaUpdate
@@ -140,6 +140,7 @@ common.insert_crud(prompt.router, PromptBase, Prompt, PromptUpdate, skip_get_lis
 prompt.register()
 app.include_router(prompt.router)
 
+app.include_router(setting.router)
 
 class LoginData(BaseModel):
     username: str

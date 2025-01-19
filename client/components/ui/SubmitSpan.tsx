@@ -1,17 +1,20 @@
 "use client";
 
-import {useState} from "react";
+import {ReactNode, useState} from "react";
 import {Button, ButtonGroup, CircularProgress} from "@nextui-org/react";
 import {MdCheck, MdOutlineCancel} from "react-icons/md";
 import ErrorPopover from "@/components/ui/ErrorPopover";
 import {Input} from "@nextui-org/input";
 
-export default function SubmitSpan({value, label, placeholder, submit, hideOnIdle}: {
+export default function SubmitSpan({value, label, placeholder, submit, hideOnIdle, description, inputType, enforceNumber}: {
     value: string,
     label: string,
     placeholder?: string,
     submit: (value: string) => Promise<unknown>
     hideOnIdle?: boolean
+    description?: ReactNode
+    inputType?: 'text' | 'search' | 'url' | 'tel' | 'email' | 'password' | (string & {})
+    enforceNumber?: boolean
 }) {
     const [internalValue, setInternalValue] = useState("")
     const [inEdit, setInEdit] = useState(false)
@@ -23,6 +26,18 @@ export default function SubmitSpan({value, label, placeholder, submit, hideOnIdl
         try {
             setInSubmit(true)
             setErrorMessage("")
+
+            if(internalValue && enforceNumber) {
+                const parsed = parseInt(internalValue)
+                if(isNaN(parsed)) {
+                    // 잠시 여유를 주어서 ErrorMessage의 변경 사항을 React가 인식할 수 있도록 함?
+                    // 이 방법이 최선은 아닌것 같은데 다른 방법을 찾아봐야 할듯
+                    await new Promise(resolve => setTimeout(resolve, 10))
+                    setErrorMessage("숫자만 입력 가능한 필드입니다.")
+                    return;
+                }
+            }
+
             await submit(internalValue)
             setInEdit(false)
         } catch (e) {
@@ -69,6 +84,8 @@ export default function SubmitSpan({value, label, placeholder, submit, hideOnIdl
                 {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
                 <Input className={"w-full"} disabled={inSubmit} autoFocus size={"sm"} defaultValue={internalValue}
                        label={label}
+                       description={description}
+                       type={inputType}
                        onValueChange={(value) => {
                            setInternalValue(value)
                        }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}/>
@@ -77,7 +94,8 @@ export default function SubmitSpan({value, label, placeholder, submit, hideOnIdl
             <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing}
                     onTouchStart={startEditing}>
                 <span className={"text-xs"}>{label}</span>
-                <span className={value && !hideOnIdle ? '' : 'text-gray-400 italic'}>{getDisplayValue()}</span>
+                <span className={value && !hideOnIdle ? '' : 'text-foreground-400 italic'}>{getDisplayValue()}</span>
+                {description && <span className={"text-xs text-foreground-400"}>{description}</span>}
             </button>
         }
     </ErrorPopover>)

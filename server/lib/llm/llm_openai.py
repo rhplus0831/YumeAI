@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 
 import configure
 import lib.prompt
+from settings import get_openai_api_key
 from database.sql_model import Prompt, GlobalSetting, SettingKey
 from lib.cbs import CBSHelper
 from lib.web import generate_event_stream_message
@@ -44,7 +45,7 @@ def get_key(config: OpenAIConfig, session: Session) -> str:
     if config.key:
         return config.key
 
-    global_key = session.exec(select(GlobalSetting).where(GlobalSetting.key == SettingKey.openai_api_key)).one_or_none()
+    global_key = get_openai_api_key(session)
     if global_key:
         return global_key.value
 

@@ -3,6 +3,7 @@ import datetime
 from sqlmodel import Session, select
 
 import configure
+import settings
 from database.sql_model import Conversation, Room, Summary
 from lib.cbs import CBSHelper
 from lib.llm import llm_common
@@ -54,7 +55,7 @@ async def need_summarize(session: Session, room: Room):
     # 요약이 (대화 최대 + 요약 최대) 를 넘은 상태이면 재요약이 필요함
 
     return (len(await get_summaries(session, room))
-            >= configure.get_max_conversation_count() + configure.get_max_summary_count())
+            >= settings.get_max_conversation_count(session) + settings.get_max_summary_count(session))
 
 
 async def summarize(session: Session, room: Room):
@@ -90,9 +91,9 @@ async def summarize(session: Session, room: Room):
 
     summaries = await get_summaries(session, room)
     # 실제로 들어가지 않는 요약을 잘라냄
-    summaries = summaries[:configure.get_max_conversation_count()]
+    summaries = summaries[:settings.get_max_conversation_count(session)]
     await internal(summaries)
 
     re_summaries = await get_re_summaries(session, room)
-    if len(re_summaries) >= configure.get_max_re_summary_count():
+    if len(re_summaries) >= settings.get_max_re_summary_count(session):
         await internal(re_summaries)

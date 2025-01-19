@@ -3,6 +3,10 @@ import {api} from "@/lib/api-client";
 export default interface GlobalSettings {
     openai_api_key?: string
     gemini_api_key?: string
+
+    max_re_summary_count?: string,
+    max_summary_count?: string,
+    max_conversation_count?: string,
 }
 
 export async function putSingleSetting(key: string, value: string) {

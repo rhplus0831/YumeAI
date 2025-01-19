@@ -7,6 +7,7 @@ from sqlmodel import Session, select, SQLModel
 from starlette.responses import StreamingResponse
 
 import configure
+import settings
 from api import common
 from api.common import ClientErrorException, EngineDependency
 from database.sql_model import ConversationBase, Room, Conversation, Summary
@@ -71,11 +72,11 @@ def register(router: APIRouter):
 
             user_new_message = apply_filter(room, 'input', argument.text)
 
-            # TODO: Support user select use summary | combine summary limit
+            max_conversation_count = settings.get_max_conversation_count(session)
+            print(max_conversation_count)
 
             statement = select(Conversation).where(Conversation.room_id == room.id).order_by(
-                Conversation.created_at.desc()).limit(
-                configure.get_max_conversation_count())
+                Conversation.created_at.desc()).limit(max_conversation_count)
             conversations = session.exec(statement).all()
             conversations = sorted(conversations, key=lambda c: c.created_at)
 
@@ -95,7 +96,7 @@ def register(router: APIRouter):
             for summary in await get_re_summaries(session, room):
                 combined_re_summary += summary.content + '\r\n'
 
-            for summary in (await get_summaries(session, room))[:configure.get_max_conversation_count()]:
+            for summary in (await get_summaries(session, room))[:max_conversation_count]:
                 combined_summary += summary.content + '\r\n'
 
             combined_summary = combined_summary.rstrip('\r\n')

@@ -5,10 +5,12 @@ from typing import Optional, Callable
 
 from google import genai
 from google.genai import types
-from sqlmodel import Session, select
+from sqlmodel import Session
 
+import configure
 import lib.prompt
-from database.sql_model import Prompt, GlobalSetting, SettingKey
+import settings
+from database.sql_model import Prompt
 from lib.cbs import CBSHelper
 from lib.web import generate_event_stream_message
 
@@ -37,9 +39,9 @@ def get_key(config: GeminiConfig, session: Session) -> str:
     if config.key:
         return config.key
 
-    global_key = session.exec(select(GlobalSetting).where(GlobalSetting.key == SettingKey.gemini_api_key)).one_or_none()
+    global_key = settings.get_gemini_api_key(session)
     if global_key:
-        return global_key.value
+        return global_key
 
     raise NotImplementedError("Gemini API Key is not set.")
 
@@ -110,7 +112,8 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session)
     return result
 
 
-async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session, complete_receiver: Callable[[str], None]):
+async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
+                        complete_receiver: Callable[[str], None]):
     parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
     contents, system = convert_to_gemini(messages)

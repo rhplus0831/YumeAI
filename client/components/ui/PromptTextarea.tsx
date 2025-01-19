@@ -10,6 +10,7 @@ export interface PromptTextareaProps {
     onSave: (text: string) => Promise<void>;
     prompt: string
     title: string
+    description?: string
     setStatus?: (status: string) => void
 }
 
@@ -71,7 +72,7 @@ export default function PromptTextarea(props: PromptTextareaProps) {
     }
 
     return <article className={"w-full h-full flex flex-col"}>
-        <Textarea disableAutosize className={"flex-1"} label={props.title} classNames={{
+        <Textarea disableAutosize description={props.description} className={"flex-1"} label={props.title} classNames={{
             base: "w-full h-full",
             input: "w-full h-full",
             inputWrapper: "flex-1"

@@ -23,6 +23,7 @@ from lib.auth import check_id_valid
 app = FastAPI()
 
 
+
 @app.exception_handler(StarletteHTTPException)
 async def custom_404_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(

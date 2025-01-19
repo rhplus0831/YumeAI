@@ -10,10 +10,12 @@ import {useRouter} from "next/navigation";
 export default function PromptImportButton(props: ButtonProps) {
     const hiddenFileInput = useRef<HTMLInputElement>(null);
     const [errorMessage, setErrorMessage] = useState("");
-    const router =useRouter()
+    const router = useRouter()
+    const [isLoading, setIsLoading] = useState(false)
 
     async function importPrompt(file: File) {
         try {
+            setIsLoading(true)
             const arrayBuffer = await file.arrayBuffer(); // 파일을 ArrayBuffer로 읽기
             const uint8Array = new Uint8Array(arrayBuffer); // ArrayBuffer를 Uint8Array로 변환
             const prompt = await parseRisuPrompt({
@@ -25,11 +27,13 @@ export default function PromptImportButton(props: ButtonProps) {
             router.refresh()
         } catch (error) {
             console.log(error)
-            if(error instanceof Error) {
+            if (error instanceof Error) {
                 setErrorMessage(
                     error.message
                 )
             }
+        } finally {
+            setIsLoading(false)
         }
     }
 
@@ -42,9 +46,9 @@ export default function PromptImportButton(props: ButtonProps) {
                    }
                    importPrompt(fileList[0]).then()
                }}></input>
-        <ErrorPopover errorMessage={errorMessage} >
+        <ErrorPopover errorMessage={errorMessage}>
             <div>
-                <Button {...props} onPress={() => {
+                <Button isLoading={isLoading} {...props} onPress={() => {
                     hiddenFileInput.current?.click()
                 }}>
                     리스 프롬프트 가져오기

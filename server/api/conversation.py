@@ -1,4 +1,5 @@
 import datetime
+import logging
 import random
 import re
 from typing import Sequence, Optional, Callable
@@ -82,7 +83,7 @@ def register(router: APIRouter):
 
             if custom_conversation_id:
                 def cut_selected(conversation: Conversation):
-                    return conversation.id == custom_conversation_id
+                    return conversation.id != custom_conversation_id
 
                 conversations = list(filter(cut_selected, conversations))
 
@@ -135,6 +136,8 @@ def register(router: APIRouter):
             cbs.user_prompt = room.persona.prompt
             cbs.char = room.bot.name
             cbs.char_prompt = room.bot.prompt
+            if room.bot.post_prompt:
+                cbs.char_post_prompt = room.bot.post_prompt
             cbs.summaries = combined_summary
             cbs.re_summaries = combined_re_summary
             cbs.chat = ''.join(chat_combined)
@@ -172,6 +175,7 @@ def register(router: APIRouter):
 
             yield generate_event_stream_message('complete', conversation.model_dump_json())
         except Exception as e:
+            logging.exception(e)
             yield generate_event_stream_message('error', str(e))
         finally:
             session.close()

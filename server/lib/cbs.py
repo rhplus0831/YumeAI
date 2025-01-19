@@ -69,6 +69,7 @@ class CBSHelper:
         self.user_prompt = ''
         self.char = ''
         self.char_prompt = ''
+        self.char_post_prompt = ''
         self.summaries = ''
         self.re_summaries = ''
         self.chat = ''
@@ -148,6 +149,9 @@ class CBSHelper:
         if text == 'conversations':
             return self.conversations, True
 
+        if text == 'raw_conversations':
+            return self.conversations.replace("||user||\n", "user: ").replace("||assistant||\n", "assistant: "), True
+
         if text == 'message' or text == 'lastmessage':
             return self.message, True
 
@@ -159,5 +163,8 @@ class CBSHelper:
 
         if text == 'char_message':
             return self.char_message, True
+
+        if text == "post_prompt":
+            return self.char_post_prompt, True
 
         return text, False

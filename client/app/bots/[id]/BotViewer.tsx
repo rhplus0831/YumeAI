@@ -149,10 +149,17 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
                 base: "flex-0",
                 tabContent: "flex-1",
             }}>
-                <Tab key="prompt" title="프롬프트" className={"h-full"}>
-                    <PromptTextarea setStatus={setStatus} title={"프롬프트"} prompt={bot.prompt} onSave={async (text) => {
+                <Tab key="prompt" title="정보 프롬프트" className={"h-full"}>
+                    <PromptTextarea setStatus={setStatus} title={"정보 프롬프트"} prompt={bot.prompt} onSave={async (text) => {
                         setBot(await putBot(bot.id, {
                             prompt: text
+                        }))
+                    }}/>
+                </Tab>
+                <Tab key="post_prompt" title="지시 프롬프트" className={"h-full"}>
+                    <PromptTextarea setStatus={setStatus} title={"지시 프롬프트"} description={"리스AI의 글로벌 노트 덮어쓰기와 비슷합니다, 주로 이미지 에셋 표시 지시 등 봇의 구현에는 필요하지만, 봇의 정보가 아닌 내용을 적습니다."} prompt={bot.post_prompt ?? ''} onSave={async (text) => {
+                        setBot(await putBot(bot.id, {
+                            post_prompt: text
                         }))
                     }}/>
                 </Tab>

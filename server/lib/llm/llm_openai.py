@@ -34,7 +34,7 @@ def get_key(config: OpenAIConfig, session: Session) -> str:
 
     global_key = get_openai_api_key(session)
     if global_key:
-        return global_key.value
+        return global_key
 
     if config.endpoint:
         # Custom endpoint may doesn't need to set key?

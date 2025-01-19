@@ -4,6 +4,7 @@ import {api} from "@/lib/api-client";
 import Persona from "@/lib/data/Persona";
 
 export default interface Bot extends Persona, BaseData, ProfileImage {
+    post_prompt: string | undefined
     first_message: string | undefined
     image_assets: string | undefined
 }

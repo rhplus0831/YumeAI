@@ -87,15 +87,19 @@ def register():
         cbs.user_prompt = '!!User Prompt!!'
         cbs.char = '!!Char!!'
         cbs.char_prompt = '!!Char Prompt!!'
-        cbs.summary = '!!Summary!!'
-        cbs.re_summary = '!!Re Summary!!'
-        cbs.chat = '!!Chat!!'
+        cbs.summaries = '!!Summary!!'
+        cbs.re_summaries = '!!Re Summary!!'
         cbs.conversations = '!!Conversations!!'
         cbs.messages = '!!Messages!!'
         cbs.message_count = 39
         cbs.content = '!!Content!!'
         cbs.user_content = '!!User Message!!'
         cbs.char_message = '!!Char Message!!'
+
+
+        cbs.conversations = '||user||\nHello?\n||assistant||\nHi!'
+        cbs.message = 'How have you been?'
+        cbs.chat = cbs.conversations + '\n||user||' + cbs.message
 
         if info.active_toggles:
             for active_toggle in info.active_toggles.split(','):

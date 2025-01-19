@@ -51,13 +51,16 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<PromptBase> {
     applyIfExist('max_output', pre.maxResponse)
     applyIfExist('presence_penalty', pre.PresensePenalty)
     applyIfExist('frequency_penalty', pre.frequencyPenalty)
-    applyIfExist('temperature', pre.temperature)
+    applyIfExist('temperature', pre.temperature / 100)
     applyIfExist('top_p', pre.top_p)
     applyIfExist('top_k', pre.top_k)
 
     let prompt = ''
+    let lastRole = ''
 
     function putRole(role: 'user' | 'bot' | 'system') {
+        if (role === lastRole) return
+        lastRole = role
         if (role === 'user') {
             prompt += '||user||\n'
         } else if (role === 'bot') {
@@ -81,21 +84,26 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<PromptBase> {
         prompt += `//YUME ${p.name?.trim() ?? PromptTypeToStr(p.type)}\n`
         switch (p.type) {
             case 'plain':
-                if (p.text.trim() === '') return
+                if (p.type2 === "normal" && p.text.trim() === '') return
                 putRole(p.role)
-                prompt += p.text + '\n'
+                if (p.type2 === 'globalNote') {
+                    // TODO: Import default post prompt
+                    prompt += '{{post_prompt}}' + '\n'
+                } else {
+                    prompt += p.text + '\n'
+                }
                 break
             case 'persona':
-                putRole('user')
+                putRole('system')
                 putSlot(p as PromptItemTyped, 'user_prompt')
                 break
             case 'description':
-                putRole('bot')
+                putRole('system')
                 putSlot(p as PromptItemTyped, 'char_prompt')
                 break
             case 'memory':
                 putRole('system')
-                putSlot(p as PromptItemTyped, 'summaries', 're_summaries')
+                putSlot(p as PromptItemTyped, 're_summaries', 'summaries')
                 break
             case 'chat':
                 const pp = p as PromptItemChat

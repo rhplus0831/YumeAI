@@ -31,6 +31,7 @@ class BotBase(SQLModel):
     displayName: str
     profileImageId: Optional[str] = None
     prompt: str
+    post_prompt: Optional[str] = None
     first_message: Optional[str] = None
 
     filters: Optional[str] = Field(default=None)

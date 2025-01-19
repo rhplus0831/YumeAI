@@ -25,6 +25,7 @@ class BotUpdate(BaseModel):
     displayName: str | None = None
     profileImageId: str | None = None
     prompt: str | None = None
+    post_prompt: str | None = None
     first_message: str | None = None
     filters: str | None = None
     image_assets: str | None = None
@@ -36,6 +37,7 @@ class BotGet(BaseModel):
     displayName: str
     profileImageId: Optional[str] = None
     prompt: str
+    post_prompt: Optional[str] = None
     first_message: Optional[str] = None
     filters: Optional[str] = None
     image_assets: Optional[str] = None
@@ -91,13 +93,8 @@ def register():
                 bot.displayName = data['nickname']
                 bot.prompt = data['description']
 
-                first_messages = [
-
-                ]
-
-                image_assets = [
-
-                ]
+                first_messages = []
+                image_assets = []
 
                 def safe_get(key):
                     return data[key] if key in data else ''
@@ -115,6 +112,9 @@ def register():
                             'message': greeting
                         })
 
+                if safe_get('post_history_instructions'):
+                    bot.post_prompt = data['post_history_instructions']
+
                 if safe_get('assets'):
                     for asset in data['assets']:
                         type = asset['type']
@@ -130,9 +130,9 @@ def register():
 
                         if type == "icon":
                             image_data, file_path = image.generate_new_image(engine, username, mime)
-                            data = zip_file.read(inner_path)
+                            image_file_data = zip_file.read(inner_path)
                             with open(file_path, 'wb') as f:
-                                f.write(data)
+                                f.write(image_file_data)
                             bot.profileImageId = image_data.file_id
                         else:
                             if mime is None:
@@ -140,9 +140,9 @@ def register():
 
                             if mime.startswith('image/'):
                                 image_data, file_path = image.generate_new_image(engine, username, mime)
-                                data = zip_file.read(inner_path)
+                                image_file_data = zip_file.read(inner_path)
                                 with open(file_path, 'wb') as f:
-                                    f.write(data)
+                                    f.write(image_file_data)
                                 image_assets.append({
                                     'name': name,
                                     'alias': '',

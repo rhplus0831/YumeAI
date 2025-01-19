@@ -1,10 +1,10 @@
+"use server";
+
 import NavigateButton from "@/components/ui/NavigateButton";
 import {getPrompts} from "@/lib/data/Prompt";
 import PromptBox from "@/components/features/prompt/PromptBox";
 import PromptCreateButton from "@/components/features/prompt/PromptCreateButton";
 import PromptImportButton from "@/components/features/prompt/PromptImportButton";
-
-export const dynamic = 'force-dynamic'
 
 
 export default async function PersonasPage() {

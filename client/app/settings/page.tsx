@@ -1,3 +1,5 @@
+"use server";
+
 import GlobalSettings from "@/lib/data/GlobalSettings";
 import {api} from "@/lib/api-client";
 import SettingsViewer from "@/app/settings/SettingsViewer";

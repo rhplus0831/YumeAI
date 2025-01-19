@@ -6,7 +6,7 @@ import ErrorPopover from "@/components/ui/ErrorPopover";
 import {api} from "@/lib/api-client";
 import {useRouter} from "next/navigation";
 
-export default function ImportButton() {
+export default function ImportButton({mime, endpoint, label}: { mime: string, endpoint: string, label: string }) {
     const hiddenFileInput = useRef<HTMLInputElement>(null);
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [isInUpload, setIsInUpload] = useState(false);
@@ -18,7 +18,7 @@ export default function ImportButton() {
             setIsInUpload(true)
             const formData = new FormData()
             formData.append('in_file', fileList[0])
-            await api('import', {
+            await api(endpoint, {
                 method: 'POST',
                 cache: 'no-cache',
                 body: formData,
@@ -37,7 +37,7 @@ export default function ImportButton() {
     }
 
     return <>
-        <input type={'file'} multiple={false} ref={hiddenFileInput} accept={'application/zip'} hidden={true}
+        <input type={'file'} multiple={false} ref={hiddenFileInput} accept={mime} hidden={true}
                onChange={(event) => {
                    const fileList = event.target.files
                    if (!fileList || !fileList.length) {
@@ -48,7 +48,7 @@ export default function ImportButton() {
         <ErrorPopover errorMessage={errorMessage}>
             <Button isLoading={isInUpload} className={"w-full"} onPress={async () => {
                 hiddenFileInput.current?.click()
-            }}>데이터 가져오기</Button>
+            }}>{label}</Button>
         </ErrorPopover>
     </>
 }

@@ -25,6 +25,19 @@ def get_image_and_file_path_or_404(session: Session, user_id: str, file_id: str)
     return image, file_path
 
 
+def generate_new_image(engine, username, content_type):
+    os.makedirs(configure.get_store_path(f'{username}/image'), exist_ok=True)
+    file_id = uuid.uuid4().hex
+    file_path = os.path.join(configure.get_store_path(f'{username}/image'), file_id)
+
+    with Session(engine) as session:
+        image = Image(file_id=file_id, file_type=content_type)
+        session.add(image)
+        session.commit()
+        session.refresh(image)
+
+    return image, file_path
+
 @router.post('/')
 async def upload_image(engine: EngineDependency, username: UsernameDependency, in_file: UploadFile) -> Image:
     if in_file.size > 20 * 1024 * 1024:

@@ -46,7 +46,7 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                         name: value
                     }))
                 }}/>
-                <AsyncProgressSelect label={"LLM"} selectedKeys={[prompt.llm]} onValueChangeAsync={async (value) => {
+                <AsyncProgressSelect label={"LLM"} disallowEmptySelection selectedKeys={[prompt.llm]} onValueChangeAsync={async (value) => {
                     setPrompt(await putPrompt(prompt.id, {
                         "llm": value,
                     }))
@@ -56,7 +56,7 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                 </AsyncProgressSelect>
                 {prompt.llm == "openai" && <OpenAIBox config={config} submitConfig={submitLLMConfig}/>}
                 {prompt.llm == "gemini" && <GeminiBox config={config} submitConfig={submitLLMConfig}/>}
-                <AsyncProgressSelect label={"프롬프트 타입"} selectedKeys={[prompt.type]}
+                <AsyncProgressSelect label={"프롬프트 타입"} disallowEmptySelection selectedKeys={[prompt.type]}
                                      onValueChangeAsync={async (value) => {
                                          setPrompt(await putPrompt(prompt.id, {
                                              type: value,

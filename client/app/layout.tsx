@@ -11,7 +11,7 @@ import {Noto_Sans_KR} from "next/font/google";
 import {MenuPortalProvider} from "@/components/MenuPortal";
 import MenuSidebar from "@/components/ui/MenuSidebar";
 import {CustomNavPortalProvider} from "@/components/CustomNavPortal";
-import {NavigationGuardProvider} from "next-navigation-guard";
+import {NavigationGuardProvider} from "@/lib/import/next-navigation-guard";
 
 export const metadata: Metadata = {
     title: {

@@ -4,7 +4,7 @@ import {Textarea} from "@nextui-org/input";
 import {useEffect, useRef, useState} from "react";
 import {MdOutlineCheck, MdOutlineEditNote, MdOutlineError} from "react-icons/md";
 import {Button, CircularProgress} from "@nextui-org/react";
-import {useNavigationGuard} from "next-navigation-guard";
+import { useNavigationGuard } from "@/lib/import/next-navigation-guard";
 
 export interface PromptTextareaProps {
     onSave: (text: string) => Promise<void>;

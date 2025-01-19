@@ -18,6 +18,7 @@ import YumeCustomNav from "@/components/CustomNavPortal";
 import YumeAvatar from "@/components/ui/YumeAvatar";
 import {buildAPILink, buildImageLink} from "@/lib/api-client";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
+import SubmitSpan from "@/components/ui/SubmitSpan";
 
 export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const router = useRouter()
@@ -26,7 +27,8 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const [checkedToggles, setCheckedToggles] = useState("")
     let [displayOption, setDisplayOption] = useState<RoomDisplayOption>({
         use_card: undefined,
-        use_card_split: undefined
+        use_card_split: undefined,
+        highlight_quoted_string: undefined,
     })
 
     useEffect(() => {
@@ -36,7 +38,8 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
             } catch {
                 setDisplayOption({
                     use_card: undefined,
-                    use_card_split: undefined
+                    use_card_split: undefined,
+                    highlight_quoted_string: undefined,
                 })
             }
         }
@@ -46,12 +49,16 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
         <YumeCustomNav>
             {room.bot ? <div className={"flex flex-row gap-2 items-center w-full"}>
                 <YumeAvatar className={"flex-0"} src={buildImageLink(room.bot.profileImageId, "avatar")} />
-                <span className={"flex-1 overflow-hidden overflow-ellipsis"}>{room.bot.displayName ?? room.bot.name}</span>
+                <span className={"flex-1 overflow-hidden overflow-ellipsis"}>{room.bot.displayName ? room.bot.displayName : room.bot.name}</span>
             </div> : undefined}
         </YumeCustomNav>
         <YumeMenu>
             <div className={"flex flex-col p-2 gap-1"}>
-                <span className={"text-lg"}>{room.name}</span>
+                <div className={"text-lg"}>
+                    <SubmitSpan label={'방 이름'} value={room.name} submit={async (value) => {
+                        setRoom(await putRoom(room.id, {"name": value}))
+                    }} />
+                </div>
                 <Divider/>
                 <span>페르소나</span>
                 <SelectablePersonaCardWithModal onSelect={async (persona) => {
@@ -111,6 +118,13 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                     setRoom(await putRoom(room.id, {"display_option": JSON.stringify(json)}))
                 }}>
                     두번 개행 되었을때 카드를 나누기
+                </AsyncProgressCheckbox>
+                <AsyncProgressCheckbox isSelected={displayOption.highlight_quoted_string} onValueChangeAsync={async (value) => {
+                    const json = room.display_option ? JSON.parse(room.display_option) : {}
+                    json['highlight_quoted_string'] = value;
+                    setRoom(await putRoom(room.id, {"display_option": JSON.stringify(json)}))
+                }}>
+                    &#34;대화&#34;를 강조하기
                 </AsyncProgressCheckbox>
                 <AsyncProgressButton className={"w-full mt-5"} onPressAsync={async () => {
                     const uuid = await exportRoom(room.id)

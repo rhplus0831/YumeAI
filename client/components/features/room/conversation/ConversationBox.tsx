@@ -208,37 +208,64 @@ export default function ConversationBox(props: ConversationBoxProps) {
     }
 
     const imgPattern = /{{img::(.*?)}}/g;
+    const quotePattern = /[“"]([\s\S]*?)[”"]/g;
 
-    function replaceImgTag(text: string) {
-        const parts = text.split(imgPattern);
-        const result: React.ReactNode[] = [];
+    function applyWithPattern(text: string, pattern: RegExp, callback: (match: string, index: number, result: ReactNode[]) => void) {
+        const parts = text.split(pattern);
+        const result: ReactNode[] = [];
 
         for (let i = 0; i < parts.length; i++) {
-            // 홀수 인덱스는 파일 이름 부분이므로 <img> 태그로 변환합니다.
+            // 홀수 인덱스는 매칭된 데이터
             if (i % 2 === 1) {
-                const assetName = parts[i];
-                const asset = imageAssets.find(asset => {
-                    if (asset.name === assetName) return true;
-                    const alias = asset.alias.split(",").map(alias => alias.trim())
-                    return alias.includes(assetName);
-                });
-                if (!asset) {
-                    result.push(<Chip className={"block"} key={i} size={"sm"}>{assetName} - 없는 이미지 에셋</Chip>)
-                } else {
-                    result.push(<img key={i} src={buildImageLink(asset.imageId, 'display')} alt={asset.name}/>);
-                }
+                callback(parts[i].trim(), i, result)
             } else {
-                // 짝수 인덱스는 일반 텍스트이므로 그대로 추가합니다.
-                result.push(<span key={i}>{parts[i]}</span>);
+                // 짝수 인덱스는 매칭되지 않은 일반 데이터
+                result.push(parts[i]);
             }
         }
 
-        return <>{result}</>;
+        return result;
+    }
+
+    function applyImage(text: string) {
+        return applyWithPattern(text, imgPattern, (assetName, i, result) => {
+            const asset = imageAssets.find(asset => {
+                if (asset.name === assetName) return true;
+                const alias = asset.alias.split(",").map(alias => alias.trim())
+                return alias.includes(assetName);
+            });
+            if (!asset) {
+                result.push(<Chip className={"block"} key={`unknown_image_${i}`} size={"sm"}>{assetName} - 없는 이미지 에셋</Chip>)
+            } else {
+                result.push(<img key={`img_${asset.name}_${i}`} src={buildImageLink(asset.imageId, 'display')} alt={asset.name}/>);
+            }
+        })
+    }
+
+    function applyQuoteHighlight(text: string) {
+        return applyWithPattern(text, quotePattern, (match, i, result) => {
+            result.push(<span className={"text-primary-500 font-medium"} key={`quoted_${match}`}>&#34;{match}&#34;</span>)
+        })
+    }
+
+    function applyDisplay(text: string) {
+        let nodes = applyImage(text)
+
+        if(displayOption.highlight_quoted_string) {
+            nodes = nodes.map((node) => {
+                if (typeof node === "string") {
+                    return applyQuoteHighlight(node)
+                }
+                return node
+            })
+        }
+
+        return <>{nodes}</>
     }
 
     function applyImageAndDisplayOption(text: string) {
         if(!displayOption.use_card) {
-            return <span className={"whitespace-pre-line"}>{replaceImgTag(text)}</span>
+            return <span className={"whitespace-pre-line"}>{applyDisplay(text)}</span>
         }
 
         if (displayOption.use_card_split) {
@@ -246,14 +273,14 @@ export default function ConversationBox(props: ConversationBoxProps) {
                 {text.split("\n\n").map((line, index) => (line.trim() !== "" &&
                     <Card key={line + index} className={'w-fit'}>
                         <CardBody>
-                            <div className={"whitespace-pre-line"}>{replaceImgTag(line.trim())}</div>
+                            <div className={"whitespace-pre-line"}>{applyDisplay(line.trim())}</div>
                         </CardBody>
                     </Card>))}
             </div>
         } else {
             return <Card className={'w-fit'}>
                 <CardBody>
-                    <div className={"whitespace-pre-line"}>{replaceImgTag(text.trim())}</div>
+                    <div className={"whitespace-pre-line"}>{applyDisplay(text.trim())}</div>
                 </CardBody>
             </Card>
         }

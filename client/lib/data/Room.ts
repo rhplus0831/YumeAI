@@ -21,7 +21,8 @@ export default interface Room extends BaseData {
 
 export interface RoomDisplayOption {
     use_card: boolean | undefined,
-    use_card_split: boolean | undefined
+    use_card_split: boolean | undefined,
+    highlight_quoted_string: boolean | undefined,
 }
 
 export async function createRoom(name: string): Promise<Room> {

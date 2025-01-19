@@ -4,6 +4,10 @@
 
 import {UsePendingAlertReturn} from "@/components/ui/PendingAlert/usePendingAlert";
 
+function splitByBraces(text: string): string[] {
+    return text.split(/({{.*?}}|}})/g).filter(Boolean);
+}
+
 export async function googleTranslate(text: string, props: UsePendingAlertReturn, streamingReceiver?: (message: string) => void) {
     const messages = text.split("\n")
 
@@ -24,11 +28,22 @@ export async function googleTranslate(text: string, props: UsePendingAlertReturn
         updateStatus(0)
         props.onOpen?.()
 
-        for (const message of messages) {
-            const index = messages.indexOf(message);
+        for(let index = 0; index < messages.length; index++) {
             updateStatus(index)
-            const translated = await translateLine('auto', 'ko', message)
-            streamingReceiver?.(translated)
+            const message = messages[index]
+            if (index !== 0) {
+                streamingReceiver?.("\n")
+            }
+            const splited = splitByBraces(message)
+            for (let i = 0; i < splited.length; i++) {
+                const part = splited[i]
+                if (part.startsWith("{{") && part.endsWith("}}")) {
+                    streamingReceiver?.(part)
+                } else {
+                    const translated = await translateLine('auto', 'ko', part)
+                    streamingReceiver?.(translated)
+                }
+            }
         }
     } catch (err: unknown) {
         console.log(err)

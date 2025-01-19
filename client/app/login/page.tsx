@@ -10,6 +10,8 @@ import {Checkbox} from "@nextui-org/react";
 import {Card, CardBody} from "@nextui-org/card";
 
 export default function LoginPage() {
+    const isSharing = process.env.NEXT_PUBLIC_IS_SHARING;
+
     const [isRegisterAllowed, setIsRegisterAllowed] = useState(false)
 
     const [myId, setMyId] = useState("")
@@ -34,7 +36,7 @@ export default function LoginPage() {
         }
 
         check().then()
-    })
+    }, [])
 
     return <div className={"w-full flex flex-col justify-center items-center p-5"}>
         <span className={"font-extrabold text-2xl"}>YumeAI {tryRegister ? "회원가입" : "로그인"}</span>
@@ -52,26 +54,36 @@ export default function LoginPage() {
                 <Card>
                     <CardBody>
                         <span>
-                            입력한 내용이 서버에 <span className={"font-bold text-danger"}>암호화되지 않은 상태</span>로 저장됩니다.<br/>
-                            가능하다면 YumeAI를 셀프 호스팅 하거나 로컬에서 사용하세요.
+                            YumeAI는 <span className={"text-danger"}>종단간 암호화를 지원하지 않습니다.</span>
                         </span>
                     </CardBody>
                 </Card>
                 <Card>
                     <CardBody>
                         <span>
-                            개발자는 <span className={"text-danger"}>데이터 유출 및 유실</span>을 방지하기 위해 노력하지만, 이<span className={"text-danger"}>에 대한 책임을 지지는 않습니다.</span><br/>사용자는 데이터를 안전하게 관리하고 주기적으로 백업해야 합니다.
+                            개발자는 <span className={"text-danger"}>데이터 유출 및 유실</span>을 방지하기 위해 노력하지만 이<span className={"text-danger"}>에 대한 책임을 지지는 않습니다.</span><br/>
+                            사용자는 데이터를 안전하게 관리하고 주기적으로 백업해야 합니다.
                         </span>
                     </CardBody>
                 </Card>
+                {isSharing && <Card>
+                    <CardBody>
+                        <span>
+                            웹사이트 운영은 사비로 이루어지고 있으며,<br/>
+                            예상치 못한 비용 문제나 기타 사정으로 인해 서비스가 중단될 수 있습니다.<br/>
+                            이 경우에는 데이터 백업을 위한 유예기간을 두려고 노력합니다.
+                        </span>
+                    </CardBody>
+                </Card>}
                 <Card>
                     <CardBody>
                         <span>
-                            비용 문제등 사이트를 유지할 수 없는 상황이 발생하는경우, 사이트가 폐쇄될 수 있습니다.
+                            {isSharing && <span>본 웹사이트는 YumeAI의 기능을 가볍게 체험해보는 용도로 활용하시고<br/></span>}
+                            중요한 데이터는 <span className={"text-danger font-bold"}>반드시 개별적으로 백업</span>하시는 것을 권장합니다.
                         </span>
                     </CardBody>
                 </Card>
-                <Checkbox checked={agreeRegister} onValueChange={setAgreeRegister}>안내사항을 읽었습니다.</Checkbox>
+                <Checkbox checked={agreeRegister} onValueChange={setAgreeRegister}>위 항목을 읽었고 백업을 열심히 하겠습니다.</Checkbox>
             </div>}
 
             <AsyncProgressButton isDisabled={tryRegister && !agreeRegister} onPressAsync={async () => {

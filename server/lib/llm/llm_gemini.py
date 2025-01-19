@@ -131,7 +131,7 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session)
 
 
 async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
-                        complete_receiver: Callable[[str], None]):
+                        complete_receiver: Callable[[str], None] | None, response_as_message: bool = True):
     parsed_prompt, messages, contents, client, generate_config, config = generate_client(prompt_value, cbs, session)
     collected_messages = []
 
@@ -147,12 +147,18 @@ async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
             chunk_message = process_content(candidate.content)
 
         collected_messages.append(chunk_message)
-        yield generate_event_stream_message(
-            'stream',
-            chunk_message)
+
+        if response_as_message:
+            yield generate_event_stream_message(
+                'stream',
+                chunk_message)
+        else:
+            yield chunk_message
+
         await asyncio.sleep(0.01)
 
     from lib.llm.llm_common import messages_dump
     messages_dump(messages, ''.join(collected_messages))
 
-    complete_receiver(''.join(collected_messages))
+    if complete_receiver:
+        complete_receiver(''.join(collected_messages))

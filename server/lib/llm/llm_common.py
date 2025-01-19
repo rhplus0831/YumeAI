@@ -35,15 +35,15 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session)
 
 
 async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
-                        complete_receiver: Callable[[str], None]):
+                        complete_receiver: Callable[[str], None] | None, response_as_message: bool = True):
     # TODO: 완성된 문자열을 전달하는 더 이쁜 방법(complete_receiver) 없을까?
 
     if prompt_value.llm == LLMModel.OPENAI:
-        async for value in llm_openai.stream_prompt(prompt_value, cbs, session, complete_receiver):
+        async for value in llm_openai.stream_prompt(prompt_value, cbs, session, complete_receiver, response_as_message):
             yield value
         return
     if prompt_value.llm == LLMModel.GEMINI:
-        async for value in llm_gemini.stream_prompt(prompt_value, cbs, session, complete_receiver):
+        async for value in llm_gemini.stream_prompt(prompt_value, cbs, session, complete_receiver, response_as_message):
             yield value
         return
 

@@ -1,5 +1,7 @@
 import datetime
-from typing import Sequence, Optional
+import random
+import re
+from typing import Sequence, Optional, Callable
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -198,6 +200,15 @@ def register(router: APIRouter):
                 return
 
             user_response = ''
+            assistant_response = ''
+
+            def user_receiver(rep: str):
+                nonlocal user_response
+                user_response = rep
+
+            def assistant_receiver(rep: str):
+                nonlocal assistant_response
+                assistant_response = rep
 
             filtered_user_message = apply_filter(room, "display", conversation.user_message)
 
@@ -210,32 +221,71 @@ def register(router: APIRouter):
 
             filtered_assistant_message = apply_filter(room, "display", filtered_assistant_message)
 
+            async def perform_translate(content: str, complete_receiver: Callable[[str], None]):
+                parts = re.split(r"{{(.*?)}}", content)
+                replaced_bucket = {}
+                rebuilded_content = []
+
+                def check_exist(matched_string: str):
+                    return matched_string in replaced_bucket
+
+                def replace_hashed_bucket(match_obj):
+                    matched_string = match_obj.group(0)
+                    if check_exist(matched_string):
+                        return replaced_bucket[matched_string]
+                    else:
+                        return matched_string
+
+                for i in range(len(parts)):
+                    # 홀수 인덱스는 매칭된 데이터
+                    if i % 2 == 1:
+                        random_uuid = ''.join(random.choices('0123456789', k=6))
+                        random_uuid = f"_{random_uuid}_"
+                        replaced_bucket[random_uuid] = "{{" + parts[i] + "}}"
+                        rebuilded_content.append(random_uuid)
+                    else:
+                        rebuilded_content.append(parts[i])
+
+                cbs = CBSHelper()
+                cbs.content = ''.join(rebuilded_content)
+
+                if room.translate_prompt.use_stream:
+                    buffer = []
+                    internal_complete_buffer = []
+
+                    async for value in llm_common.stream_prompt(room.translate_prompt, cbs, session, None, False):
+                        calc = value
+                        if len(buffer) > 0:
+                            buffer.append(value)
+                            calc = ''.join(buffer)
+
+                        if '_' in calc:
+                            if len(calc) < 8:
+                                continue
+
+                            calc = re.sub(r"(_[0-9]+?_)", replace_hashed_bucket, calc)
+
+                        yield generate_event_stream_message('stream', calc)
+                        internal_complete_buffer.append(calc)
+                        buffer.clear()
+
+                    complete_receiver(''.join(internal_complete_buffer))
+                else:
+                    result = re.sub(r"(_[0-9]+?_)", replace_hashed_bucket,
+                                    await llm_common.perform_prompt(room.translate_prompt, cbs, session))
+                    yield result
+                    complete_receiver(result)
+
             if not room.translate_only_assistant and filtered_user_message:
                 yield generate_progress('유저의 메시지를 번역하는중...')
 
-                def user_receiver(rep: str):
-                    nonlocal user_response
-                    user_response = rep
-
-                cbs = CBSHelper()
-                cbs.content = filtered_user_message
-                async for value in llm_common.stream_prompt(room.translate_prompt, cbs, session,
-                                                            user_receiver):
+                async for value in perform_translate(filtered_user_message, user_receiver):
                     yield value
 
             yield generate_progress('봇의 메시지를 번역하는중...')
             yield generate_event_stream_message('stream', 'yume||switch')
 
-            assistant_response = ''
-
-            def assistant_receiver(rep: str):
-                nonlocal assistant_response
-                assistant_response = rep
-
-            cbs = CBSHelper()
-            cbs.content = filtered_assistant_message
-            async for value in llm_common.stream_prompt(room.translate_prompt, cbs, session,
-                                                        assistant_receiver):
+            async for value in perform_translate(filtered_assistant_message, assistant_receiver):
                 yield value
 
             conversation.user_message_translated = apply_filter(room, 'translate', user_response)

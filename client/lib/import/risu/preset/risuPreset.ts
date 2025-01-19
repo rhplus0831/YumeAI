@@ -10,8 +10,6 @@ import {PromptBase} from "@/lib/data/Prompt";
 import {decryptBuffer} from "@/lib/import/risu/risuUtil";
 import {presetTemplate, RisuPromptPreset} from "@/lib/import/risu/preset/RisuPromptPreset";
 import {getLLMByModal} from "@/lib/import/risu/preset/modelList";
-import OpenAIConfig from "@/lib/data/llm/OpenAIConfig";
-import GeminiConfig from "@/lib/data/llm/GeminiConfig";
 import {PromptItemChat, PromptItemTyped, PromptTypeToStr} from "@/lib/import/risu/preset/RisuPrompt";
 
 export interface RisuPresetHeader {
@@ -40,29 +38,22 @@ export async function decodeRisuPreset(file: LoadedFile): Promise<RisuPromptPres
 export async function parseRisuPrompt(file: LoadedFile): Promise<PromptBase> {
     const pre = await decodeRisuPreset(file)
     const llm = getLLMByModal(pre.aiModel)
-    let llm_config = ""
-    switch (llm) {
-        case "openai":
-            const openAIConfig: OpenAIConfig = {
-                endpoint: '',
-                model: pre.aiModel ?? 'gpt-4o',
-                key: '',
-                temperature: pre.temperature,
-                max_tokens: pre.maxResponse,
-                top_p: pre.top_p ?? 1,
-                frequency_penalty: pre.frequencyPenalty,
-                presence_penalty: pre.PresensePenalty
-            }
-            llm_config = JSON.stringify(openAIConfig)
-            break;
-        case "gemini":
-            const geminiConfig: GeminiConfig = {
-                model: pre.aiModel ?? 'gemini-1.5-pro',
-                key: ''
-            }
-            llm_config = JSON.stringify(geminiConfig)
-            break;
+    let llm_config: Record<string, any> = {}
+
+    function applyIfExist(key: string, value: any) {
+        if (value) {
+            llm_config[key] = value
+        }
     }
+
+    applyIfExist('model', pre.aiModel)
+    applyIfExist('max_input', pre.maxContext)
+    applyIfExist('max_output', pre.maxResponse)
+    applyIfExist('presence_penalty', pre.PresensePenalty)
+    applyIfExist('frequency_penalty', pre.frequencyPenalty)
+    applyIfExist('temperature', pre.temperature)
+    applyIfExist('top_p', pre.top_p)
+    applyIfExist('top_k', pre.top_k)
 
     let prompt = ''
 
@@ -125,7 +116,7 @@ export async function parseRisuPrompt(file: LoadedFile): Promise<PromptBase> {
         name: pre.name ?? 'Imported',
         type: 'chat',
         llm: getLLMByModal(pre.aiModel),
-        llm_config: llm_config,
+        llm_config: JSON.stringify(llm_config),
         prompt: prompt,
         filters: '',
         toggles: pre.customPromptTemplateToggle ?? '',

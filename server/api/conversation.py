@@ -257,21 +257,27 @@ def register(router: APIRouter):
                     buffer = []
                     internal_complete_buffer = []
 
-                    async for value in llm_common.stream_prompt(room.translate_prompt, cbs, session, None, False):
-                        calc = value
-                        if len(buffer) > 0:
-                            buffer.append(value)
-                            calc = ''.join(buffer)
+                    def process_buffer(flush=False):
+                        data = ''.join(buffer)
+                        if '_' in data:
+                            if len(data) - data.index('_') < 10:
+                                if not flush:
+                                    return None
+                            else:
+                                data = re.sub(r"(_[0-9]+?_)", replace_hashed_bucket, data)
 
-                        if '_' in calc:
-                            if len(calc) < 8:
-                                continue
-
-                            calc = re.sub(r"(_[0-9]+?_)", replace_hashed_bucket, calc)
-
-                        yield generate_event_stream_message('stream', calc)
-                        internal_complete_buffer.append(calc)
+                        internal_complete_buffer.append(data)
                         buffer.clear()
+                        return generate_event_stream_message('stream', data)
+
+                    async for value in llm_common.stream_prompt(room.translate_prompt, cbs, session, None, False):
+                        buffer.append(value)
+                        result = process_buffer()
+                        if result:
+                            yield result
+
+                    if len(buffer) > 0:
+                        yield process_buffer(True)
 
                     complete_receiver(''.join(internal_complete_buffer))
                 else:

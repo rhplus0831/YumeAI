@@ -253,22 +253,28 @@ def register(router: APIRouter):
                 cbs = CBSHelper()
                 cbs.content = ''.join(rebuilded_content)
 
+                uuid_pattern = r"(_[0-9]+?_)"
+
                 if room.translate_prompt.use_stream:
                     buffer = []
                     internal_complete_buffer = []
 
                     def process_buffer(flush=False):
-                        data = ''.join(buffer)
-                        if '_' in data:
-                            if len(data) - data.index('_') < 10:
-                                if not flush:
-                                    return None
+                        nonlocal buffer, internal_complete_buffer
+                        inner_buffer = ''.join(buffer)
+                        _count = inner_buffer.count('_')
+                        if _count > 0:
+                            if _count > 1:
+                                before = inner_buffer
+                                inner_buffer = re.sub(uuid_pattern, replace_hashed_bucket, inner_buffer)
                             else:
-                                data = re.sub(r"(_[0-9]+?_)", replace_hashed_bucket, data)
+                                if len(inner_buffer) - inner_buffer.index('_') < 15:
+                                    if not flush:
+                                        return None
 
-                        internal_complete_buffer.append(data)
+                        internal_complete_buffer.append(inner_buffer)
                         buffer.clear()
-                        return generate_event_stream_message('stream', data)
+                        return generate_event_stream_message('stream', inner_buffer)
 
                     async for value in llm_common.stream_prompt(room.translate_prompt, cbs, session, None, False):
                         buffer.append(value)
@@ -281,7 +287,7 @@ def register(router: APIRouter):
 
                     complete_receiver(''.join(internal_complete_buffer))
                 else:
-                    result = re.sub(r"(_[0-9]+?_)", replace_hashed_bucket,
+                    result = re.sub(uuid_pattern, replace_hashed_bucket,
                                     await llm_common.perform_prompt(room.translate_prompt, cbs, session))
                     yield result
                     complete_receiver(result)
@@ -307,6 +313,9 @@ def register(router: APIRouter):
             session.refresh(conversation)
 
             yield generate_event_stream_message('complete', conversation.model_dump_json())
+        except Exception as e:
+            logging.exception(e)
+            raise e
         finally:
             session.close()
 

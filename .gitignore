@@ -2,3 +2,4 @@ store/
 store-fast/
 .venv
 .idea
+__pycache__

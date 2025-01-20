@@ -42,7 +42,7 @@ export default function LoginPage() {
         <span className={"font-extrabold text-2xl"}>YumeAI {tryRegister ? "회원가입" : "로그인"}</span>
         <div className={"w-fit flex flex-col gap-2"}>
             <Input variant={"underlined"} size={"md"} label={"아이디"} type={"username"}
-                   description={"_로 시작하지 않는, 영소문자와 -, _ 를 사용할 수 있습니다."} onValueChange={setMyId}/>
+                   description={"영소문자와 -, _ 를 사용할 수 있습니다."} onValueChange={setMyId}/>
             <Input variant={"underlined"} size={"md"} label={"비밀번호"} type={"password"} onValueChange={setMyPassword}/>
             {tryRegister && <Input variant={"underlined"} size={"md"} label={"비밀번호 확인"} type={"password"}
                                    onValueChange={setMyPasswordConfirm}/>}
@@ -90,6 +90,9 @@ export default function LoginPage() {
                 if (tryRegister) {
                     if (myPassword != myPasswordConfirm) {
                         throw new Error("비밀번호와 비밀번호 확인이 일치하지 않습니다.")
+                    }
+                    if (myPassword.length < 8) {
+                        throw new Error("안전을 위해 8자 이상의 비밀번호를 설정해주세요!")
                     }
                     await register(myId, SHA512("yumeAI-" + myPassword).toString())
                     router.push('/rooms')

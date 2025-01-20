@@ -18,10 +18,9 @@ from api.prompt import PromptUpdate
 from api.room import RoomUpdate, RoomGet
 from database.sql import get_engine
 from database.sql_model import Persona, PersonaBase, Room, RoomBase, BotBase, Bot, Prompt, PromptBase
-from lib.auth import check_id_valid
+from lib.auth import check_id_valid, check_pw_valid
 
 app = FastAPI()
-
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -90,6 +89,9 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
             return JSONResponse(status_code=401, content={"detail": invalid_string})
 
         if not check_id_valid(auth_id):
+            return JSONResponse(status_code=401, content={"detail": invalid_string})
+
+        if not check_pw_valid(auth_token):
             return JSONResponse(status_code=401, content={"detail": invalid_string})
 
         password = get_password(auth_id)
@@ -175,6 +177,9 @@ def register(data: LoginData):
 
     if not check_id_valid(data.username):
         raise ClientErrorException(status_code=400, detail="Username is invalid")
+
+    if not check_pw_valid(data.password):
+        raise ClientErrorException(status_code=400, detail="Password is invalid")
 
     path = configure.get_fast_store_path(f"{data.username}/password")
     if os.path.exists(path):

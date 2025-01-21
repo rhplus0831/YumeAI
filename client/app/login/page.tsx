@@ -6,7 +6,7 @@ import {api, login, register} from "@/lib/api-client";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 import SHA512 from "crypto-js/sha512";
 import {useRouter} from "next/navigation";
-import {Checkbox} from "@nextui-org/react";
+import {Checkbox, Link} from "@nextui-org/react";
 import {Card, CardBody} from "@nextui-org/card";
 
 export default function LoginPage() {
@@ -40,7 +40,7 @@ export default function LoginPage() {
 
     return <div className={"w-full flex flex-col justify-center items-center p-5"}>
         <span className={"font-extrabold text-2xl"}>YumeAI {tryRegister ? "회원가입" : "로그인"}</span>
-        <div className={"w-fit flex flex-col gap-2"}>
+        <div className={"w-fit flex flex-col gap-2 max-w-xl"}>
             <Input variant={"underlined"} size={"md"} label={"아이디"} type={"username"}
                    description={"영소문자와 -, _ 를 사용할 수 있습니다."} onValueChange={setMyId}/>
             <Input variant={"underlined"} size={"md"} label={"비밀번호"} type={"password"} onValueChange={setMyPassword}/>
@@ -49,41 +49,53 @@ export default function LoginPage() {
 
             {isRegisterAllowed && <Checkbox checked={tryRegister} onValueChange={setTryRegister}>회원가입 할래요</Checkbox>}
 
-            {tryRegister && <div className={"text-center flex flex-col gap-4"}>
-                <span className={"font-extrabold text-xl"}>회원가입 안내사항</span>
+            {tryRegister && !isSharing && <div className={"text-center flex flex-col gap-4"}>
+                <span className={"font-extrabold text-xl"}>안녕하세요!</span>
                 <Card>
                     <CardBody>
                         <span>
-                            YumeAI는 <span className={"text-danger"}>종단간 암호화를 지원하지 않습니다.</span>
+                            셀프 호스팅 혹은 로컬 실행 환경인것 같습니다.<br/>
+                            자기 자신이 데이터의 주체가 된다는것은 굉장히 좋은일이죠.<br/>
+                            물론, <span className={"text-danger"}>백업을 생활화</span> 해야 한다는 사실을 잊지 마세요!
+                        </span>
+                    </CardBody>
+                </Card>
+                <Checkbox checked={agreeRegister} onValueChange={setAgreeRegister}>백업을 열심히 하겠습니다.</Checkbox>
+            </div>}
+
+            {tryRegister && isSharing && <div className={"text-center flex flex-col gap-4"}>
+                <span className={"font-extrabold text-2xl"}>서비스 이용약관의 요약</span>
+                <Card>
+                    <CardBody>
+                        <span>
+                            YumeAI는 에셋 데이터(이미지, 오디오, 비디오)를 제외한 데이터(API 키, 프로프트 등)를 사용자가 가입할 때 입력한 비밀번호를 기반으로 암호화 하여 보관합니다.<br/>
+                            비밀번호 정보는 해시로 변환되어 브라우저에 쿠키로 남으며, 서버는 이 쿠키 정보를 기반으로 암호화된 정보를 처리합니다.<br/>
+                            이는 사용자가 비밀번호를 잊어버리면 <span className={"text-danger"}>자료를 복구할 방법이 없음</span>을 의미합니다.
                         </span>
                     </CardBody>
                 </Card>
                 <Card>
                     <CardBody>
                         <span>
-                            개발자는 <span className={"text-danger"}>데이터 유출 및 유실</span>을 방지하기 위해 노력하지만 이<span className={"text-danger"}>에 대한 책임을 지지는 않습니다.</span><br/>
-                            사용자는 데이터를 안전하게 관리하고 주기적으로 백업해야 합니다.
+                            제공자는 법적 의무가 있는 경우를 제외하고, 귀하의 데이터를 제3자에게 전송, 전달, 공개 또는 접근 권한을 부여하지 않습니다.
                         </span>
                     </CardBody>
                 </Card>
-                {isSharing && <Card>
-                    <CardBody>
-                        <span>
-                            웹사이트 운영은 사비로 이루어지고 있으며,<br/>
-                            예상치 못한 비용 문제나 기타 사정으로 인해 서비스가 중단될 수 있습니다.<br/>
-                            이 경우에는 데이터 백업을 위한 유예기간을 두려고 노력합니다.
-                        </span>
-                    </CardBody>
-                </Card>}
                 <Card>
                     <CardBody>
                         <span>
-                            {isSharing && <span>본 웹사이트는 YumeAI의 기능을 가볍게 체험해보는 용도로 활용하시고<br/></span>}
-                            중요한 데이터는 <span className={"text-danger font-bold"}>반드시 개별적으로 백업</span>하시는 것을 권장합니다.
+                            제공자는 이 서비스가 항상 동작할것을 보증하지 않고, 서비스로 인해 발생한 피해를 책임지지 않습니다.
                         </span>
                     </CardBody>
                 </Card>
-                <Checkbox checked={agreeRegister} onValueChange={setAgreeRegister}>위 항목을 읽었고 백업을 열심히 하겠습니다.</Checkbox>
+                <Card>
+                    <CardBody>
+                        <span>
+                            <Link href={"tos.txt"} isExternal>이용약관의 전문</Link>을 읽을수도 있습니다!
+                        </span>
+                    </CardBody>
+                </Card>
+                <Checkbox checked={agreeRegister} onValueChange={setAgreeRegister}>이용 약관에 동의하며 저는 14세 이상입니다.</Checkbox>
             </div>}
 
             <AsyncProgressButton isDisabled={tryRegister && !agreeRegister} onPressAsync={async () => {

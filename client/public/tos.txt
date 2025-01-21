@@ -1,0 +1,119 @@
+TERMS OF SERVICE FOR YUMEAI
+
+Last Updated: 2025-1-21
+
+Agreement to Terms
+
+By accessing or using the YumeAI service (the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not access or use the Service.
+
+Service Description
+
+YumeAI is a service provided by RH+ ("Provider"). YumeAI allows users to store data they provide and to generate new data based on that input.
+
+User Accounts
+
+To create an account on YumeAI, you must enter a unique user ID and password. By creating an account, you confirm that you are over 14 years of age and agree to these Terms of Service. You are responsible for maintaining the confidentiality of your password and for all activities that occur under your account.
+
+User Responsibilities and Acceptable Use
+
+You are solely responsible for your use of the Service. You agree to use the Service in a responsible and lawful manner. You are expressly prohibited from abusing the Service. This includes, but is not limited to:
+
+    Attempting to access the accounts of other users.
+    Intentionally damaging or disrupting the operation of the Service.
+    Any activity that violates applicable laws or regulations.
+
+Data Handling and Security
+
+Sensitive information and content you provide to the Service are encrypted based on the password you enter. Your password is temporarily held in memory to process your request and is then securely discarded. This process is intended to provide a degree of encryption for your data.
+
+Due to the technical implementation of this encryption, the Provider, RH+, cannot access or read your encrypted data. Consequently, if you forget your password, the Provider cannot recover your account or your data. It is your sole responsibility to remember your password.
+
+Assets, including images, audio, and video files, are not subject to encryption.
+
+Data Privacy
+
+The Provider is dedicated to safeguarding the privacy of your data. Except where legally obligated, the Provider will not transfer, transmit, disclose, or provide access to your data to any third parties without your express consent. You acknowledge that the Service is hosted by a third-party provider, Hetzner, and your data will be stored and processed according to their standard practices and policies.
+
+Intellectual Property
+
+All content that you upload or create using the Service is copyrighted by you, the user. You are solely responsible for ensuring that your content does not infringe upon the copyrights of any third party.
+
+Disclaimer of Warranties
+
+THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. THE PROVIDER DOES NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED OR ERROR-FREE, THAT DEFECTS WILL BE CORRECTED, OR THAT THE SERVICE OR THE SERVER THAT MAKES IT AVAILABLE ARE FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.
+
+Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE PROVIDER, RH+, BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM (I) YOUR ACCESS TO OR USE OF, OR INABILITY TO ACCESS OR USE, THE SERVICE; (II) ANY CONDUCT OR CONTENT OF ANY THIRD PARTY ON THE SERVICE; (III) ANY CONTENT OBTAINED FROM THE SERVICE; OR (IV) UNAUTHORIZED ACCESS, USE, OR ALTERATION OF YOUR TRANSMISSIONS OR CONTENT, WHETHER BASED ON WARRANTY, CONTRACT, TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL THEORY, WHETHER OR NOT THE PROVIDER HAS BEEN INFORMED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Termination
+
+The Provider reserves the right to terminate or suspend your access to the Service at any time, without prior notice or liability, for any reason whatsoever, including, without limitation, if you breach these Terms.
+
+Indemnification
+
+You agree to indemnify and hold harmless the Provider, RH+, from and against any and all claims, damages, obligations, losses, liabilities, costs or debt, and expenses (including but not limited to attorney's fees), arising from: (i) your use of and access to the Service; (ii) your violation of any term of these Terms; (iii) your violation of any third-party right, including without limitation any copyright, property, or privacy right; or (iv) any claim that your Content caused damage to a third party.
+
+Changes to Terms
+
+By creating an account, you consent to the Terms of Service. The Provider reserves the right to modify or replace these Terms at any time.
+
+한국어 기계 번역본:
+
+YumeAI 서비스 약관
+
+최종 업데이트: 2025-1-21
+
+약관 동의
+
+YumeAI 서비스(이하 "서비스")에 액세스하거나 이를 사용함으로써, 귀하는 이 서비스 약관(이하 "약관")에 동의하는 것으로 간주됩니다. 약관에 동의하지 않으면 서비스에 액세스하거나 사용할 수 없습니다.
+
+서비스 설명
+
+YumeAI는 RH+(이하 "제공자")가 제공하는 서비스입니다. YumeAI는 사용자가 제공한 데이터를 저장하고 해당 입력에 기반하여 새로운 데이터를 생성할 수 있는 기능을 제공합니다.
+
+사용자 계정
+
+YumeAI 계정을 생성하려면 고유한 사용자 ID와 비밀번호를 입력해야 합니다. 계정을 생성함으로써 귀하는 14세 이상이며 이 약관에 동의하는 것을 확인합니다. 귀하는 비밀번호의 기밀성을 유지하고 귀하의 계정에서 발생하는 모든 활동에 대해 책임이 있습니다.
+
+사용자 책임 및 허용 사용
+
+서비스의 사용은 전적으로 귀하의 책임입니다. 귀하는 서비스를 책임 있게 합법적으로 사용할 것에 동의합니다. 특히, 다음과 같은 행위로 서비스를 오용해서는 안 됩니다.
+
+    다른 사용자의 계정에 접근을 시도하는 것.
+    의도적으로 서비스의 운영을 손상시키거나 방해하는 것.
+    관련 법률이나 규정을 위반하는 모든 활동.
+
+데이터 처리 및 보안
+
+귀하가 서비스에 제공한 민감한 정보와 콘텐츠는 귀하가 입력한 비밀번호를 기반으로 암호화됩니다. 귀하의 비밀번호는 요청을 처리하기 위해 메모리에 일시적으로 저장되며, 그 후 안전하게 삭제됩니다. 이 과정은 귀하의 데이터에 일정 수준의 암호화를 제공하기 위한 것입니다. 이러한 암호화의 기술적 구현으로 인해, 제공자인 RH+는 귀하의 암호화된 데이터에 접근하거나 이를 읽을 수 없습니다. 따라서 비밀번호를 잊은 경우 제공자는 귀하의 계정이나 데이터를 복구할 수 없습니다. 비밀번호를 기억하는 것은 귀하의 전적인 책임입니다.
+
+이미지, 오디오, 비디오 파일 등 자산은 암호화되지 않습니다.
+
+데이터 개인정보 보호
+
+제공자는 귀하의 데이터 프라이버시 보호에 전념합니다. 법적 의무가 있는 경우를 제외하고, 귀하의 명시적 동의 없이 제공자는 귀하의 데이터를 제3자에게 전송, 전달, 공개 또는 접근 권한을 부여하지 않습니다. 귀하는 서비스가 호스팅 제공업체 Hetzner 에서 호스팅되며 귀하의 데이터가 해당 업체에서 처리됨을 인지합니다.
+
+지적 재산권
+
+서비스를 통해 업로드하거나 생성한 모든 콘텐츠는 귀하, 사용자에게 저작권이 있습니다. 귀하는 귀하의 콘텐츠가 제3자의 저작권을 침해하지 않도록 보장해야 할 전적인 책임이 있습니다.
+
+보증의 부인
+
+서비스는 "있는 그대로" 및 "사용 가능한 그대로"로 제공되며, 명시적이거나 암시적인 어떤 종류의 보증도 부여되지 않습니다. 여기에는 상품성, 특정 목적에의 적합성, 비침해성을 포함하나 이에 국한되지 않습니다. 제공자는 서비스가 중단 없이 운영되거나 오류 없이 운영될 것이라는 보증을 하지 않으며, 결함이 수정되거나 서비스 및 이를 가능하게 하는 서버에 바이러스나 기타 유해한 요소가 없다는 보증도 하지 않습니다.
+
+책임의 제한
+
+적용 가능한 법률이 허용하는 최대한의 범위 내에서, 어떠한 경우에도 제공자인 RH+는 간접적, 부수적, 특별, 결과적, 또는 징벌적 손해 또는 직간접적으로 발생하는 이익 손실이나 수익 손실, 데이터 사용 손실, 신뢰 손실, 기타 무형 손실에 대해 책임을 지지 않습니다. 이는 (i) 귀하의 서비스 액세스 또는 사용, 혹은 사용 불능으로 인한 손실, (ii) 제3자의 서비스에서의 행위나 콘텐츠, (iii) 서비스에서 얻은 콘텐츠, (iv) 승인되지 않은 접근, 사용, 전송 또는 콘텐츠의 수정으로 인한 손실을 포함하되 이에 국한되지 않으며, 이러한 손실에 대해 제공자가 그 가능성을 사전에 통지 받았더라도 책임을 지지 않습니다.
+
+계정 종료
+
+제공자는 귀하의 서비스 접속 권한을 이유에 상관없이 언제든지 사전 통지나 책임 없이 해지 또는 중단할 권리 를 보유합니다. 특히 귀하가 이 약관을 위반한 경우.
+
+면책
+
+귀하는 서비스에 대한 귀하의 사용 및 액세스, 약관 위반, 제3자 권리의 침해(저작권, 재산권, 프라이버시권 등 포함), 귀하의 콘텐츠가 제3자에게 손해를 초래했다는 주장과 관련하여 모든 청구, 손해, 의무, 손실, 부채, 비용 또는 부채(변호사 비용 포함)에 대해 제공자인 RH+를 면책하고 해를 끼치지 않도록 동의합니다.
+
+약관 변경
+
+계정을 생성함으로써, 귀하는 서비스 약관에 동의하는 것입니다. 제공자는 언제든지 약관을 수정하거나 대체할 권리를 보유합니다.

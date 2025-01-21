@@ -150,8 +150,7 @@ export default function SubmitSpan(props: SubmitSpanProps) {
             </div>
             :
             <>
-                <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing}
-                        onTouchStart={startEditing}>
+                <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing}>
                     <span className={"text-xs"}>{label}</span>
                     <span
                         className={value && !hideOnIdle ? '' : 'text-foreground-400 italic'}>{getDisplayValue()}</span>

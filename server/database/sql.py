@@ -17,13 +17,6 @@ def get_engine(path: str = "_DEF_", password: str = ""):
         engine = create_engine(
             url, connect_args={"check_same_thread": False}
         )
-
-        @event.listens_for(engine, "connect")
-        def disable_regexp_on_connect(dbapi_connection, connection_record):
-            # If REGEXP is not needed, we skip or safely adjust here.
-            if hasattr(dbapi_connection, "create_function"):
-                dbapi_connection.create_function("regexp", 2, None)  # Ensure only required arguments.
-
     else:
         engine = create_engine(
             url, connect_args={"check_same_thread": False}

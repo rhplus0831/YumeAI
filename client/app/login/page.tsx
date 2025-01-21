@@ -56,7 +56,7 @@ export default function LoginPage() {
                         <span>
                             셀프 호스팅 혹은 로컬 실행 환경인것 같습니다.<br/>
                             자기 자신이 데이터의 주체가 된다는것은 굉장히 좋은일이죠.<br/>
-                            물론, <span className={"text-danger"}>백업을 생활화</span> 해야 한다는 사실을 잊지 마세요!
+                            <span className={"text-danger"}>백업을 생활화</span>하고 <span className={"text-danger"}>비밀번호를 기억</span> 해야 한다는 사실을 잊지 마세요!
                         </span>
                     </CardBody>
                 </Card>
@@ -70,7 +70,7 @@ export default function LoginPage() {
                         <span>
                             YumeAI는 에셋 데이터(이미지, 오디오, 비디오)를 제외한 데이터(API 키, 프로프트 등)를 사용자가 가입할 때 입력한 비밀번호를 기반으로 암호화 하여 보관합니다.<br/>
                             비밀번호 정보는 해시로 변환되어 브라우저에 쿠키로 남으며, 서버는 이 쿠키 정보를 기반으로 암호화된 정보를 처리합니다.<br/>
-                            이는 사용자가 비밀번호를 잊어버리면 <span className={"text-danger"}>자료를 복구할 방법이 없음</span>을 의미합니다.
+                            이는 사용자가 비밀번호를 잊어버리면 <span className={"text-danger"}>데이터를 복구할 방법이 없음</span>을 의미합니다.
                         </span>
                     </CardBody>
                 </Card>

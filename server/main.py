@@ -1,7 +1,9 @@
+import logging
 import os
 import uuid
 
 import aiofiles
+from cachetools import TTLCache
 from fastapi import FastAPI, Request, BackgroundTasks, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from openai import BaseModel
@@ -50,27 +52,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-passwords = {}
-engines = {}
+cache: TTLCache = TTLCache(maxsize=3000, ttl=1800)
 
-
-def get_password(username: str):
-    if username in passwords:
-        password = passwords[username]
-    else:
-        path = configure.get_fast_store_path(f"{username}/password")
-        if not os.path.exists(path):
-            return 'INVALID'
-        with open(path, "r") as f:
-            password = f.read()
-            passwords[username] = password
-
-    return password
+class LoginCache:
+    def __init__(self):
+        self.password = None
+        self.engine = None
 
 
 def get_register_allowed():
     return os.getenv("ALLOW_REGISTER") == "true" or os.getenv("ALLOW_REGISTER") == "True"
 
+
+def do_login(auth_id, auth_token):
+    login_data = LoginCache()
+    login_data.password = auth_token
+    login_data.engine = get_engine(configure.get_fast_store_path(f"{auth_id}/yumeAI.db"), auth_token)
+    cache[auth_id] = login_data
+
+    return login_data
 
 class AuthorizationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -94,18 +94,15 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         if not check_pw_valid(auth_token):
             return JSONResponse(status_code=401, content={"detail": invalid_string})
 
-        password = get_password(auth_id)
-        if auth_token != password:
-            return JSONResponse(status_code=401, content={"detail": invalid_string})
+        if auth_id in cache:
+            login_data = cache[auth_id]
+            if cache[auth_id].password != auth_token:
+                return JSONResponse(status_code=401, content={"detail": invalid_string})
+        else:
+            login_data = do_login(auth_id, auth_token)
 
         request.state.username = auth_id
-
-        if auth_id in engines:
-            request.state.db = engines[auth_id]
-        else:
-            engine = get_engine(configure.get_fast_store_path(f"{auth_id}/yumeAI.db"))
-            engines[auth_id] = engine
-            request.state.db = engine
+        request.state.db = login_data.engine
 
         response = await call_next(request)
         return response
@@ -153,10 +150,11 @@ def verify_self(request: Request):
 
 @app.post("/login")
 def login(data: LoginData):
-    password = get_password(data.username)
-    if data.password != password:
+    try:
+        login_cache = do_login(data.username, data.password)
+    except Exception as e:
+        logging.exception(e)
         raise ClientErrorException(status_code=401, detail="Invalid credentials")
-
     response = JSONResponse({"status": "ok"})
     response.set_cookie(key="auth_id", value=data.username, httponly=True)
     response.set_cookie(key="auth_token", value=data.password, httponly=True)

@@ -6,6 +6,7 @@ from zipfile import ZipFile
 from sqlmodel import Session, SQLModel, select
 
 import configure
+from api.image import get_file_path
 from database.sql_model import Room, Bot, Persona, Prompt, Image, Conversation, Summary
 from lib.storage import put_file
 
@@ -22,7 +23,7 @@ async def import_zip_file(session: Session, username: str, path: str):
                     # TODO: Allow user to Adjust overwrite option
                     if data_model is Image:
                         data = zip_file.read(f'{table_name}/{data_id}.bin')
-                        put_file(data, data_model.file_path)
+                        put_file(data, get_file_path(username, data_id))
                         if session.exec(select(data_model).where(data_model.file_id == data_id)).one_or_none():
                             continue
                     else:

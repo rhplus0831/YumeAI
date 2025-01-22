@@ -24,7 +24,7 @@ You are solely responsible for your use of the Service. You agree to use the Ser
 
 Data Handling and Security
 
-Sensitive information and content you provide to the Service are encrypted based on the password you enter. Your password is temporarily held in memory to process your request and is then securely discarded. This process is intended to provide a degree of encryption for your data.
+Sensitive information and content you provide to the Service are encrypted based on the password you enter. Your password is temporarily stored in memory solely for the duration of processing your request. For your security, if no additional requests are made using your session within 30 minutes, your password will automatically be removed from memory. This ensures that your sensitive information remains encrypted and protected while minimizing the time your password is held.
 
 Due to the technical implementation of this encryption, the Provider, RH+, cannot access or read your encrypted data. Consequently, if you forget your password, the Provider cannot recover your account or your data. It is your sole responsibility to remember your password.
 
@@ -32,7 +32,7 @@ Assets, including images, audio, and video files, are not subject to encryption.
 
 Data Privacy
 
-The Provider is dedicated to safeguarding the privacy of your data. Except where legally obligated, the Provider will not transfer, transmit, disclose, or provide access to your data to any third parties without your express consent. You acknowledge that the Service is hosted by a third-party provider, Hetzner, and your data will be stored and processed according to their standard practices and policies.
+The Provider is dedicated to safeguarding the privacy of your data. Except where legally obligated, the Provider will not transfer, transmit, disclose, or provide access to your data to any third parties without your express consent. You acknowledge that the Service is hosted by a third-party provider, Vultr and Cloudflare, and your data will be stored and processed according to their standard practices and policies.
 
 Intellectual Property
 

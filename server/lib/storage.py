@@ -60,4 +60,4 @@ def response_file(path: str):
     if configure.use_s3_for_store():
         return RedirectResponse(configure.get_cdn_address() + path)
 
-    return FileResponse(path)
+    return FileResponse(configure.get_store_path(path))

@@ -54,7 +54,7 @@ common.validate_update_model(RoomBase, RoomUpdate)
 common.validate_get_model(RoomBase, RoomGet)
 
 
-def room_delete_side_effect(session: Session, room: Room):
+async def room_delete_side_effect(session: Session, username: str, room: Room):
     conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
     for conversation in conversations:
         session.delete(conversation)

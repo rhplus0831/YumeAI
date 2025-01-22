@@ -1,4 +1,4 @@
-from typing import Type, Sequence, Callable, Any, Annotated
+from typing import Type, Sequence, Callable, Any, Annotated, Coroutine
 
 from fastapi import APIRouter
 from fastapi.params import Query, Depends
@@ -65,7 +65,7 @@ def get_or_404(db_model: Type[SQLModel], session: Session, id: str):
 
 
 def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQLModel], update_model: Type[BaseModel],
-                handle_delete_side_effect: Callable[[Session, Any], None] | None = None,
+                handle_delete_side_effect: Callable[[Session, str, Any], Coroutine] | None = None,
                 get_model: Type[BaseModel] | None = None, skip_get_list=False) -> BaseModel:
     data_name = db_model.__name__
     lower_name = data_name.lower()
@@ -112,12 +112,12 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
     }
     deleted_model = create_model(f'{data_name}Deleted', **deleted_data)
 
-    def delete(id: str, session: Session = Depends(get_session)):
+    async def delete(id: str, session: SessionDependency, username: UsernameDependency):
         data = get_or_404(db_model, session, id)
         session.delete(data)
         session.commit()
         if handle_delete_side_effect is not None:
-            handle_delete_side_effect(session, data)
+            await handle_delete_side_effect(session, username, data)
         return deleted_model()
 
     router.add_api_route('/', endpoint=create, methods=['POST'], response_model=db_model,

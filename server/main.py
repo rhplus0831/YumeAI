@@ -13,9 +13,9 @@ from starlette.responses import JSONResponse, FileResponse
 
 import configure
 from api import room, persona, common, image, bot, prompt, conversation, setting
-from api.bot import BotUpdate, BotGet
+from api.bot import BotUpdate, BotGet, bot_delete_side_effect
 from api.common import ClientErrorException, UsernameDependency, SessionDependency
-from api.persona import PersonaUpdate
+from api.persona import PersonaUpdate, persona_delete_side_effect
 from api.prompt import PromptUpdate
 from api.room import RoomUpdate, RoomGet
 from database.sql import get_engine
@@ -120,11 +120,11 @@ conversation.register(room.router)
 
 app.include_router(room.router)
 
-persona.persona_not_exist_model = common.insert_crud(persona.router, PersonaBase, Persona, PersonaUpdate)
+persona.persona_not_exist_model = common.insert_crud(persona.router, PersonaBase, Persona, PersonaUpdate, handle_delete_side_effect=persona.persona_delete_side_effect)
 persona.register()
 app.include_router(persona.router)
 
-bot.bot_not_exist_model = common.insert_crud(bot.router, BotBase, Bot, BotUpdate, get_model=BotGet)
+bot.bot_not_exist_model = common.insert_crud(bot.router, BotBase, Bot, BotUpdate, get_model=BotGet, handle_delete_side_effect=bot.bot_delete_side_effect)
 bot.register()
 app.include_router(bot.router)
 

@@ -409,6 +409,9 @@ def register(router: APIRouter):
 
         for conversation in conversations:
             session.delete(conversation)
+            summary = session.exec(select(Summary).where(Summary.conversation_id == conversation.id)).one_or_none()
+            if summary:
+                session.delete(summary)
             session.commit()
 
         return {"status": "success"}

@@ -51,6 +51,16 @@ def get_bot_or_404(bot_id: str, session: Session) -> Bot:
     return common.get_or_404(Bot, session, bot_id)
 
 
+async def bot_delete_side_effect(session: Session, username: str, bot: Bot):
+    if bot.profileImageId is not None:
+        await image.delete_image(session, username, file_id=bot.profileImageId)
+
+    if bot.image_assets is not None:
+        assets = json.loads(bot.image_assets)
+        for asset in assets:
+            await image.delete_image(session, username, file_id=asset['imageId'])
+
+
 def register():
     @router.post('/{id}/profile_image', responses={200: {'model': Bot}, 404: {'model': bot_not_exist_model}})
     async def update_profile_image(session: SessionDependency, username: UsernameDependency, id: str,
@@ -69,7 +79,7 @@ def register():
         return bot
 
     @router.post('/import', responses={200: {'model': Bot}})
-    async def import_bot(engine: EngineDependency, username: UsernameDependency, in_file: UploadFile):
+    async def import_bot(session: SessionDependency, username: UsernameDependency, in_file: UploadFile):
         if in_file.size > 500 * 1024 * 1024:
             raise ClientErrorException(status_code=413, detail="File too large")
 
@@ -126,7 +136,7 @@ def register():
                         inner_path = uri.replace('embeded://', '')
 
                         if type == "icon":
-                            image_data, file_path = image.generate_new_image(engine, username, mime)
+                            image_data, file_path = image.generate_new_image(session, username, mime)
                             image_file_data = zip_file.read(inner_path)
                             with open(file_path, 'wb') as f:
                                 f.write(image_file_data)
@@ -136,7 +146,7 @@ def register():
                                 continue
 
                             if mime.startswith('image/'):
-                                image_data, file_path = image.generate_new_image(engine, username, mime)
+                                image_data, file_path = image.generate_new_image(session, username, mime)
                                 image_file_data = zip_file.read(inner_path)
                                 with open(file_path, 'wb') as f:
                                     f.write(image_file_data)
@@ -149,10 +159,9 @@ def register():
                 bot.first_message = json.dumps(first_messages)
                 bot.image_assets = json.dumps(image_assets)
 
-                with Session(engine) as session:
-                    session.add(bot)
-                    session.commit()
-                    session.refresh(bot)
+                session.add(bot)
+                session.commit()
+                session.refresh(bot)
 
                 return JSONResponse(bot.model_dump_json())
         finally:

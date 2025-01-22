@@ -2,8 +2,15 @@ import os
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
+
 import configure
+
+
+def use_encrypted_db():
+    if os.getenv("USE_ENCRYPTED_DB") is None:
+        return False
+    return os.getenv("USE_ENCRYPTED_DB").lower() == "true"
 
 
 def get_engine(path: str = "_DEF_", password: str = ""):
@@ -12,7 +19,7 @@ def get_engine(path: str = "_DEF_", password: str = ""):
 
     url = f"sqlite:///{path}"
 
-    if password:
+    if password and use_encrypted_db():
         url = f"yumestore://:{password}@/{path}"
         engine = create_engine(
             url, connect_args={"check_same_thread": False}

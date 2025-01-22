@@ -61,7 +61,9 @@ class LoginCache:
 
 
 def get_register_allowed():
-    return os.getenv("ALLOW_REGISTER") == "true" or os.getenv("ALLOW_REGISTER") == "True"
+    if os.getenv("ALLOW_REGISTER") is None:
+        return False
+    return os.getenv("ALLOW_REGISTER").lower() == "true"
 
 
 def do_login(auth_id, auth_token):

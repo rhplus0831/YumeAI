@@ -193,7 +193,7 @@ def register(data: LoginData):
     if not check_pw_valid(data.password):
         raise ClientErrorException(status_code=400, detail="Password is invalid")
 
-    path = configure.get_fast_store_path(f"{data.username}/password")
+    path = configure.get_fast_store_path(f"{data.username}/yumeAI.db")
     if os.path.exists(path):
         raise ClientErrorException(status_code=409, detail="Username already exists")
 

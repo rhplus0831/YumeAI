@@ -47,3 +47,9 @@ def get_s3_client():
 # https://cdn.example.com/
 def get_cdn_address():
     return os.getenv('CDN_ENDPOINT')
+
+
+def use_encrypted_db():
+    if os.getenv("USE_ENCRYPTED_DB") is None:
+        return False
+    return os.getenv("USE_ENCRYPTED_DB").lower() == "true"

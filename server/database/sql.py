@@ -5,12 +5,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine
 
 import configure
-
-
-def use_encrypted_db():
-    if os.getenv("USE_ENCRYPTED_DB") is None:
-        return False
-    return os.getenv("USE_ENCRYPTED_DB").lower() == "true"
+from configure import use_encrypted_db
 
 
 def get_engine(path: str = "_DEF_", password: str = ""):

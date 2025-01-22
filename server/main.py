@@ -13,9 +13,9 @@ from starlette.responses import JSONResponse, FileResponse
 
 import configure
 from api import room, persona, common, image, bot, prompt, conversation, setting
-from api.bot import BotUpdate, BotGet, bot_delete_side_effect
+from api.bot import BotUpdate, BotGet
 from api.common import ClientErrorException, UsernameDependency, SessionDependency
-from api.persona import PersonaUpdate, persona_delete_side_effect
+from api.persona import PersonaUpdate
 from api.prompt import PromptUpdate
 from api.room import RoomUpdate, RoomGet
 from database.sql import get_engine
@@ -54,6 +54,7 @@ app.add_middleware(
 
 cache: TTLCache = TTLCache(maxsize=3000, ttl=1800)
 
+
 class LoginCache:
     def __init__(self):
         self.password = None
@@ -67,12 +68,21 @@ def get_register_allowed():
 
 
 def do_login(auth_id, auth_token):
+    if not configure.use_encrypted_db():
+        check_path = configure.get_fast_store_path(f"{auth_id}/password")
+        with open(check_path, "r") as f:
+            check = f.read()
+
+        if check != auth_token:
+            raise ClientErrorException(status_code=401, detail="Credentials is missing or invalid")
+
     login_data = LoginCache()
     login_data.password = auth_token
     login_data.engine = get_engine(configure.get_fast_store_path(f"{auth_id}/yumeAI.db"), auth_token)
     cache[auth_id] = login_data
 
     return login_data
+
 
 class AuthorizationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -122,11 +132,13 @@ conversation.register(room.router)
 
 app.include_router(room.router)
 
-persona.persona_not_exist_model = common.insert_crud(persona.router, PersonaBase, Persona, PersonaUpdate, handle_delete_side_effect=persona.persona_delete_side_effect)
+persona.persona_not_exist_model = common.insert_crud(persona.router, PersonaBase, Persona, PersonaUpdate,
+                                                     handle_delete_side_effect=persona.persona_delete_side_effect)
 persona.register()
 app.include_router(persona.router)
 
-bot.bot_not_exist_model = common.insert_crud(bot.router, BotBase, Bot, BotUpdate, get_model=BotGet, handle_delete_side_effect=bot.bot_delete_side_effect)
+bot.bot_not_exist_model = common.insert_crud(bot.router, BotBase, Bot, BotUpdate, get_model=BotGet,
+                                             handle_delete_side_effect=bot.bot_delete_side_effect)
 bot.register()
 app.include_router(bot.router)
 
@@ -188,8 +200,9 @@ def register(data: LoginData):
     os.makedirs(configure.get_fast_store_path(f"{data.username}"), exist_ok=True)
     os.makedirs(configure.get_store_path(f"{data.username}"), exist_ok=True)
 
-    with open(path, "w") as f:
-        f.write(data.password)
+    if not configure.use_encrypted_db():
+        with open(path, "w") as f:
+            f.write(data.password)
 
     response = JSONResponse({"status": "ok"})
     response.set_cookie(key="auth_id", value=data.username, httponly=True)

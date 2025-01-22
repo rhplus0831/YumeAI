@@ -152,14 +152,14 @@ def register():
                             return image_data
 
                         if type == "icon":
-                            image_data = await import_image()
+                            image_data = import_image()
                             bot.profileImageId = image_data.file_id
                         else:
                             if mime is None:
                                 continue
 
                             if mime.startswith('image/'):
-                                image_data = await import_image()
+                                image_data = import_image()
                                 image_assets.append({
                                     'name': name,
                                     'alias': '',

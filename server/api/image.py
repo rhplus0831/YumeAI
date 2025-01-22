@@ -94,6 +94,7 @@ async def read_image(session: SessionDependency, username: UsernameDependency, f
         if size not in image.created_variants:
             local_file_path = configure.get_store_path(file_path)
             local_resized_file_path = configure.get_store_path(resized_file_path)
+            os.makedirs(os.path.dirname(local_resized_file_path), exist_ok=True)
             if configure.use_s3_for_store():
                 try:
                     client = configure.get_s3_client()

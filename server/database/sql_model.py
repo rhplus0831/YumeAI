@@ -143,6 +143,7 @@ class Image(SQLModel, table=True):
     id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
     file_id: str = Field(index=True)
     file_type: str = ''
+    created_variants: Optional[str] = ''
 
 
 class SettingKey(str, Enum):

@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from starlette.responses import FileResponse
 
 import configure
-from api.common import ClientErrorException, EngineDependency, UsernameDependency, SessionDependency
+from api.common import ClientErrorException, UsernameDependency, SessionDependency
 from database.sql_model import Image
 
 router = APIRouter(prefix="/image", tags=["image"])
@@ -74,7 +74,10 @@ async def read_image(session: SessionDependency, username: UsernameDependency, f
             number_size = 1024
 
         resized_file_path = file_path + f"_{size}"
-        if not os.path.exists(resized_file_path):
+        if not image.created_variants:
+            image.created_variants = ''
+
+        if size not in image.created_variants:
             with PILImage.open(file_path) as img:
                 if img.format == "GIF":  # GIF 파일 처리
                     frames = []
@@ -87,6 +90,9 @@ async def read_image(session: SessionDependency, username: UsernameDependency, f
                 else:  # 기타 이미지 형식 처리
                     img.thumbnail((number_size, number_size))  # 비율 유지 크기 조정
                     img.save(resized_file_path, format=img.format)
+            image.created_variants = image.created_variants + size + ','
+            session.add(image)
+            session.commit()
         return FileResponse(resized_file_path, media_type=image.file_type)
 
     return FileResponse(file_path, media_type=image.file_type)

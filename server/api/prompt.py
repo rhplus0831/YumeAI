@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from starlette.responses import JSONResponse
 
 from api import common
-from api.common import EngineDependency
+from api.common import EngineDependency, SessionDependency
 from database.sql_model import PromptBase, Prompt
 from lib.cbs import CBSHelper
 from lib.prompt import lint_chat, lint_summary, lint_content_only, parse_prompt
@@ -33,24 +33,22 @@ common.validate_update_model(PromptBase, PromptUpdate)
 
 def register():
     @router.get("/")
-    def gets_with_filter(engine: EngineDependency, type: str = "all", offset: int = 0,
+    def gets_with_filter(session: SessionDependency, type: str = "all", offset: int = 0,
                          limit: int = Query(default=100, le=100)) -> Sequence[
         Prompt]:
-        with Session(engine) as session:
-            if type == 'all':
-                prompts = session.exec(
-                    select(Prompt).offset(offset).limit(limit)
-                ).all()
-            else:
-                prompts = session.exec(
-                    select(Prompt).where(Prompt.type == type.replace("_", "-")).offset(offset).limit(limit)
-                ).all()
-            return prompts
+        if type == 'all':
+            prompts = session.exec(
+                select(Prompt).offset(offset).limit(limit)
+            ).all()
+        else:
+            prompts = session.exec(
+                select(Prompt).where(Prompt.type == type.replace("_", "-")).offset(offset).limit(limit)
+            ).all()
+        return prompts
 
     @router.post("/{id}/lint", response_model=PromptUpdate)
-    def lint(engine: EngineDependency, id: str):
-        with Session(engine) as session:
-            prompt = common.get_or_404(Prompt, session, id)
+    def lint(session: SessionDependency, id: str):
+        prompt = common.get_or_404(Prompt, session, id)
 
         result = []
 
@@ -78,9 +76,8 @@ def register():
         active_toggles: str
 
     @router.post("/{id}/test", response_model=PromptUpdate)
-    def test(engine: EngineDependency, info: PromptTestInfoModel, id: str):
-        with Session(engine) as session:
-            prompt: Prompt = common.get_or_404(Prompt, session, id)
+    def test(session: SessionDependency, info: PromptTestInfoModel, id: str):
+        prompt: Prompt = common.get_or_404(Prompt, session, id)
 
         cbs = CBSHelper()
         cbs.user = '!!User!!'

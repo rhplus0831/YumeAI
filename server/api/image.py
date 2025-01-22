@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from starlette.responses import FileResponse
 
 import configure
-from api.common import ClientErrorException, EngineDependency, UsernameDependency
+from api.common import ClientErrorException, EngineDependency, UsernameDependency, SessionDependency
 from database.sql_model import Image
 
 router = APIRouter(prefix="/image", tags=["image"])
@@ -25,21 +25,21 @@ def get_image_and_file_path_or_404(session: Session, user_id: str, file_id: str)
     return image, file_path
 
 
-def generate_new_image(engine, username, content_type):
+def generate_new_image(session, username, content_type):
     os.makedirs(configure.get_store_path(f'{username}/image'), exist_ok=True)
     file_id = uuid.uuid4().hex
     file_path = os.path.join(configure.get_store_path(f'{username}/image'), file_id)
 
-    with Session(engine) as session:
-        image = Image(file_id=file_id, file_type=content_type)
-        session.add(image)
-        session.commit()
-        session.refresh(image)
+    image = Image(file_id=file_id, file_type=content_type)
+    session.add(image)
+    session.commit()
+    session.refresh(image)
 
     return image, file_path
 
+
 @router.post('/')
-async def upload_image(engine: EngineDependency, username: UsernameDependency, in_file: UploadFile) -> Image:
+async def upload_image(session: SessionDependency, username: UsernameDependency, in_file: UploadFile) -> Image:
     if in_file.size > 20 * 1024 * 1024:
         raise ClientErrorException(status_code=413, detail="File too large")
 
@@ -51,19 +51,18 @@ async def upload_image(engine: EngineDependency, username: UsernameDependency, i
         while content := await in_file.read(1024):  # async read chunk
             await out_file.write(content)  # async write chunk
 
-    with Session(engine) as session:
-        image = Image(file_id=file_id, file_type=in_file.content_type)
-        session.add(image)
-        session.commit()
-        session.refresh(image)
+    image = Image(file_id=file_id, file_type=in_file.content_type)
+    session.add(image)
+    session.commit()
+    session.refresh(image)
 
     return image
 
 
 @router.get('/{file_id}/{size}')
-async def read_image(engine: EngineDependency, username: UsernameDependency, file_id: str, size: str) -> FileResponse:
-    with Session(engine) as session:
-        image, file_path = get_image_and_file_path_or_404(session, username, file_id)
+async def read_image(session: SessionDependency, username: UsernameDependency, file_id: str, size: str) -> FileResponse:
+    image, file_path = get_image_and_file_path_or_404(session, username, file_id)
+
     if not os.path.exists(file_path):
         raise ClientErrorException(status_code=404, detail="Image file is gone?")
 
@@ -98,17 +97,15 @@ class ImageDeleted(BaseModel):
 
 
 @router.delete('/{file_id}')
-async def delete_image(engine: EngineDependency, username: UsernameDependency, file_id: str) -> ImageDeleted:
-    with Session(engine) as session:
-        image, file_path = get_image_and_file_path_or_404(session, username, file_id)
+async def delete_image(session: SessionDependency, username: UsernameDependency, file_id: str) -> ImageDeleted:
+    image, file_path = get_image_and_file_path_or_404(session, username, file_id)
 
     if not os.path.exists(file_path):
         logging.warning("Image file is gone: " + file_path)
     else:
         os.remove(file_path)
 
-    with Session(engine) as session:
-        session.delete(image)
-        session.commit()
+    session.delete(image)
+    session.commit()
 
     return ImageDeleted()

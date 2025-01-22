@@ -11,7 +11,7 @@ from starlette.responses import StreamingResponse
 
 import settings
 from api import common
-from api.common import ClientErrorException, EngineDependency
+from api.common import ClientErrorException, EngineDependency, SessionDependency
 from database.sql_model import ConversationBase, Room, Conversation, Summary
 from lib.cbs import CBSHelper
 from lib.filter import apply_filter
@@ -42,10 +42,9 @@ def get_room_or_404(room_id: str, session: Session) -> Room:
 def register(router: APIRouter):
     @router.get('/{id}/conversation',
                 responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def list_conversations(engine: EngineDependency, id: str):
-        with Session(engine) as session:
-            room = get_room_or_404(id, session)
-            return session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
+    async def list_conversations(session: SessionDependency, id: str):
+        room = get_room_or_404(id, session)
+        return session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
 
     class SingleTextArgument(BaseModel):
         text: str
@@ -182,13 +181,8 @@ def register(router: APIRouter):
 
     @router.post("/{id}/conversation/send",
                  responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def send_message(engine: EngineDependency, id: str, argument: SendMessageArgument) -> StreamingResponse:
-        session = Session(engine)
-        try:
-            room = get_room_or_404(id, session=session)
-        except:
-            session.close()
-            raise
+    async def send_message(session: SessionDependency, id: str, argument: SendMessageArgument) -> StreamingResponse:
+        room = get_room_or_404(id, session=session)
         return StreamingResponse(send_message_streamer(argument, room, session), headers={
             'Content-Type': 'text/event-stream'
         })
@@ -321,147 +315,124 @@ def register(router: APIRouter):
 
     @router.post("/{id}/conversation/{conversation_id}/translate",
                  responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def translate_conversation(engine: EngineDependency, id: str, conversation_id: str) -> StreamingResponse:
-        session = Session(engine)
-        try:
-            room = get_room_or_404(id, session=session)
-            conversation = common.get_or_404(Conversation, session, conversation_id)
-            if conversation.room_id != room.id:
-                raise Exception("Conversation Room ID doesn't match")
-        except:
-            session.close()
-            raise
+    async def translate_conversation(session: SessionDependency, id: str, conversation_id: str) -> StreamingResponse:
+        room = get_room_or_404(id, session=session)
+        conversation = common.get_or_404(Conversation, session, conversation_id)
+        if conversation.room_id != room.id:
+            raise Exception("Conversation Room ID doesn't match")
         return StreamingResponse(translate_message_streamer(conversation, room, session), headers={
             'Content-Type': 'text/event-stream'
         })
 
     @router.post("/{id}/conversation/apply_first_message")
-    async def apply_first_message(engine: EngineDependency, argument: SingleTextArgument, id: str):
-        with Session(engine) as session:
-            room = get_room_or_404(id, session=session)
-            if not room.bot.first_message:
-                raise Exception("First message not found")
-            conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
-                Conversation.created_at.desc()).limit(2)).all()
+    async def apply_first_message(session: SessionDependency, argument: SingleTextArgument, id: str):
+        room = get_room_or_404(id, session=session)
+        if not room.bot.first_message:
+            raise Exception("First message not found")
+        conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+            Conversation.created_at.desc()).limit(2)).all()
 
-            if len(conversations) != 0:
-                if len(conversations) == 2:
-                    raise Exception("Room already has conversation")
-
-                for conversation in conversations:
-                    if conversation.user_message:
-                        raise Exception("Room already has conversation")
-                    session.delete(conversation)
-
-            conversation = Conversation()
-            conversation.user_message = ''
-            cbs = CBSHelper()
-            cbs.user = room.persona.name
-            cbs.char = room.bot.name
-            conversation.assistant_message, _ = parse_prompt(argument.text, cbs)
-            conversation.room_id = room.id
-            conversation.created_at = datetime.datetime.now()
-
-            session.add(conversation)
-            session.commit()
-            session.refresh(conversation)
-
-            return conversation.model_dump()
-
-    @router.post("/{id}/conversation/re_roll")
-    async def re_roll(engine: EngineDependency, argument: ReRollArgument, id: str):
-        session = Session(engine)
-        conversation_id = None
-        try:
-            room = get_room_or_404(id, session=session)
-            conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
-                Conversation.created_at.desc()).limit(1)).all()
-            if len(conversations) == 0:
-                raise Exception("Conversation not found")
+        if len(conversations) != 0:
+            if len(conversations) == 2:
+                raise Exception("Room already has conversation")
 
             for conversation in conversations:
-                if not conversation.user_message:
-                    raise Exception("First message can't be re-rolled")
-                message_argument = SendMessageArgument(text=conversation.user_message,
-                                                       active_toggles=argument.active_toggles)
-                conversation_id = conversation.id
-                break
-        except:
-            session.close()
-            raise
+                if conversation.user_message:
+                    raise Exception("Room already has conversation")
+                session.delete(conversation)
+
+        conversation = Conversation()
+        conversation.user_message = ''
+        cbs = CBSHelper()
+        cbs.user = room.persona.name
+        cbs.char = room.bot.name
+        conversation.assistant_message, _ = parse_prompt(argument.text, cbs)
+        conversation.room_id = room.id
+        conversation.created_at = datetime.datetime.now()
+
+        session.add(conversation)
+        session.commit()
+        session.refresh(conversation)
+
+        return conversation.model_dump()
+
+    @router.post("/{id}/conversation/re_roll")
+    async def re_roll(session: SessionDependency, argument: ReRollArgument, id: str):
+        conversation_id = None
+        room = get_room_or_404(id, session=session)
+        conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+            Conversation.created_at.desc()).limit(1)).all()
+        if len(conversations) == 0:
+            raise Exception("Conversation not found")
+
+        for conversation in conversations:
+            if not conversation.user_message:
+                raise Exception("First message can't be re-rolled")
+            message_argument = SendMessageArgument(text=conversation.user_message,
+                                                   active_toggles=argument.active_toggles)
+            conversation_id = conversation.id
+            break
 
         return StreamingResponse(send_message_streamer(message_argument, room, session, conversation_id), headers={
             'Content-Type': 'text/event-stream'
         })
 
     @router.post("/{id}/conversation/edit")
-    async def edit(engine: EngineDependency, id: str, argument: SingleTextArgument):
-        session = Session(engine)
-        try:
-            room = get_room_or_404(id, session=session)
-            conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
-                Conversation.created_at.desc()).limit(1)).all()
-            if len(conversations) == 0:
-                raise Exception("Conversation not found")
+    async def edit(session: SessionDependency, id: str, argument: SingleTextArgument):
+        room = get_room_or_404(id, session=session)
+        conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+            Conversation.created_at.desc()).limit(1)).all()
+        if len(conversations) == 0:
+            raise Exception("Conversation not found")
 
-            for conversation in conversations:
-                if not conversation.user_message:
-                    raise Exception("First message can't be edited")
-                conversation.assistant_message = argument.text
-                conversation.assistant_message_translated = ''
-                session.add(conversation)
-                session.commit()
-                session.refresh(conversation)
-                return conversation.model_dump()
-        except:
-            session.close()
-            raise
+        for conversation in conversations:
+            if not conversation.user_message:
+                raise Exception("First message can't be edited")
+            conversation.assistant_message = argument.text
+            conversation.assistant_message_translated = ''
+            session.add(conversation)
+            session.commit()
+            session.refresh(conversation)
+            return conversation.model_dump()
 
         return StreamingResponse(send_message_streamer(argument, room, session), headers={
             'Content-Type': 'text/event-stream'
         })
 
     @router.post("/{id}/conversation/revert")
-    async def revert(engine: EngineDependency, id: str):
-        session = Session(engine)
-        try:
-            room = get_room_or_404(id, session=session)
-            conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
-                Conversation.created_at.desc()).limit(1)).all()
-            if len(conversations) == 0:
-                raise Exception("Conversation not found")
+    async def revert(session: SessionDependency, id: str):
+        room = get_room_or_404(id, session=session)
+        conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+            Conversation.created_at.desc()).limit(1)).all()
+        if len(conversations) == 0:
+            raise Exception("Conversation not found")
 
-            for conversation in conversations:
-                session.delete(conversation)
-                session.commit()
+        for conversation in conversations:
+            session.delete(conversation)
+            session.commit()
 
-            return {"status": "success"}
-        except:
-            session.close()
-            raise
+        return {"status": "success"}
 
     class PutTranslateModel(SQLModel):
         user_message_translated: str
         assistant_message_translated: str
 
     @router.post('/{id}/conversation/put_translate/{conversation_id}')
-    async def put_translate(engine: EngineDependency, id: str, conversation_id: str, put: PutTranslateModel):
-        with Session(engine) as session:
-            conversation = common.get_or_404(Conversation, session, conversation_id)
+    async def put_translate(session: SessionDependency, id: str, conversation_id: str, put: PutTranslateModel):
+        conversation = common.get_or_404(Conversation, session, conversation_id)
 
-            conversation.user_message_translated = put.user_message_translated
-            conversation.assistant_message_translated = put.assistant_message_translated
-            session.add(conversation)
-            session.commit()
-            session.refresh(conversation)
-            return conversation.model_dump()
+        conversation.user_message_translated = put.user_message_translated
+        conversation.assistant_message_translated = put.assistant_message_translated
+        session.add(conversation)
+        session.commit()
+        session.refresh(conversation)
+        return conversation.model_dump()
 
     @router.get('/{id}/conversation/get_summary/{conversation_id}')
-    async def get_summary(engine: EngineDependency, id: str, conversation_id: str):
-        with Session(engine) as session:
-            summary: Summary = session.exec(
-                select(Summary).where(Summary.conversation_id == conversation_id)).one_or_none()
-            if summary:
-                return summary.model_dump()
-            else:
-                raise ClientErrorException(status_code=404, detail=f"Summary does not exist")
+    async def get_summary(session: SessionDependency, id: str, conversation_id: str):
+        summary: Summary = session.exec(
+            select(Summary).where(Summary.conversation_id == conversation_id)).one_or_none()
+        if summary:
+            return summary.model_dump()
+        else:
+            raise ClientErrorException(status_code=404, detail=f"Summary does not exist")

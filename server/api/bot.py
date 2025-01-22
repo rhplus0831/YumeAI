@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 
 import configure
 from api import common, image
-from api.common import EngineDependency, UsernameDependency, ClientErrorException
+from api.common import EngineDependency, UsernameDependency, ClientErrorException, SessionDependency
 from database.sql_model import BotBase, Bot
 
 router = APIRouter(prefix="/bot", tags=["bot"])
@@ -53,21 +53,18 @@ def get_bot_or_404(bot_id: str, session: Session) -> Bot:
 
 def register():
     @router.post('/{id}/profile_image', responses={200: {'model': Bot}, 404: {'model': bot_not_exist_model}})
-    async def update_profile_image(engine: EngineDependency, username: UsernameDependency, id: str,
+    async def update_profile_image(session: SessionDependency, username: UsernameDependency, id: str,
                                    image_file: UploadFile) -> Bot:
-        with Session(engine) as session:
-            bot = get_bot_or_404(id, session)
+        bot = get_bot_or_404(id, session)
 
         if bot.profileImageId is not None:
-            await image.delete_image(engine, username, file_id=bot.profileImageId)
+            await image.delete_image(session, username, file_id=bot.profileImageId)
 
-        uploaded = await image.upload_image(engine, username, image_file)
+        uploaded = await image.upload_image(session, username, image_file)
         bot.profileImageId = uploaded.file_id
-
-        with Session(engine) as session:
-            session.add(bot)
-            session.commit()
-            session.refresh(bot)
+        session.add(bot)
+        session.commit()
+        session.refresh(bot)
 
         return bot
 

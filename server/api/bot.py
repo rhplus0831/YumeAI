@@ -2,6 +2,7 @@ import json
 import mimetypes
 import os
 import uuid
+from io import BytesIO
 from typing import Optional
 from zipfile import ZipFile
 
@@ -15,6 +16,7 @@ import configure
 from api import common, image
 from api.common import EngineDependency, UsernameDependency, ClientErrorException, SessionDependency
 from database.sql_model import BotBase, Bot
+from lib.storage import put_file
 
 router = APIRouter(prefix="/bot", tags=["bot"])
 bot_not_exist_model: BaseModel | None = None
@@ -53,12 +55,18 @@ def get_bot_or_404(bot_id: str, session: Session) -> Bot:
 
 async def bot_delete_side_effect(session: Session, username: str, bot: Bot):
     if bot.profileImageId is not None:
-        await image.delete_image(session, username, file_id=bot.profileImageId)
+        try:
+            await image.delete_image(session, username, file_id=bot.profileImageId)
+        except:
+            pass
 
     if bot.image_assets is not None:
         assets = json.loads(bot.image_assets)
         for asset in assets:
-            await image.delete_image(session, username, file_id=asset['imageId'])
+            try:
+                await image.delete_image(session, username, file_id=asset['imageId'])
+            except:
+                pass
 
 
 def register():
@@ -123,6 +131,7 @@ def register():
                     bot.post_prompt = data['post_history_instructions']
 
                 if safe_get('assets'):
+                    threads = []
                     for asset in data['assets']:
                         type = asset['type']
                         uri = asset['uri']
@@ -135,21 +144,22 @@ def register():
 
                         inner_path = uri.replace('embeded://', '')
 
-                        if type == "icon":
+                        def import_image():
                             image_data, file_path = image.generate_new_image(session, username, mime)
                             image_file_data = zip_file.read(inner_path)
-                            with open(file_path, 'wb') as f:
-                                f.write(image_file_data)
+                            put_file(image_file_data, file_path)
+
+                            return image_data
+
+                        if type == "icon":
+                            image_data = await import_image()
                             bot.profileImageId = image_data.file_id
                         else:
                             if mime is None:
                                 continue
 
                             if mime.startswith('image/'):
-                                image_data, file_path = image.generate_new_image(session, username, mime)
-                                image_file_data = zip_file.read(inner_path)
-                                with open(file_path, 'wb') as f:
-                                    f.write(image_file_data)
+                                image_data = await import_image()
                                 image_assets.append({
                                     'name': name,
                                     'alias': '',

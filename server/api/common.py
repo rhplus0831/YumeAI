@@ -1,6 +1,6 @@
 from typing import Type, Sequence, Callable, Any, Annotated, Coroutine
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from fastapi.params import Query, Depends
 from pydantic import BaseModel, create_model
 from sqlmodel import SQLModel, Session, select
@@ -112,12 +112,12 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
     }
     deleted_model = create_model(f'{data_name}Deleted', **deleted_data)
 
-    async def delete(id: str, session: SessionDependency, username: UsernameDependency):
+    async def delete(id: str, session: SessionDependency, username: UsernameDependency, background_tasks: BackgroundTasks):
         data = get_or_404(db_model, session, id)
         session.delete(data)
         session.commit()
         if handle_delete_side_effect is not None:
-            await handle_delete_side_effect(session, username, data)
+            background_tasks.add_task(handle_delete_side_effect, session, username, data)
         return deleted_model()
 
     router.add_api_route('/', endpoint=create, methods=['POST'], response_model=db_model,

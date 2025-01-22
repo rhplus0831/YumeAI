@@ -43,6 +43,10 @@ async function handleProxy(req: NextRequest, params: { path: string[] }) {
         // GET이나 HEAD 요청은 body를 포함하지 않음
     };
 
+    if(path.startsWith('image')) {
+        fetchOptions.redirect = 'manual';
+    }
+
     try {
         // 백엔드 서버로 요청 전송
         const backendResponse = await fetch(targetURL, fetchOptions);

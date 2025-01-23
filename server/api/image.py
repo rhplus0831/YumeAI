@@ -1,3 +1,4 @@
+import asyncio
 import mimetypes
 import os
 import uuid
@@ -71,9 +72,25 @@ async def upload_image(session: SessionDependency, username: UsernameDependency,
 
     file_id = uuid.uuid4().hex
     file_path = get_file_path(username, file_id)
-    created_variants = ''
+    created_variants = 'avatar'
+    local_file_path = configure.get_store_path(file_path)
+    with open(local_file_path, 'wb') as out_file:
+        out_file.write(in_file.file.read())
 
-    put_file(in_file.file, file_path)
+    resized_file_path = file_path + f"_avatar"
+    local_resized_file_path = configure.get_store_path(resized_file_path)
+    await resize_file(local_file_path, local_resized_file_path, 'avatar')
+    if configure.use_s3_for_store():
+        try:
+            client = configure.get_s3_client()
+            await asyncio.gather(
+                asyncio.to_thread(client.upload_file, local_file_path, configure.get_s3_bucket(), file_path),
+                asyncio.to_thread(client.upload_file, local_resized_file_path, configure.get_s3_bucket(),
+                                  resized_file_path),
+            )
+        finally:
+            safe_remove(local_file_path)
+            safe_remove(local_resized_file_path)
 
     image = Image(file_id=file_id, file_type=in_file.content_type, created_variants=created_variants)
     session.add(image)

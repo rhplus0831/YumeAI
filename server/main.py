@@ -201,7 +201,7 @@ def register(data: LoginData):
     os.makedirs(configure.get_store_path(f"{data.username}"), exist_ok=True)
 
     if not configure.use_encrypted_db():
-        with open(path, "w") as f:
+        with open(configure.get_fast_store_path(f"{data.username}/password"), "w") as f:
             f.write(data.password)
 
     response = JSONResponse({"status": "ok"})

@@ -9,6 +9,12 @@ export default interface GlobalSettings {
     max_conversation_count?: string,
 }
 
+export async function getGlobalSettings() {
+    return await api('settings', {
+        method: 'GET'
+    })
+}
+
 export async function putSingleSetting(key: string, value: string) {
     return await api(`settings`, {
         method: "PUT",

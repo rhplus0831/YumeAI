@@ -1,13 +1,10 @@
 "use server";
 
-import GlobalSettings from "@/lib/data/GlobalSettings";
-import {api} from "@/lib/api-client";
+import GlobalSettings, {getGlobalSettings} from "@/lib/data/GlobalSettings";
 import SettingsViewer from "@/app/settings/SettingsViewer";
 
 export default async function SettingsPage() {
-    const settings: GlobalSettings = await api('settings', {
-        method: 'GET'
-    })
+    const settings: GlobalSettings = await getGlobalSettings()
 
     return <SettingsViewer settings={settings}/>
 }

@@ -6,6 +6,7 @@ import {useEffect, useRef, useState} from "react";
 import {Skeleton} from "@nextui-org/react";
 import {api, buildAPILink, buildImageLink} from "@/lib/api-client";
 import ErrorPopover from "@/components/ui/ErrorPopover";
+import {uploadImage} from "@/lib/data/Image";
 
 export default function UploadableAvatar<Data>({profileImageId, endpoint, onEdited}: {
     profileImageId: string | undefined,
@@ -18,15 +19,8 @@ export default function UploadableAvatar<Data>({profileImageId, endpoint, onEdit
 
     const uploadProfile = async (fileList: FileList) => {
         setProfileUploaded(false)
-        const formData = new FormData()
-        formData.append('image_file', fileList[0])
         try {
-            const data = await api(endpoint, {
-                method: 'POST',
-                cache: 'no-cache',
-                body: formData,
-            }, false)
-
+            const data = await uploadImage(endpoint, fileList[0], "image_file")
             setErrorMessage('')
             onEdited(data)
         } catch (err) {

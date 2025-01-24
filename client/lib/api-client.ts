@@ -1,4 +1,4 @@
-import { getCookie } from "./api-client-SSR";
+import {getCookie} from "./api-client-SSR";
 
 export function buildAPILink(pathname: string) {
     if (typeof window !== 'undefined') {

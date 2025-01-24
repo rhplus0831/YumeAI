@@ -74,20 +74,28 @@ async def upload_image(session: SessionDependency, username: UsernameDependency,
     file_path = get_file_path(username, file_id)
     created_variants = 'avatar'
     local_file_path = configure.get_store_path(file_path)
+    os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
     with open(local_file_path, 'wb') as out_file:
         out_file.write(in_file.file.read())
 
-    resized_file_path = file_path + f"_avatar"
-    local_resized_file_path = configure.get_store_path(resized_file_path)
-    await resize_file(local_file_path, local_resized_file_path, 'avatar')
+    try:
+        resized_file_path = file_path + f"_avatar"
+        local_resized_file_path = configure.get_store_path(resized_file_path)
+        await resize_file(local_file_path, local_resized_file_path, 'avatar')
+    except:
+        local_resized_file_path = ''  # Encryption?
+
     if configure.use_s3_for_store():
         try:
             client = configure.get_s3_client()
-            await asyncio.gather(
-                asyncio.to_thread(client.upload_file, local_file_path, configure.get_s3_bucket(), file_path),
-                asyncio.to_thread(client.upload_file, local_resized_file_path, configure.get_s3_bucket(),
-                                  resized_file_path),
-            )
+            if local_resized_file_path:
+                await asyncio.gather(
+                    asyncio.to_thread(client.upload_file, local_file_path, configure.get_s3_bucket(), file_path),
+                    asyncio.to_thread(client.upload_file, local_resized_file_path, configure.get_s3_bucket(),
+                                      resized_file_path),
+                )
+            else:
+                client.upload_file(local_file_path, configure.get_s3_bucket(), file_path)
         finally:
             safe_remove(local_file_path)
             safe_remove(local_resized_file_path)
@@ -129,9 +137,9 @@ async def read_image(session: SessionDependency, username: UsernameDependency, f
         image.created_variants = image.created_variants + size + ','
         session.add(image)
         session.commit()
-        return response_file(resized_file_path)
+        return response_file(resized_file_path, image.file_type)
 
-    return response_file(file_path)
+    return response_file(file_path, image.file_type)
 
 
 class ImageDeleted(BaseModel):

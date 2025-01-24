@@ -14,7 +14,7 @@ import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
 import {api, buildImageLink} from "@/lib/api-client";
 import ErrorPopover from "@/components/ui/ErrorPopover";
-import Image, {deleteImage} from "@/lib/data/Image";
+import Image, {deleteImage, uploadImage} from "@/lib/data/Image";
 
 function simpleStringHash(str: string) {
     var hash = 0,
@@ -79,15 +79,9 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
     const [isInImageAssetUploading, setIsInImageAssetUploading] = useState<boolean>(false)
 
     async function uploadImageAsset(fileList: FileList) {
-        const formData = new FormData()
-        formData.append('in_file', fileList[0])
         try {
             setImageAssetUploadErrorMessage('')
-            const data: Image = await api('image/', {
-                method: 'POST',
-                cache: 'no-cache',
-                body: formData,
-            }, false)
+            const data: Image = await uploadImage('image', fileList[0], 'in_file')
 
             const filename = fileList[0].name
             const assetName = filename.substring(0, filename.lastIndexOf('.'));

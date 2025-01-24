@@ -5,6 +5,7 @@ from io import BytesIO
 from starlette.responses import RedirectResponse, FileResponse
 
 import configure
+from api.common import ClientErrorException
 
 
 def safe_remove(path):
@@ -56,8 +57,13 @@ def locate_file(path: str):
     return configure.get_store_path(path)
 
 
-def response_file(path: str):
+def response_file(path: str, type: str):
     if configure.use_s3_for_store():
-        return RedirectResponse(configure.get_cdn_address() + path)
+        return RedirectResponse(configure.get_cdn_address() + path, headers={
+            'X-Content-Type': type
+        })
 
-    return FileResponse(configure.get_store_path(path))
+    if not os.path.exists(configure.get_store_path(path)):
+        return ClientErrorException(status_code=404, detail="File not found")
+
+    return FileResponse(configure.get_store_path(path), media_type=type)

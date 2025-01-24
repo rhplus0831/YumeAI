@@ -8,10 +8,7 @@ import {siteConfig} from "@/config/site";
 import {fontSans} from "@/config/fonts";
 import {Navbar} from "@/components/navbar";
 import {Noto_Sans_KR} from "next/font/google";
-import {MenuPortalProvider} from "@/components/MenuPortal";
 import MenuSidebar from "@/components/ui/MenuSidebar";
-import {CustomNavPortalProvider} from "@/components/CustomNavPortal";
-import {NavigationGuardProvider} from "@/lib/import/next-navigation-guard";
 
 export const metadata: Metadata = {
     title: {
@@ -48,22 +45,15 @@ export default async function RootLayout({
                 fontSans.variable,
             )}
         >
-
-        <CustomNavPortalProvider>
-            <MenuPortalProvider>
-                <Providers themeProps={{attribute: "class", defaultTheme: "dark"}}>
-                    <NavigationGuardProvider>
-                        <div className="relative flex flex-col h-screen">
-                            <Navbar/>
-                            <MenuSidebar/>
-                            <main className="p-2 w-screen h-screen overflow-y-auto max-w-7xl mx-auto">
-                                {children}
-                            </main>
-                        </div>
-                    </NavigationGuardProvider>
-                </Providers>
-            </MenuPortalProvider>
-        </CustomNavPortalProvider>
+        <Providers themeProps={{attribute: "class", defaultTheme: "dark"}}>
+            <div className="relative flex flex-col h-screen">
+                <Navbar/>
+                <MenuSidebar/>
+                <main className="p-2 w-screen h-screen overflow-y-auto max-w-7xl mx-auto">
+                    {children}
+                </main>
+            </div>
+        </Providers>
         </body>
         </html>
     );

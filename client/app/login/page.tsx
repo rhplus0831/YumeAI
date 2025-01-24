@@ -8,9 +8,10 @@ import SHA512 from "crypto-js/sha512";
 import {useRouter} from "next/navigation";
 import {Checkbox, Link} from "@nextui-org/react";
 import {Card, CardBody} from "@nextui-org/card";
+import EncryptAssetCheckbox from "@/components/ui/EncryptAssetCheckbox";
 
 export default function LoginPage() {
-    const isSharing = process.env.NEXT_PUBLIC_IS_SHARING;
+    const isSharing = !!process.env.NEXT_PUBLIC_IS_SHARING;
 
     const [isRegisterAllowed, setIsRegisterAllowed] = useState(false)
 
@@ -46,8 +47,9 @@ export default function LoginPage() {
             <Input variant={"underlined"} size={"md"} label={"비밀번호"} type={"password"} onValueChange={setMyPassword}/>
             {tryRegister && <Input variant={"underlined"} size={"md"} label={"비밀번호 확인"} type={"password"}
                                    onValueChange={setMyPasswordConfirm}/>}
+            <EncryptAssetCheckbox />
 
-            {isRegisterAllowed && <Checkbox checked={tryRegister} onValueChange={setTryRegister}>회원가입 할래요</Checkbox>}
+            {isRegisterAllowed && <Checkbox isSelected={tryRegister} onValueChange={setTryRegister}>회원가입</Checkbox>}
 
             {tryRegister && !isSharing && <div className={"text-center flex flex-col gap-4"}>
                 <span className={"font-extrabold text-xl"}>안녕하세요!</span>
@@ -60,7 +62,7 @@ export default function LoginPage() {
                         </span>
                     </CardBody>
                 </Card>
-                <Checkbox checked={agreeRegister} onValueChange={setAgreeRegister}>백업을 열심히 하겠습니다.</Checkbox>
+                <Checkbox isSelected={agreeRegister} onValueChange={setAgreeRegister}>백업을 열심히 하겠습니다.</Checkbox>
             </div>}
 
             {tryRegister && isSharing && <div className={"text-center flex flex-col gap-4"}>
@@ -99,6 +101,24 @@ export default function LoginPage() {
             </div>}
 
             <AsyncProgressButton isDisabled={tryRegister && !agreeRegister} onPressAsync={async () => {
+                const assetKey = SHA512("yumeAsset-" + myPassword).toString()
+                if( localStorage.getItem("useEncrypt") === "true" ) {
+                    localStorage.setItem("assetKey", assetKey)
+                    navigator?.serviceWorker?.ready?.then(serviceWorkerRegistration => {
+                        serviceWorkerRegistration?.active?.postMessage({
+                            type: 'assetKey',
+                            payload: assetKey,
+                        });
+                    })
+                } else {
+                    localStorage.setItem("assetKey", '')
+                    navigator?.serviceWorker?.ready?.then(serviceWorkerRegistration => {
+                        serviceWorkerRegistration?.active?.postMessage({
+                            type: 'assetKey',
+                            payload: '',
+                        });
+                    })
+                }
                 if (tryRegister) {
                     if (myPassword != myPasswordConfirm) {
                         throw new Error("비밀번호와 비밀번호 확인이 일치하지 않습니다.")

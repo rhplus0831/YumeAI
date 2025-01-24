@@ -121,7 +121,7 @@ async function imageGetter(event) {
     const encryptedArrayBuffer = await blob.arrayBuffer();
 
     if (!key) {
-        response = new Response(arrayBuffer, {})
+        response = new Response(encryptedArrayBuffer, {})
         event.waitUntil(cache.put(request, response.clone()));
         return response;
     }

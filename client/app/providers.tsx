@@ -41,6 +41,27 @@ export function Providers({children, themeProps}: ProvidersProps) {
                         });
                 } else {
                     console.log('Service Worker already registered:', registration);
+                    registration.update().catch((error) => {
+                        console.error('Service Worker update failed: ', error);
+                    });
+
+                    registration.onupdatefound = () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                            newWorker.onstatechange = () => {
+                                if (newWorker.state === 'installed') {
+                                    if (navigator.serviceWorker.controller) {
+                                        // 새로운 서비스 워커가 설치(업데이트)됨, 알림 표시 등 처리 가능
+                                        console.log('New Service Worker is installed. Ready to activate.');
+                                        // 필요 시 다음 코드로 업데이트 작업 완료:
+                                        newWorker.postMessage({ action: 'SKIP_WAITING' });
+                                    } else {
+                                        console.log('Service Worker installed for the first time.');
+                                    }
+                                }
+                            };
+                        }
+                    };
                 }
             });
         } else {

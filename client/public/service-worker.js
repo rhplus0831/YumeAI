@@ -97,18 +97,24 @@ async function imageGetter(event) {
         caching: 'no-store'
     });
 
-    let mimeType = response.headers.get('Content-Type');
+    console.log(response)
 
-    if (!response.ok) {
-        if (response.status !== 307) {
-            return response;
-        } else {
-            mimeType = response.headers.get('X-Content-Type');
-            response = await fetch(response.url, {
-                redirect: 'follow',
-                caching: 'no-store'
-            });
-        }
+    let mimeType = '';
+
+    if (response.status === 204) {
+        mimeType = response.headers.get('x-content-type');
+        const url = response.headers.get('x-data-location');
+        //x-data-location MUST allow cors for yumeai
+        response = await fetch(url, {
+            redirect: 'follow',
+            caching: 'no-store'
+        });
+    } else {
+        mimeType = response.headers.get('Content-Type');
+    }
+
+    if (response.status !== 200) {
+        return response;
     }
 
     const blob = await response.blob();
@@ -160,8 +166,6 @@ self.addEventListener('fetch', event => {
     // 요청 경로가 /api/image 로 시작하는 경우에만 처리
     if (url.pathname.startsWith('/api/image')) {
         event.respondWith(imageGetter(event));
-    } else {
-        event.respondWith(fetch(event.request));
     }
 });
 

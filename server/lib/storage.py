@@ -2,7 +2,7 @@ import os
 import typing
 from io import BytesIO
 
-from starlette.responses import RedirectResponse, FileResponse
+from starlette.responses import FileResponse, Response
 
 import configure
 from api.common import ClientErrorException
@@ -59,8 +59,9 @@ def locate_file(path: str):
 
 def response_file(path: str, type: str):
     if configure.use_s3_for_store():
-        return RedirectResponse(configure.get_cdn_address() + path, headers={
-            'X-Content-Type': type
+        return Response(status_code=204, headers={
+            'x-data-location': configure.get_cdn_address() + path,
+            'x-content-type': type
         })
 
     if not os.path.exists(configure.get_store_path(path)):

@@ -70,7 +70,7 @@ export default function LoginPage() {
                 <Card>
                     <CardBody>
                         <span>
-                            YumeAI는 에셋 데이터(이미지, 오디오, 비디오)를 제외한 데이터(API 키, 프로프트 등)를 사용자가 가입할 때 입력한 비밀번호를 기반으로 암호화 하여 보관합니다.<br/>
+                            YumeAI 서버는 에셋 데이터(이미지, 오디오, 비디오)를 제외한 데이터(API 키, 프로프트 등)를 사용자가 가입할 때 입력한 비밀번호를 기반으로 암호화 하여 보관합니다.<br/>
                             비밀번호 정보는 해시로 변환되어 브라우저에 쿠키로 남으며, 서버는 이 쿠키 정보를 기반으로 암호화된 정보를 처리합니다.<br/>
                             이는 사용자가 비밀번호를 잊어버리면 <span className={"text-danger"}>데이터를 복구할 방법이 없음</span>을 의미합니다.
                         </span>
@@ -93,7 +93,7 @@ export default function LoginPage() {
                 <Card>
                     <CardBody>
                         <span>
-                            <Link href={"tos.txt"} isExternal>이용약관의 전문</Link>을 읽을수도 있습니다!
+                            <Link href={"tos"} isExternal>이용약관의 전문</Link>을 읽을수도 있습니다!
                         </span>
                     </CardBody>
                 </Card>

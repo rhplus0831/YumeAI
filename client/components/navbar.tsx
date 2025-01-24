@@ -37,6 +37,7 @@ export const Navbar = () => {
     const pathname = usePathname()
 
     if (pathname === "/login") return <></>;
+    if (pathname === "/tos") return <></>;
 
     return (<>
         <Drawer isOpen={drawerClosure.isOpen} placement={"left"} onOpenChange={drawerClosure.onOpenChange}>

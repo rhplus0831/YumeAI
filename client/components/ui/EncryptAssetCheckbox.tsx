@@ -5,7 +5,7 @@ import {useEffect, useState} from "react";
 
 export default function EncryptAssetCheckbox() {
     const isSharing = !!process.env.NEXT_PUBLIC_IS_SHARING;
-    const [useEncrypt, setUseEncrypt] = useState(localStorage.getItem("useEncrypt") === "true")
+    const [useEncrypt, setUseEncrypt] = useState(false)
     const [noSecure, setNoSecure] = useState(false)
 
     useEffect(() => {
@@ -18,6 +18,8 @@ export default function EncryptAssetCheckbox() {
         if (localStorage.getItem("useEncrypt") === null) {
             localStorage.setItem("useEncrypt", isSharing.toString())
             setUseEncrypt(isSharing)
+        } else {
+            setUseEncrypt(localStorage.getItem("useEncrypt") === "true")
         }
     }, []);
 

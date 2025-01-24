@@ -93,7 +93,7 @@ export default function LoginPage() {
                 <Card>
                     <CardBody>
                         <span>
-                            <Link href={"tos"} isExternal>이용약관의 전문</Link>을 읽을수도 있습니다!
+                            <Link href={"/tos"} isExternal>이용약관의 전문</Link>을 읽을수도 있습니다!
                         </span>
                     </CardBody>
                 </Card>

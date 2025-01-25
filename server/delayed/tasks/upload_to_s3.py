@@ -1,9 +1,10 @@
 import os
+from logging import Logger
 
 import configure
 
 
-def process(json_data):
+def process(logger: Logger, json_data):
     src: str = json_data['src']
     dest: str = json_data['dest']
     remove_source: bool = json_data['remove_source']

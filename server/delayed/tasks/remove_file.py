@@ -1,12 +1,18 @@
 import os
+from logging import Logger
 
 import configure
 
 
-def process(json_data):
+def process(logger: Logger, json_data):
     path: str = json_data['path']
     local_path = configure.get_store_path(path)
-    os.remove(local_path)
+
+    if os.path.exists(local_path):
+        try:
+            os.remove(local_path)
+        except:
+            logger.error(f"Failed to remove exist file: {local_path}")
 
     if configure.use_s3_for_store():
         client = configure.get_s3_client()

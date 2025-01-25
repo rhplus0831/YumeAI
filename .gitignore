@@ -3,3 +3,4 @@ store-fast/
 .venv
 .idea
 __pycache__
+/server/processor.log

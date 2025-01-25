@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import time
+import uuid
 
 from configure import get_fast_store_path
 from delayed.tasks import upload_to_s3, remove_file
@@ -16,11 +17,12 @@ known_tasks = {
 task_dir = get_fast_store_path('#tasks')
 process_task_dir = get_fast_store_path('#tasks_process')
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('yumeai-processor')
+logging.basicConfig(filename='processor.log', encoding='utf-8', level=logging.INFO)
 
 
 def queue_task(data: dict):
-    file_path = os.path.join(task_dir, f'{int(time.time())}.json')
+    file_path = os.path.join(task_dir, f'{uuid.uuid4()}.json')
     with open(file_path, 'w') as f:
         f.write(json.dumps(data))
 
@@ -45,7 +47,11 @@ def main():
                 task_type: str = json_data['type']
 
                 if task_type in known_tasks:
-                    known_tasks[task_type](json_data)
+                    logger.info(f'processing task: {task_type}')
+                    known_tasks[task_type](logger, json_data)
+                    logger.info(f'processed task: {task_type}')
+                else:
+                    raise Exception(f'unknown task type: {task_type}')
 
                 os.remove(process_file_path)
         except:

@@ -85,7 +85,7 @@ export const Navbar = () => {
             </NavbarContent>
 
             <NavbarContent
-                className="hidden sm:flex basis-1/5 sm:basis-full"
+                className="hidden fhd:flex basis-1/5 sm:basis-full"
                 justify="end"
             >
                 <NavbarItem className="hidden sm:flex gap-2">
@@ -93,7 +93,7 @@ export const Navbar = () => {
                 </NavbarItem>
             </NavbarContent>
 
-            <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
+            <NavbarContent className="fhd:hidden basis-1 pl-4" justify="end">
                 {menuContent &&
                     <Button variant={"light"} className={"block fhd:hidden"} onPress={drawerClosure.onOpen} isIconOnly>
                         <div className={"flex justify-center items-center"}>

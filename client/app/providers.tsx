@@ -10,6 +10,7 @@ import {useRouter} from "next/navigation";
 import {NavigationGuardProvider} from "@/lib/import/next-navigation-guard";
 import {MenuPortalProvider} from "@/components/MenuPortal";
 import {CustomNavPortalProvider} from "@/components/CustomNavPortal";
+import {Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure} from "@nextui-org/react";
 
 export interface ProvidersProps {
     children: React.ReactNode;
@@ -25,6 +26,7 @@ declare module "@react-types/shared" {
 }
 
 export function Providers({children, themeProps}: ProvidersProps) {
+    const [workerUpdated, setWorkerUpdated] = React.useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -50,14 +52,7 @@ export function Providers({children, themeProps}: ProvidersProps) {
                         if (newWorker) {
                             newWorker.onstatechange = () => {
                                 if (newWorker.state === 'installed') {
-                                    if (navigator.serviceWorker.controller) {
-                                        // 새로운 서비스 워커가 설치(업데이트)됨, 알림 표시 등 처리 가능
-                                        console.log('New Service Worker is installed. Ready to activate.');
-                                        // 필요 시 다음 코드로 업데이트 작업 완료:
-                                        newWorker.postMessage({ action: 'SKIP_WAITING' });
-                                    } else {
-                                        console.log('Service Worker installed for the first time.');
-                                    }
+                                    setWorkerUpdated(true);
                                 }
                             };
                         }
@@ -69,8 +64,34 @@ export function Providers({children, themeProps}: ProvidersProps) {
         }
     }, []);
 
+    const disclosure = useDisclosure()
+
     return (
         <CustomNavPortalProvider>
+            {workerUpdated ?? <Modal isOpen={disclosure.isOpen} defaultOpen onOpenChange={disclosure.onOpenChange}>
+                <ModalContent>
+                    {(onClose) => (
+                        <>
+                            <ModalHeader className="flex flex-col gap-1">서비스 워커 업데이트</ModalHeader>
+                            <ModalBody>
+                                <p>
+                                    서비스 워커 업데이트가 있습니다, 새로고침을 권장합니다.
+                                </p>
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button color="danger" variant="light" onPress={onClose}>
+                                    닫기
+                                </Button>
+                                <Button color="primary" onPress={() => {
+                                    window.location.reload();
+                                }}>
+                                    새로고침
+                                </Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>}
             <MenuPortalProvider>
                 <NavigationGuardProvider>
                     <NextUIProvider navigate={router.push}>

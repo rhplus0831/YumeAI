@@ -1,11 +1,11 @@
 import os
 import typing
-from io import BytesIO
 
 from starlette.responses import FileResponse, Response
 
 import configure
 from api.common import ClientErrorException
+from delayed.tasks import remove_file, upload_to_s3
 
 
 def safe_remove(path):
@@ -16,55 +16,50 @@ def safe_remove(path):
 
 
 def put_file(src: str | bytes | typing.BinaryIO, dest_path: str):
-    if configure.use_s3_for_store():
-        client = configure.get_s3_client()
-        if isinstance(src, str):
-            client.upload_file(src, configure.get_s3_bucket(), dest_path)
-        else:
-            if isinstance(src, bytes):
-                src = BytesIO(src)
-                src.seek(0)
-            client.upload_fileobj(src, configure.get_s3_bucket(), dest_path)
+    local_path = configure.get_store_path(dest_path)
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+
+    # TODO: Buffering
+
+    if isinstance(src, str):
+        with open(src, 'rb') as f:
+            data = f.read()
+    elif isinstance(src, bytes):
+        data = src
     else:
-        local_path = configure.get_store_path(dest_path)
-        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        data = src.read()
 
-        # TODO: Buffering
+    with open(local_path, 'wb') as f:
+        f.write(data)
 
-        if isinstance(src, str):
-            with open(src, 'rb') as f:
-                data = f.read()
-        elif isinstance(src, bytes):
-            data = src
-        else:
-            data = src.read()
-
-        with open(local_path, 'wb') as f:
-            f.write(data)
+    if configure.use_s3_for_store():
+        upload_to_s3.queue_task(local_path, dest_path)
 
 
 def delete_file(path: str):
-    if configure.use_s3_for_store():
-        client = configure.get_s3_client()
-        client.delete_object(Bucket=configure.get_s3_bucket(), Key=path)
-    else:
-        safe_remove(configure.get_store_path(path))
+    remove_file.queue_task(path)
 
 
 def locate_file(path: str):
+    local_path = configure.get_store_path(path)
+    if os.path.exists(local_path):
+        return local_path
+
     if configure.use_s3_for_store():
         return configure.get_cdn_address() + path
-    return configure.get_store_path(path)
+
+    # TODO: Warning or Error?
+    return local_path
 
 
 def response_file(path: str, type: str):
+    if os.path.exists(configure.get_store_path(path)):
+        return FileResponse(configure.get_store_path(path), media_type=type)
+
     if configure.use_s3_for_store():
         return Response(status_code=204, headers={
             'x-data-location': configure.get_cdn_address() + path,
             'x-content-type': type
         })
-
-    if not os.path.exists(configure.get_store_path(path)):
+    else:
         return ClientErrorException(status_code=404, detail="File not found")
-
-    return FileResponse(configure.get_store_path(path), media_type=type)

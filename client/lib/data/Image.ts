@@ -5,73 +5,7 @@ export default interface Image {
     file_type: string
 }
 
-function resizeAndCropImage(file: File, targetSize: number): Promise<Blob> {
-    // TODO: Support gif on asset encrypt
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = (event) => {
-            const img = new Image();
-
-            img.onload = () => {
-                // Create a canvas element
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-
-                if (!ctx) {
-                    reject(new Error("Canvas context is not available"));
-                    return;
-                }
-
-                // Set canvas dimensions to the target size
-                canvas.width = targetSize;
-                canvas.height = targetSize;
-
-                // Calculate crop dimensions
-                const scale = Math.min(img.width / targetSize, img.height / targetSize);
-                const cropWidth = targetSize * scale;
-                const cropHeight = targetSize * scale;
-                const cropX = (img.width - cropWidth) / 2;
-                const cropY = (img.height - cropHeight) / 2;
-
-                // Draw the image with cropping on the canvas
-                ctx.drawImage(
-                    img,
-                    cropX,
-                    cropY,
-                    cropWidth,
-                    cropHeight,
-                    0,
-                    0,
-                    targetSize,
-                    targetSize
-                );
-
-                // Convert canvas to a Blob
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        resolve(blob);
-                    } else {
-                        reject(new Error("Failed to create blob from canvas"));
-                    }
-                }, "image/jpeg");
-            };
-
-            img.onerror = () => reject(new Error("Failed to load image"));
-
-            // Load image data into the img element
-            if (event.target && event.target.result) {
-                img.src = event.target.result as string;
-            }
-        };
-
-        // Read the file as Data URL
-        reader.readAsDataURL(file);
-    });
-}
-
-export async function uploadImage(endpoint: string, file: File, file_field: string) {
-
+export async function uploadImage(endpoint: string, file: File, file_field: string, id_field = 'file_id') {
     if(localStorage.getItem("useEncrypt") !== "true") {
         const formData = new FormData()
         formData.append(file_field, file)
@@ -101,15 +35,39 @@ export async function uploadImage(endpoint: string, file: File, file_field: stri
 
     const formData = new FormData()
     formData.append(file_field, new Blob([iv, encryptedData], { type: file.type }))
-    return await api(endpoint, {
+    const data = await api(endpoint, {
         method: "POST",
         cache: "no-cache",
         body: formData
     }, false)
+
+    try {
+        //Cache if secure context (service worker is exist)
+        if (window.isSecureContext) {
+            await fetch('/sw/image', {
+                method: 'PUT',
+                body: new Blob([arrayBuffer]),
+                headers: {
+                    'x-file-id': data[id_field],
+                    'x-file-type': file.type
+                }
+            })
+        }
+    } catch (error) {
+        console.error(error)
+    }
+
+    return data
 }
 
 export async function deleteImage(id: string) {
     return await api(`image/${id}`, {
         method: "DELETE"
     })
+}
+
+export function buildImageLink(id: string | undefined, size: string = "original") {
+    if (!id) return undefined
+    // TODO: Revive size
+    return `/api/image/${id}`
 }

@@ -8,11 +8,6 @@ export function buildAPILink(pathname: string) {
     return `http://127.0.0.1:39831/${pathname}` //TODO: Improve this placeholder.
 }
 
-export function buildImageLink(id: string | undefined, size: string = "original") {
-    if (!id) return undefined
-    return `/api/image/${id}/${size}`
-}
-
 const modifyRequestOptions = async (options: RequestInit): Promise<RequestInit> => {
     let currentHeaders = options.headers;
 

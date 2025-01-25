@@ -12,9 +12,8 @@ import {Accordion, AccordionItem, Button, Select, SelectItem, Tab, Tabs} from "@
 import FirstMessage from "@/lib/data/bot/FirstMessage";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
-import {api, buildImageLink} from "@/lib/api-client";
 import ErrorPopover from "@/components/ui/ErrorPopover";
-import Image, {deleteImage, uploadImage} from "@/lib/data/Image";
+import Image, {buildImageLink, deleteImage, uploadImage} from "@/lib/data/Image";
 
 function simpleStringHash(str: string) {
     var hash = 0,

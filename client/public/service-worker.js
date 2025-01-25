@@ -84,14 +84,6 @@ async function imageGetter(event) {
     if (cachedResponse) return cachedResponse;
     const key = await getStringFromDB();
 
-    if (key) {
-        const variant = request.url.slice(request.url.lastIndexOf('/') + 1);
-        if (variant !== "original") {
-            //일단 오리지널 위치로 강제이동
-            return Response.redirect(request.url.slice(0, request.url.lastIndexOf('/')) + "/original")
-        }
-    }
-
     let response = await fetch(request, {
         redirect: 'manual',
         caching: 'no-store'
@@ -146,26 +138,56 @@ async function imageGetter(event) {
 
     response = new Response(decryptedData, {
         headers: {
-            "Content-Type": mimeType
+            "Content-Type": mimeType,
+            "Content-Length": decryptedData.byteLength,
         }
     });
 
-    event.waitUntil(cache.put(event.request, new Response(decryptedData, { // event.request 사용
+    const responseForCache = new Response(decryptedData, {
         headers: {
-            "Content-Type": mimeType
+            "Content-Type": mimeType,
+            "Content-Length": decryptedData.byteLength,
+            "x-cache-source": "server",
         }
-    })).catch(error => {
+    })
+
+    event.waitUntil(cache.put(event.request, responseForCache).catch(error => {
         console.error("Cache put error:", error); // 오류 처리 추가
     }));
     return response;
 }
 
+async function imageSetter(event) {
+    const cache = await caches.open(IMAGE_CACHE_NAME);
+    const fileId = event.request.headers.get('x-file-id');
+    const mimeType = event.request.headers.get('x-file-type');
+    const data = await event.request.blob()
+
+    event.waitUntil(cache.put(new Request(event.request.url.replace("/sw/image", `/api/image/${fileId}`)), new Response(data, {
+        headers: {
+            "Content-Type": mimeType,
+            "Content-Length": data.size,
+            "x-cache-source": "local",
+        }
+    })).catch(error => {
+        console.error("Cache put error:", error); // 오류 처리 추가
+    }));
+
+    return new Response(null, {
+        status: 200,
+        statusText: 'OK'
+    })
+}
+
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
-    // 요청 경로가 /api/image 로 시작하는 경우에만 처리
     if (url.pathname.startsWith('/api/image')) {
         event.respondWith(imageGetter(event));
+    }
+
+    if (url.pathname.startsWith('/sw/image')) {
+        event.respondWith(imageSetter(event));
     }
 });
 
@@ -181,3 +203,7 @@ async function handleMessage(event) {
 }
 
 self.addEventListener('message', handleMessage);
+
+self.addEventListener('install', event => {
+    self.skipWaiting();
+})

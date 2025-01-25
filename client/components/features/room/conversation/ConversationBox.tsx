@@ -6,7 +6,7 @@ import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
 import {pendingFetch, usePendingAlert} from "@/components/ui/PendingAlert/usePendingAlert";
 import {ReactNode, useEffect, useRef, useState} from "react";
 import {googleTranslate} from "@/lib/import/GoogleTranslate";
-import {buildAPILink, buildImageLink} from "@/lib/api-client";
+import {buildAPILink} from "@/lib/api-client";
 import {Button, ButtonGroup, Chip} from "@nextui-org/react";
 import {MdModeEdit, MdOutlineCancel, MdOutlineCheck, MdOutlineTranslate, MdRepeat} from "react-icons/md";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
@@ -14,6 +14,7 @@ import {Textarea} from "@nextui-org/input";
 import {HiOutlineChatBubbleOvalLeftEllipsis} from "react-icons/hi2";
 import {Card, CardBody} from "@nextui-org/card";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
+import {buildImageLink} from "@/lib/data/Image";
 
 export interface ConversationBoxProps {
     room: Room | null,

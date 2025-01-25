@@ -1,6 +1,6 @@
 import YumeAvatar from "@/components/ui/YumeAvatar";
-import {buildImageLink} from "@/lib/api-client";
 import {ReactNode} from "react";
+import {buildImageLink} from "@/lib/data/Image";
 
 export default function MessageBox({message, name, profileImageId, extraNode}: {
     message: ReactNode,

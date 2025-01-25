@@ -16,9 +16,10 @@ import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {useRouter} from "next/navigation";
 import YumeCustomNav from "@/components/CustomNavPortal";
 import YumeAvatar from "@/components/ui/YumeAvatar";
-import {buildAPILink, buildImageLink} from "@/lib/api-client";
+import {buildAPILink} from "@/lib/api-client";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 import SubmitSpan from "@/components/ui/SubmitSpan";
+import {buildImageLink} from "@/lib/data/Image";
 
 export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const router = useRouter()

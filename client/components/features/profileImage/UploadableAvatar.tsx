@@ -1,12 +1,10 @@
 "use client";
 
 import YumeAvatar from "@/components/ui/YumeAvatar";
-import ProfileImage from "@/lib/data/ProfileImage";
 import {useEffect, useRef, useState} from "react";
 import {Skeleton} from "@nextui-org/react";
-import {api, buildAPILink, buildImageLink} from "@/lib/api-client";
 import ErrorPopover from "@/components/ui/ErrorPopover";
-import {uploadImage} from "@/lib/data/Image";
+import {buildImageLink, uploadImage} from "@/lib/data/Image";
 
 export default function UploadableAvatar<Data>({profileImageId, endpoint, onEdited}: {
     profileImageId: string | undefined,
@@ -20,7 +18,7 @@ export default function UploadableAvatar<Data>({profileImageId, endpoint, onEdit
     const uploadProfile = async (fileList: FileList) => {
         setProfileUploaded(false)
         try {
-            const data = await uploadImage(endpoint, fileList[0], "image_file")
+            const data = await uploadImage(endpoint, fileList[0], "image_file", 'profileImageId')
             setErrorMessage('')
             onEdited(data)
         } catch (err) {

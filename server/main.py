@@ -1,6 +1,8 @@
 import logging
 import os
+import threading
 import uuid
+from contextlib import asynccontextmanager
 
 import aiofiles
 from cachetools import TTLCache
@@ -12,6 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, FileResponse
 
 import configure
+import delayed.processor
 from api import room, persona, common, image, bot, prompt, conversation, setting
 from api.bot import BotUpdate, BotGet
 from api.common import ClientErrorException, UsernameDependency, SessionDependency
@@ -22,7 +25,15 @@ from database.sql import get_engine
 from database.sql_model import Persona, PersonaBase, Room, RoomBase, BotBase, Bot, Prompt, PromptBase
 from lib.auth import check_id_valid, check_pw_valid
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    thread = threading.Thread(target=delayed.processor.main)
+    thread.start()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.exception_handler(StarletteHTTPException)

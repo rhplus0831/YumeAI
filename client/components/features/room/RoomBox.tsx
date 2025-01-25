@@ -2,8 +2,8 @@
 
 import {AvatarGroup} from "@nextui-org/react";
 import YumeAvatar from "@/components/ui/YumeAvatar";
-import {buildImageLink} from "@/lib/api-client";
 import Room from "@/lib/data/Room";
+import {buildImageLink} from "@/lib/data/Image";
 
 export default function RoomBox({room}: {room: Room}) {
     return (<div className={"w-full flex flex-row items-center gap-4"}>

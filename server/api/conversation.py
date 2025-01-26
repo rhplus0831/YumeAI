@@ -4,14 +4,14 @@ import random
 import re
 from typing import Sequence, Optional, Callable
 
-from fastapi import APIRouter
+from fastapi import APIRouter, FastAPI
 from pydantic import BaseModel
 from sqlmodel import Session, select, SQLModel
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, JSONResponse
 
 import settings
 from api import common
-from api.common import ClientErrorException, EngineDependency, SessionDependency
+from api.common import ClientErrorException, SessionDependency
 from database.sql_model import ConversationBase, Room, Conversation, Summary
 from lib.cbs import CBSHelper
 from lib.filter import apply_filter
@@ -39,12 +39,32 @@ def get_room_or_404(room_id: str, session: Session) -> Room:
     return common.get_or_404(Room, session, room_id)
 
 
-def register(router: APIRouter):
+def register(router: APIRouter, app: FastAPI):
     @router.get('/{id}/conversation',
                 responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
     async def list_conversations(session: SessionDependency, id: str):
         room = get_room_or_404(id, session)
         return session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
+
+    class ConversationRestore(BaseModel):
+        datas: Sequence[Conversation]
+
+    @app.post('/conversation/restore')
+    async def put_conversation(conversations: ConversationRestore, session: SessionDependency,
+                               overwrite: str = 'false'):
+        for data in conversations.datas:
+            common.restore_data(data, Conversation, overwrite, session)
+        return JSONResponse(status_code=200, content={"status": "success"})
+
+    class SummaryRestore(BaseModel):
+        datas: Sequence[Summary]
+
+    # TODO: Move it to summary.py or something
+    @app.post('/summary/restore')
+    async def put_summary(summaries: SummaryRestore, session: SessionDependency, overwrite: str = 'false'):
+        for data in summaries.datas:
+            common.restore_data(data, Conversation, overwrite, session)
+        return JSONResponse(status_code=200, content={"status": "success"})
 
     class SingleTextArgument(BaseModel):
         text: str

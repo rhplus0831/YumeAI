@@ -5,7 +5,7 @@ export default interface Image {
     file_type: string
 }
 
-export async function uploadImage(endpoint: string, file: File, file_field: string, id_field = 'file_id') {
+export async function uploadImage(endpoint: string, file: Blob, file_field: string, id_field = 'file_id') {
     if(localStorage.getItem("useEncrypt") !== "true") {
         const formData = new FormData()
         formData.append(file_field, file)

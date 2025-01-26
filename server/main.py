@@ -139,7 +139,9 @@ room.room_not_exist_model = common.insert_crud(room.router, RoomBase, Room, Room
 room.register()
 
 conversation.room_not_exist_model = room.room_not_exist_model
-conversation.register(room.router)
+conversation.register(room.router, app)
+
+# summary restore on conversation (temp)
 
 app.include_router(room.router)
 

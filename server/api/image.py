@@ -35,7 +35,7 @@ def generate_new_image(session, username, content_type):
     return image, file_path
 
 
-@router.post('/')
+@router.post('')
 async def upload_image(session: SessionDependency, username: UsernameDependency, in_file: UploadFile) -> Image:
     if in_file.size > 20 * 1024 * 1024:
         raise ClientErrorException(status_code=413, detail="File too large")
@@ -45,6 +45,22 @@ async def upload_image(session: SessionDependency, username: UsernameDependency,
     put_file(in_file.file, file_path)
 
     image = Image(file_id=file_id, file_type=in_file.content_type)
+    session.add(image)
+    session.commit()
+    session.refresh(image)
+
+    return image
+
+
+@router.post('/{file_id}')
+async def restore_image(session: SessionDependency, username: UsernameDependency, file_id: str,
+                        in_file: UploadFile) -> Image:
+    image = session.exec(select(Image).where(Image.file_id == file_id)).one_or_none()
+    if image is None:
+        image = Image(file_id=file_id, file_type=in_file.content_type)
+    file_path = get_file_path(username, file_id)
+    put_file(in_file.file, file_path)
+
     session.add(image)
     session.commit()
     session.refresh(image)

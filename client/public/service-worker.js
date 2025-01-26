@@ -182,7 +182,7 @@ async function imageSetter(event) {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
-    if (url.pathname.startsWith('/api/image')) {
+    if (url.pathname.startsWith('/api/image') && event.request.method === 'GET') {
         event.respondWith(imageGetter(event));
     }
 

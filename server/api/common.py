@@ -1,10 +1,12 @@
-from typing import Type, Sequence, Callable, Any, Annotated, Coroutine
+import datetime
+from typing import Type, Sequence, Callable, Any, Annotated, Coroutine, Optional
 
 from fastapi import APIRouter, BackgroundTasks
 from fastapi.params import Query, Depends
 from pydantic import BaseModel, create_model
 from sqlmodel import SQLModel, Session, select
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 
 def get_db(request: Request):
@@ -64,6 +66,41 @@ def get_or_404(db_model: Type[SQLModel], session: Session, id: str):
     return item
 
 
+class RestoreData(BaseModel):
+    datas: Sequence[dict]
+
+
+def restore_data(data: dict, db_model: Type[SQLModel], overwrite: str, session: Session):
+    fixed_data = {}
+    annotations = {}
+    for base_class in reversed(db_model.__mro__):  # __mro__는 클래스 상속 계층을 반환 (역순으로 조회)
+        annotations.update(getattr(base_class, '__annotations__', {}))
+
+    for field, value in data.items():
+        field_type = annotations.get(field)
+        if field_type == datetime.datetime or field_type == Optional[datetime.datetime]:  # datetime이어야 한다면
+            if isinstance(value, str):  # 문자열이면 변환
+                try:
+                    value = datetime.datetime.fromisoformat(value)  # ISO 8601 형식 지원
+                except ValueError:
+                    raise ValueError(f"Invalid datetime format for field '{field}': {value}")
+        fixed_data[field] = value
+
+    print(fixed_data)
+
+    statement = select(db_model).where(db_model.id == fixed_data['id'])
+    item = session.exec(statement).one_or_none()
+    if item is not None:
+        if overwrite.lower() == 'true':
+            db_data = item.sqlmodel_update(fixed_data)
+        else:
+            return
+    else:
+        db_data = db_model(**fixed_data)
+    session.add(db_data)
+    session.commit()
+
+
 def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQLModel], update_model: Type[BaseModel],
                 handle_delete_side_effect: Callable[[Session, str, Any], Coroutine] | None = None,
                 get_model: Type[BaseModel] | None = None, skip_get_list=False) -> BaseModel:
@@ -85,6 +122,11 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
         session.refresh(item)
         return item
 
+    def restore(restore: RestoreData, overwrite: str = 'false', session: Session = Depends(get_session)):
+        for data in restore.datas:
+            restore_data(data, db_model, overwrite, session)
+        return JSONResponse({"status": "success"})
+
     def get(id: str, session: Session = Depends(get_session)) -> get_model:
         return get_or_404(db_model, session, id)
 
@@ -93,9 +135,12 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
     }
     list_model = create_model(f'{data_name}List', **list_data)
 
-    def gets(offset: int = 0, limit: int = Query(default=100, le=100), session: Session = Depends(get_session)) -> \
+    def gets(offset: int = 0, limit: int = Query(default=100), session: Session = Depends(get_session)) -> \
             Sequence[get_model]:
-        items = session.exec(select(db_model).offset(offset).limit(limit)).all()
+        if limit > 0:
+            items = session.exec(select(db_model).offset(offset).limit(limit)).all()
+        else:
+            items = session.exec(select(db_model)).all()
         return items
 
     def update(id: str, base_update: update_model, session: Session = Depends(get_session)) -> get_model:
@@ -112,7 +157,8 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
     }
     deleted_model = create_model(f'{data_name}Deleted', **deleted_data)
 
-    async def delete(id: str, session: SessionDependency, username: UsernameDependency, background_tasks: BackgroundTasks):
+    async def delete(id: str, session: SessionDependency, username: UsernameDependency,
+                     background_tasks: BackgroundTasks):
         data = get_or_404(db_model, session, id)
         session.delete(data)
         session.commit()
@@ -122,6 +168,7 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
 
     router.add_api_route('/', endpoint=create, methods=['POST'], response_model=db_model,
                          name=f'Create {data_name}')
+    router.add_api_route('/restore', endpoint=restore, methods=['POST'], name=f'Restore {data_name}')
     router.add_api_route('/{id}', endpoint=get, name=f'Get {data_name}',
                          responses={200: {'model': get_model}, 404: {'model': not_exist_model}})
     if not skip_get_list:

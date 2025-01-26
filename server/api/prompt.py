@@ -3,11 +3,11 @@ from typing import Sequence
 from fastapi import APIRouter
 from fastapi.params import Query
 from pydantic import BaseModel
-from sqlmodel import Session, select
+from sqlmodel import select
 from starlette.responses import JSONResponse
 
 from api import common
-from api.common import EngineDependency, SessionDependency
+from api.common import SessionDependency
 from database.sql_model import PromptBase, Prompt
 from lib.cbs import CBSHelper
 from lib.prompt import lint_chat, lint_summary, lint_content_only, parse_prompt
@@ -32,8 +32,8 @@ common.validate_update_model(PromptBase, PromptUpdate)
 
 
 def register():
-    @router.get("/")
-    def gets_with_filter(session: SessionDependency, type: str = "all", offset: int = 0,
+    @router.get("")
+    def gets_with_filter(session: SessionDependency, type: str = Query(default="all"), offset: int = Query(default=0),
                          limit: int = Query(default=100, le=100)) -> Sequence[
         Prompt]:
         if type == 'all':

@@ -11,7 +11,7 @@ router = APIRouter(prefix="/settings", tags=["Setting"])
 
 
 def register():
-    @router.get("/")
+    @router.get("")
     def get_settings(session: SessionDependency):
         result = {}
         for setting in session.exec(select(GlobalSetting)):
@@ -19,7 +19,7 @@ def register():
 
         return JSONResponse(content=result)
 
-    @router.put("/")
+    @router.put("")
     def put_settings(session: SessionDependency, settings: dict):
         for key, value in settings.items():
             data = session.exec(select(GlobalSetting).where(GlobalSetting.key == key)).one_or_none()

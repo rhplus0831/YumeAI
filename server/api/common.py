@@ -170,13 +170,13 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
 
     router.add_api_route('/{id}/dump', endpoint=dump, methods=['GET'], name=f'Dump {data_name}')
 
-    router.add_api_route('/', endpoint=create, methods=['POST'], response_model=db_model,
+    router.add_api_route('', endpoint=create, methods=['POST'], response_model=db_model,
                          name=f'Create {data_name}')
 
     router.add_api_route('/{id}', endpoint=get, name=f'Get {data_name}',
                          responses={200: {'model': get_model}, 404: {'model': not_exist_model}})
     if not skip_get_list:
-        router.add_api_route('/', endpoint=gets, name=f'Get {data_name}s',
+        router.add_api_route('', endpoint=gets, name=f'Get {data_name}s',
                              responses={200: {'model': list_model}, 404: {'model': not_exist_model}})
     router.add_api_route('/{id}', endpoint=update, methods=['PUT'], name=f'Update {data_name}',
                          responses={200: {'model': get_model}, 404: {'model': not_exist_model}})

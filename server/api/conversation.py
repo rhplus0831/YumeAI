@@ -11,7 +11,7 @@ from starlette.responses import StreamingResponse, JSONResponse
 
 import settings
 from api import common
-from api.common import SessionDependency, EngineDependency
+from api.common import SessionDependency, EngineDependency, ClientErrorException
 from database.sql_model import ConversationBase, Room, Conversation, Summary
 from lib.cbs import CBSHelper
 from lib.filter import apply_filter
@@ -385,21 +385,25 @@ def register(room_router: APIRouter, app: FastAPI):
         return conversation.model_dump()
 
     @room_router.post("/{id}/conversation/re_roll")
-    async def re_roll(session: SessionDependency, argument: ReRollArgument, id: str):
-        conversation_id = None
-        room = get_room_or_404(id, session=session)
-        conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
-            Conversation.created_at.desc()).limit(1)).all()
-        if len(conversations) == 0:
-            raise Exception("Conversation not found")
+    async def re_roll(engine: EngineDependency, argument: ReRollArgument, id: str):
+        try:
+            session = Session(engine)
+            room = get_room_or_404(id, session=session)
+            conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+                Conversation.created_at.desc()).limit(1)).all()
+            if len(conversations) == 0:
+                raise Exception("Conversation not found")
 
-        for conversation in conversations:
-            if not conversation.user_message:
-                raise Exception("First message can't be re-rolled")
-            message_argument = SendMessageArgument(text=conversation.user_message,
-                                                   active_toggles=argument.active_toggles)
-            conversation_id = conversation.id
-            break
+            for conversation in conversations:
+                if not conversation.user_message:
+                    raise Exception("First message can't be re-rolled")
+                message_argument = SendMessageArgument(text=conversation.user_message,
+                                                       active_toggles=argument.active_toggles)
+                conversation_id = conversation.id
+                break
+        except:
+            session.close()
+            raise
 
         return StreamingResponse(send_message_streamer(message_argument, room, session, conversation_id), headers={
             'Content-Type': 'text/event-stream'
@@ -423,9 +427,7 @@ def register(room_router: APIRouter, app: FastAPI):
             session.refresh(conversation)
             return conversation.model_dump()
 
-        return StreamingResponse(send_message_streamer(argument, room, session), headers={
-            'Content-Type': 'text/event-stream'
-        })
+        raise ClientErrorException(status_code=500, detail='Unreachable Code?')
 
     @room_router.post("/{id}/conversation/revert")
     async def revert(session: SessionDependency, id: str):

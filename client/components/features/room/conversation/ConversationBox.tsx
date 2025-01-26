@@ -15,6 +15,7 @@ import {HiOutlineChatBubbleOvalLeftEllipsis} from "react-icons/hi2";
 import {Card, CardBody} from "@nextui-org/card";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
 import {buildImageLink} from "@/lib/data/Image";
+import Persona from "@/lib/data/Persona";
 
 export interface ConversationBoxProps {
     room: Room | null,
@@ -378,9 +379,15 @@ export default function ConversationBox(props: ConversationBoxProps) {
         </ButtonGroup>
     }
 
+    function getDisplayName(persona: Persona | undefined) {
+        if (!persona) return ''
+        if (persona.displayName && persona.displayName.length !== 0) return persona.displayName
+        return persona.name
+    }
+
     return <article ref={containerRef} className={"flex flex-col gap-4"}>
         {conversation.user_message &&
-            <MessageBox message={getUserMessage()} name={room.persona?.displayName ?? room.persona?.name}
+            <MessageBox message={getUserMessage()} name={getDisplayName(room.persona)}
                         profileImageId={room.persona?.profileImageId}/>}
         {conversation.assistant_message && <>
             {!isInSummaryView && !isInEditing &&
@@ -389,7 +396,7 @@ export default function ConversationBox(props: ConversationBoxProps) {
                                 setDisplayCOT(!displayCOT)
                             }}>
                                 <HiOutlineChatBubbleOvalLeftEllipsis size={"24"}/>
-                            </button>} name={room.bot?.displayName ?? room.bot?.name}
+                            </button>} name={getDisplayName(room.bot)}
                             profileImageId={room.bot?.profileImageId}/>}
             {isInEditing &&
                 <Textarea value={editingText} maxRows={9999} onChange={(e) => setEditingText(e.target.value)}/>}

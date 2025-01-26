@@ -1,18 +1,12 @@
 "use client";
 
 import GlobalSettings from "@/lib/data/GlobalSettings";
-import {
-    Accordion,
-    AccordionItem,
-    Table,
-    TableBody,
-    TableCell,
-    TableColumn,
-    TableHeader,
-    TableRow
-} from "@nextui-org/react";
+import {Accordion, AccordionItem} from "@nextui-org/react";
 import SubmitSingleSettingSpan from "@/components/features/settings/SubmitSingleSettingSpan";
 import {siteConfig} from "@/config/site";
+import ExportButton from "@/components/features/ExportButton";
+import YumeImportButton from "@/components/features/room/YumeImportButton";
+import ClearAllButton from "@/components/features/settings/ClearAllButton";
 
 export default function SettingsViewer({settings}: { settings: GlobalSettings }) {
     return <><Accordion variant={"splitted"} selectionMode={"multiple"}>
@@ -41,6 +35,14 @@ export default function SettingsViewer({settings}: { settings: GlobalSettings })
                                          enforceNumberRange={[1, 1000000]}
                                          description={"재요약의 최대 전송 갯수입니다. 이 갯수를 초과하는 경우 재요약을 모아서 하나의 재요약으로 합칩니다."}
                                          enforceInteger label={'최대 재 요약 갯수'}/>
+            </div>
+        </AccordionItem>
+        <AccordionItem key={"data-manage"} title={"데이터 관리"}>
+            <div className={"flex flex-col gap-4"}>
+                <YumeImportButton/>
+                <ExportButton export_type={'all'} label={'모든 데이터 내보내기'}/>
+                <span className={"text-xs"}>모든 데이터를 내보냅니다, API키 정보는 기록되지 않으며, 비암호화 상태로 저장됩니다.</span>
+                <ClearAllButton/>
             </div>
         </AccordionItem>
     </Accordion>

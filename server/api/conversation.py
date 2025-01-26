@@ -4,14 +4,14 @@ import random
 import re
 from typing import Sequence, Optional, Callable
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Query
 from pydantic import BaseModel
 from sqlmodel import Session, select, SQLModel
 from starlette.responses import StreamingResponse, JSONResponse
 
 import settings
 from api import common
-from api.common import ClientErrorException, SessionDependency
+from api.common import SessionDependency, EngineDependency
 from database.sql_model import ConversationBase, Room, Conversation, Summary
 from lib.cbs import CBSHelper
 from lib.filter import apply_filter
@@ -39,30 +39,28 @@ def get_room_or_404(room_id: str, session: Session) -> Room:
     return common.get_or_404(Room, session, room_id)
 
 
-def register(router: APIRouter, app: FastAPI):
-    @router.get('/{id}/conversation',
-                responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def list_conversations(session: SessionDependency, id: str):
+def register(room_router: APIRouter, app: FastAPI):
+    @room_router.get('/{id}/conversation',
+                     responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
+    async def list_conversations(session: SessionDependency, id: str, offset: int = 0, limit: int = Query(default=100)):
         room = get_room_or_404(id, session)
-        return session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
+        items = session.exec(
+            select(Conversation).where(Conversation.room_id == room.id).offset(offset).limit(limit)).all()
+        return items
+
+    @room_router.get('/{id}/conversation/dump')
+    async def dump_conversations(session: SessionDependency, id: str) -> Sequence[Conversation]:
+        room = get_room_or_404(id, session)
+        items = session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
+        return items
 
     class ConversationRestore(BaseModel):
-        datas: Sequence[Conversation]
+        datas: Sequence[dict]
 
     @app.post('/conversation/restore')
     async def put_conversation(conversations: ConversationRestore, session: SessionDependency,
                                overwrite: str = 'false'):
         for data in conversations.datas:
-            common.restore_data(data, Conversation, overwrite, session)
-        return JSONResponse(status_code=200, content={"status": "success"})
-
-    class SummaryRestore(BaseModel):
-        datas: Sequence[Summary]
-
-    # TODO: Move it to summary.py or something
-    @app.post('/summary/restore')
-    async def put_summary(summaries: SummaryRestore, session: SessionDependency, overwrite: str = 'false'):
-        for data in summaries.datas:
             common.restore_data(data, Conversation, overwrite, session)
         return JSONResponse(status_code=200, content={"status": "success"})
 
@@ -199,10 +197,15 @@ def register(router: APIRouter, app: FastAPI):
         finally:
             session.close()
 
-    @router.post("/{id}/conversation/send",
-                 responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def send_message(session: SessionDependency, id: str, argument: SendMessageArgument) -> StreamingResponse:
-        room = get_room_or_404(id, session=session)
+    @room_router.post("/{id}/conversation/send",
+                      responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
+    async def send_message(engine: EngineDependency, id: str, argument: SendMessageArgument) -> StreamingResponse:
+        session = Session(engine)
+        try:
+            room = get_room_or_404(id, session=session)
+        except:
+            session.close()
+            raise
         return StreamingResponse(send_message_streamer(argument, room, session), headers={
             'Content-Type': 'text/event-stream'
         })
@@ -333,18 +336,23 @@ def register(router: APIRouter, app: FastAPI):
         finally:
             session.close()
 
-    @router.post("/{id}/conversation/{conversation_id}/translate",
-                 responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def translate_conversation(session: SessionDependency, id: str, conversation_id: str) -> StreamingResponse:
-        room = get_room_or_404(id, session=session)
-        conversation = common.get_or_404(Conversation, session, conversation_id)
+    @room_router.post("/{id}/conversation/{conversation_id}/translate",
+                      responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
+    async def translate_conversation(engine: EngineDependency, id: str, conversation_id: str) -> StreamingResponse:
+        session = Session(engine)
+        try:
+            room = get_room_or_404(id, session=session)
+            conversation = common.get_or_404(Conversation, session, conversation_id)
+        except:
+            session.close()
+            raise
         if conversation.room_id != room.id:
             raise Exception("Conversation Room ID doesn't match")
         return StreamingResponse(translate_message_streamer(conversation, room, session), headers={
             'Content-Type': 'text/event-stream'
         })
 
-    @router.post("/{id}/conversation/apply_first_message")
+    @room_router.post("/{id}/conversation/apply_first_message")
     async def apply_first_message(session: SessionDependency, argument: SingleTextArgument, id: str):
         room = get_room_or_404(id, session=session)
         if not room.bot.first_message:
@@ -376,7 +384,7 @@ def register(router: APIRouter, app: FastAPI):
 
         return conversation.model_dump()
 
-    @router.post("/{id}/conversation/re_roll")
+    @room_router.post("/{id}/conversation/re_roll")
     async def re_roll(session: SessionDependency, argument: ReRollArgument, id: str):
         conversation_id = None
         room = get_room_or_404(id, session=session)
@@ -397,7 +405,7 @@ def register(router: APIRouter, app: FastAPI):
             'Content-Type': 'text/event-stream'
         })
 
-    @router.post("/{id}/conversation/edit")
+    @room_router.post("/{id}/conversation/edit")
     async def edit(session: SessionDependency, id: str, argument: SingleTextArgument):
         room = get_room_or_404(id, session=session)
         conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
@@ -419,7 +427,7 @@ def register(router: APIRouter, app: FastAPI):
             'Content-Type': 'text/event-stream'
         })
 
-    @router.post("/{id}/conversation/revert")
+    @room_router.post("/{id}/conversation/revert")
     async def revert(session: SessionDependency, id: str):
         room = get_room_or_404(id, session=session)
         conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
@@ -440,7 +448,7 @@ def register(router: APIRouter, app: FastAPI):
         user_message_translated: str
         assistant_message_translated: str
 
-    @router.post('/{id}/conversation/put_translate/{conversation_id}')
+    @room_router.post('/{id}/conversation/put_translate/{conversation_id}')
     async def put_translate(session: SessionDependency, id: str, conversation_id: str, put: PutTranslateModel):
         conversation = common.get_or_404(Conversation, session, conversation_id)
 
@@ -450,12 +458,3 @@ def register(router: APIRouter, app: FastAPI):
         session.commit()
         session.refresh(conversation)
         return conversation.model_dump()
-
-    @router.get('/{id}/conversation/get_summary/{conversation_id}')
-    async def get_summary(session: SessionDependency, id: str, conversation_id: str):
-        summary: Summary = session.exec(
-            select(Summary).where(Summary.conversation_id == conversation_id)).one_or_none()
-        if summary:
-            return summary.model_dump()
-        else:
-            raise ClientErrorException(status_code=404, detail=f"Summary does not exist")

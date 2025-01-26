@@ -10,8 +10,8 @@ export default interface Persona extends BaseData, ProfileImage {
 
 type PartialPersona = Partial<Persona>;
 
-export async function getPersonas(): Promise<Persona[]> {
-    return await api('persona', {
+export async function getPersonas(offset: number = 0, limit: number = 100): Promise<Persona[]> {
+    return await api(`persona?offset=${offset}&limit=${limit}`, {
         method: 'GET'
     })
 }

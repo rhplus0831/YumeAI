@@ -66,6 +66,12 @@ export async function deleteImage(id: string) {
     })
 }
 
+export async function getImage(id: string) {
+    return await api(`image/${id}/info`, {
+        method: "GET"
+    })
+}
+
 export function buildImageLink(id: string | undefined, size: string = "original") {
     if (!id) return undefined
     // TODO: Revive size

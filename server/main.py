@@ -1,29 +1,31 @@
 import logging
 import os
 import threading
-import uuid
 from contextlib import asynccontextmanager
 
-import aiofiles
 from cachetools import TTLCache
-from fastapi import FastAPI, Request, BackgroundTasks, UploadFile
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from openai import BaseModel
+from sqlalchemy import delete
+from sqlmodel import SQLModel
+from sqlmodel import select
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse, FileResponse
+from starlette.responses import JSONResponse
 
 import configure
 import delayed.processor
-from api import room, persona, common, image, bot, prompt, conversation, setting
+from api import room, persona, common, image, bot, prompt, conversation, setting, summary
 from api.bot import BotUpdate, BotGet
 from api.common import ClientErrorException, UsernameDependency, SessionDependency
 from api.persona import PersonaUpdate
 from api.prompt import PromptUpdate
 from api.room import RoomUpdate, RoomGet
 from database.sql import get_engine
-from database.sql_model import Persona, PersonaBase, Room, RoomBase, BotBase, Bot, Prompt, PromptBase
+from database.sql_model import Persona, PersonaBase, Room, RoomBase, BotBase, Bot, Prompt, PromptBase, Image
 from lib.auth import check_id_valid, check_pw_valid
+from lib.storage import delete_file
 
 
 @asynccontextmanager
@@ -141,6 +143,8 @@ room.register()
 conversation.room_not_exist_model = room.room_not_exist_model
 conversation.register(room.router, app)
 
+summary.register(room.router, app)
+
 # summary restore on conversation (temp)
 
 app.include_router(room.router)
@@ -223,29 +227,14 @@ def register(data: LoginData):
     return response
 
 
-@app.post("/import")
-async def import_data(in_file: UploadFile, session: SessionDependency, username: UsernameDependency):
-    path = configure.get_store_path(f'{username}/import_{uuid.uuid4().hex}.zip')
-    try:
-        async with aiofiles.open(path, 'wb') as out_file:
-            while content := await in_file.read(1024):  # async read chunk
-                await out_file.write(content)  # async write chunk
+@app.post("/clear-all")
+def clear_all(username: UsernameDependency, session: SessionDependency):
+    for i in session.exec(select(Image)):
+        delete_file(image.get_file_path(username, i.id))
 
-        from lib.backup.importer import import_zip_file
-        await import_zip_file(session, username, path)
-        return JSONResponse({"status": "ok"})
-    finally:
-        os.remove(path)
+    # Clear all sqlmodel tables from session
+    for table in reversed(SQLModel.metadata.sorted_tables):
+        session.execute(delete(table))
 
-
-@app.get("/exported/{id}")
-def download_exported(id: str, username: UsernameDependency, background_tasks: BackgroundTasks):
-    path = configure.get_store_path(f"{username}/export/{id}.zip")
-    if not os.path.exists(path):
-        raise ClientErrorException(status_code=404, detail="Exported file is gone")
-
-    def delete_file(file_path: str):
-        os.remove(file_path)
-
-    background_tasks.add_task(delete_file, path)
-    return FileResponse(path, media_type="application/zip")
+    session.commit()
+    return True

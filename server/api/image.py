@@ -68,6 +68,12 @@ async def restore_image(session: SessionDependency, username: UsernameDependency
     return image
 
 
+@router.get('/{file_id}/info')
+async def get_image_info(session: SessionDependency, username: UsernameDependency, file_id: str):
+    image, file_path = get_image_and_file_path_or_404(session, username, file_id)
+    return image
+
+
 @router.get('/{file_id}')
 async def read_image(session: SessionDependency, username: UsernameDependency, file_id: str):
     image, file_path = get_image_and_file_path_or_404(session, username, file_id)

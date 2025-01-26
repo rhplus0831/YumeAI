@@ -1,8 +1,8 @@
 "use client";
 
-import Room, {deleteRoom, exportRoom, putRoom, RoomDisplayOption} from "@/lib/data/Room";
+import Room, {deleteRoom, putRoom, RoomDisplayOption} from "@/lib/data/Room";
 import YumeMenu from "@/components/MenuPortal";
-import {Divider, SelectItem} from "@nextui-org/react";
+import {Checkbox, Divider, SelectItem} from "@nextui-org/react";
 import {useEffect, useState} from "react";
 import SelectablePersonaCardWithModal from "@/components/features/persona/SelectablePersonaCardWithModal";
 import {getBots} from "@/lib/data/bot/Bot";
@@ -16,10 +16,9 @@ import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {useRouter} from "next/navigation";
 import YumeCustomNav from "@/components/CustomNavPortal";
 import YumeAvatar from "@/components/ui/YumeAvatar";
-import {buildAPILink} from "@/lib/api-client";
-import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 import SubmitSpan from "@/components/ui/SubmitSpan";
 import {buildImageLink} from "@/lib/data/Image";
+import ExportButton from "@/components/features/ExportButton";
 
 export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const router = useRouter()
@@ -45,6 +44,8 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
             }
         }
     }, [room])
+
+    const [backupType, setBackupType] = useState<"room" | "room_and_chat">("room")
 
     return (<>
         <YumeCustomNav>
@@ -127,10 +128,14 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                 }}>
                     &#34;대화&#34;를 강조하기
                 </AsyncProgressCheckbox>
-                <AsyncProgressButton className={"w-full mt-5"} onPressAsync={async () => {
-                    const uuid = await exportRoom(room.id)
-                    window.open(buildAPILink(`/exported/${uuid}`), "_blank")
-                }}>대화 내보내기</AsyncProgressButton>
+                <ExportButton export_type={'room'} export_id={room.id} label={'채팅방 백업하기'}/>
+                <Checkbox isSelected={backupType === "room_and_chat"} onValueChange={async (checked) => {
+                    setBackupType(checked ? "room_and_chat" : "room")
+                }}>채팅 내역까지 백업하기</Checkbox>
+                <span className={"text-xs text-foreground-600"}>
+                    이 방이 사용하고 있는 페르소나 등 관련 데이터(API 키 제외)가 한꺼번에 백업됩니다.
+                    <br/>암호화가 풀린 상태로 저장되므로 암호화가 필요한경우 별도로 암호화 해주세요.
+                </span>
                 <DeleteConfirmButton className={"mt-10"} confirmCount={5} onConfirmed={async () => {
                     await deleteRoom(room.id)
                     router.replace("/rooms")

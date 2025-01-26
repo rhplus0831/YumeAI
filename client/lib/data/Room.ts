@@ -19,6 +19,25 @@ export default interface Room extends BaseData {
     display_option: string | undefined
 }
 
+export interface RawRoom extends BaseData {
+    name: string;
+    bot_id?: string;
+    persona_id?: string;
+
+    prompt_id?: string;
+    summary_prompt_id?: string;
+    re_summary_prompt_id?: string;
+
+    translate_method?: string;
+    translate_prompt_id?: string;
+    translate_only_assistant: boolean;
+
+    filters?: string | null;
+
+    last_message_time?: Date | null;
+    display_option?: string | null;
+}
+
 export interface RoomDisplayOption {
     use_card: boolean | undefined,
     use_card_split: boolean | undefined,
@@ -32,8 +51,8 @@ export async function createRoom(name: string): Promise<Room> {
     })
 }
 
-export async function getRooms(): Promise<Room[]> {
-    return await api('room', {
+export async function getRooms(offset: number = 0, limit: number = 100): Promise<Room[]> {
+    return await api(`room?offset=${offset}&limit=${limit}`, {
         method: 'GET'
     })
 }
@@ -77,4 +96,16 @@ export async function exportRoom(id: string): Promise<string> {
         method: 'POST'
     })
     return uuidData.uuid
+}
+
+export async function dumpRoom(id: string): Promise<RawRoom> {
+    return await api(`room/${id}/dump`, {
+        method: 'GET'
+    })
+}
+
+export async function dumpAllRooms(offset: number = 0, limit: number = 100): Promise<RawRoom[]> {
+    return await api(`room/all/dump?offset=${offset}&limit=${limit}`, {
+        method: 'GET'
+    })
 }

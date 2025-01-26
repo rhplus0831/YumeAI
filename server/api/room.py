@@ -78,7 +78,7 @@ def register():
         with Session(engine) as session:
             yield session
 
-    @router.get("/", responses={200: {'model': list_model}, 404: {'model': room_not_exist_model}})
+    @router.get("", responses={200: {'model': list_model}, 404: {'model': room_not_exist_model}})
     def gets(session: SessionDependency, offset: int = 0, limit: int = Query(default=100, le=100)) -> Sequence[
         RoomGet]:
         rooms = session.exec(

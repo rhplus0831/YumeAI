@@ -26,8 +26,8 @@ export interface TestPrompt {
 
 type PartialPrompt = Partial<Prompt>;
 
-export async function getPrompts(type: string = "all"): Promise<Prompt[]> {
-    return await api(`prompt/?type=${type}`, {
+export async function getPrompts(type: string = "all", offset: number = 0, limit: number = 100): Promise<Prompt[]> {
+    return await api(`prompt?type=${type}&offset=${offset}&limit=${limit}`, {
         method: 'GET'
     })
 }

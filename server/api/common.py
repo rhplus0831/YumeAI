@@ -127,6 +127,12 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
             restore_data(data, db_model, overwrite, session)
         return JSONResponse({"status": "success"})
 
+    def dump(id: str, session: Session = Depends(get_session), offset: int = 0,
+             limit: int = Query(default=100, le=100)) -> db_model | Sequence[db_model]:
+        if id == 'all':
+            return session.exec(select(db_model).offset(offset).limit(limit)).all()
+        return session.exec(select(db_model).where(db_model.id == id)).one_or_none()
+
     def get(id: str, session: Session = Depends(get_session)) -> get_model:
         return get_or_404(db_model, session, id)
 
@@ -135,13 +141,9 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
     }
     list_model = create_model(f'{data_name}List', **list_data)
 
-    def gets(offset: int = 0, limit: int = Query(default=100), session: Session = Depends(get_session)) -> \
+    def gets(offset: int = 0, limit: int = Query(default=100, le=100), session: Session = Depends(get_session)) -> \
             Sequence[get_model]:
-        if limit > 0:
-            items = session.exec(select(db_model).offset(offset).limit(limit)).all()
-        else:
-            items = session.exec(select(db_model)).all()
-        return items
+        return session.exec(select(db_model).offset(offset).limit(limit)).all()
 
     def update(id: str, base_update: update_model, session: Session = Depends(get_session)) -> get_model:
         data = get_or_404(db_model, session, id)
@@ -166,9 +168,11 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
             background_tasks.add_task(handle_delete_side_effect, session, username, data)
         return deleted_model()
 
+    router.add_api_route('/{id}/dump', endpoint=dump, methods=['GET'], name=f'Dump {data_name}')
+
     router.add_api_route('/', endpoint=create, methods=['POST'], response_model=db_model,
                          name=f'Create {data_name}')
-    router.add_api_route('/restore', endpoint=restore, methods=['POST'], name=f'Restore {data_name}')
+
     router.add_api_route('/{id}', endpoint=get, name=f'Get {data_name}',
                          responses={200: {'model': get_model}, 404: {'model': not_exist_model}})
     if not skip_get_list:
@@ -178,5 +182,7 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
                          responses={200: {'model': get_model}, 404: {'model': not_exist_model}})
     router.add_api_route('/{id}', endpoint=delete, methods=['DELETE'], name=f'Delete {data_name}',
                          responses={200: {'model': deleted_model}, 404: {'model': not_exist_model}})
+
+    router.add_api_route('/restore', endpoint=restore, methods=['POST'], name=f'Restore {data_name}')
 
     return not_exist_model

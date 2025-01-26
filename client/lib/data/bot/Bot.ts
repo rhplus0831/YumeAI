@@ -17,8 +17,8 @@ export default interface Bot extends Persona, BaseData, ProfileImage {
 
 type PartialBot = Partial<Bot>;
 
-export async function getBots(): Promise<Bot[]> {
-    return await api('bot', {
+export async function getBots(offset: number = 0, limit: number = 100): Promise<Bot[]> {
+    return await api(`bot?offset=${offset}&limit=${limit}`, {
         method: 'GET'
     })
 }

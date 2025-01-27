@@ -6,7 +6,7 @@ from typing import Sequence, Optional, Callable
 
 from fastapi import APIRouter, FastAPI, Query
 from pydantic import BaseModel
-from sqlmodel import Session, select, SQLModel
+from sqlmodel import Session, select
 from starlette.responses import StreamingResponse, JSONResponse
 
 import settings
@@ -472,16 +472,18 @@ def register(room_router: APIRouter, app: FastAPI):
 
         return {"status": "success"}
 
-    class PutTranslateModel(SQLModel):
-        user_message_translated: str
-        assistant_message_translated: str
+    class PutTranslateModel(BaseModel):
+        user_message_translated: Optional[str] = None
+        assistant_message_translated: Optional[str] = None
 
     @room_router.post('/{id}/conversation/put_translate/{conversation_id}')
     async def put_translate(session: SessionDependency, id: str, conversation_id: str, put: PutTranslateModel):
         conversation = common.get_or_404(Conversation, session, conversation_id)
 
-        conversation.user_message_translated = put.user_message_translated
-        conversation.assistant_message_translated = put.assistant_message_translated
+        if put.user_message_translated is not None:
+            conversation.user_message_translated = put.user_message_translated
+        if put.assistant_message_translated is not None:
+            conversation.assistant_message_translated = put.assistant_message_translated
         session.add(conversation)
         session.commit()
         session.refresh(conversation)

@@ -30,7 +30,17 @@ export interface ConversationBoxProps {
 }
 
 export default function ConversationBox(props: ConversationBoxProps) {
-    const {room, conversation, updateConversation, removeConversation, isLast, filters, imageAssets, displayOption, checkedToggles} = props;
+    const {
+        room,
+        conversation,
+        updateConversation,
+        removeConversation,
+        isLast,
+        filters,
+        imageAssets,
+        displayOption,
+        checkedToggles
+    } = props;
 
     const pendingProps = usePendingAlert()
     const blockInSending = useRef(false);
@@ -192,15 +202,29 @@ export default function ConversationBox(props: ConversationBoxProps) {
         setIsInSending(true);
 
         try {
-            const data = await pendingFetch(buildAPILink('room/' + room.id + `/conversation/edit`), pendingProps, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    "text": editingText
-                })
-            }, "메시지를 수정하고 있습니다...")
+            let data: Conversation;
+
+            if (isInTranslateView) {
+                data = await pendingFetch(buildAPILink(`room/${room.id}/conversation/put_translate/${conversation.id}`), pendingProps, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "assistant_message_translated": editingText
+                    })
+                }, "번역을 수정하고 있습니다...")
+            } else {
+                data = await pendingFetch(buildAPILink(`room/${room.id}/conversation/edit`), pendingProps, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "text": editingText
+                    })
+                }, "메시지를 수정하고 있습니다...")
+            }
             updateConversation(data)
         } finally {
             blockInSending.current = false;
@@ -237,23 +261,26 @@ export default function ConversationBox(props: ConversationBoxProps) {
                 return alias.includes(assetName);
             });
             if (!asset) {
-                result.push(<Chip className={"block"} key={`unknown_image_${i}`} size={"sm"}>{assetName} - 없는 이미지 에셋</Chip>)
+                result.push(<Chip className={"block"} key={`unknown_image_${i}`} size={"sm"}>{assetName} - 없는 이미지
+                    에셋</Chip>)
             } else {
-                result.push(<img key={`img_${asset.name}_${i}`} src={buildImageLink(asset.imageId, 'display')} alt={asset.name}/>);
+                result.push(<img key={`img_${asset.name}_${i}`} src={buildImageLink(asset.imageId, 'display')}
+                                 alt={asset.name}/>);
             }
         })
     }
 
     function applyQuoteHighlight(text: string) {
         return applyWithPattern(text, quotePattern, (match, i, result) => {
-            result.push(<span className={"text-primary-500 font-medium"} key={`quoted_${match}`}>&#34;{match}&#34;</span>)
+            result.push(<span className={"text-primary-500 font-medium"}
+                              key={`quoted_${match}`}>&#34;{match}&#34;</span>)
         })
     }
 
     function applyDisplay(text: string) {
         let nodes = applyImage(text)
 
-        if(displayOption.highlight_quoted_string) {
+        if (displayOption.highlight_quoted_string) {
             nodes = nodes.map((node) => {
                 if (typeof node === "string") {
                     return applyQuoteHighlight(node)
@@ -266,7 +293,7 @@ export default function ConversationBox(props: ConversationBoxProps) {
     }
 
     function applyImageAndDisplayOption(text: string) {
-        if(!displayOption.use_card) {
+        if (!displayOption.use_card) {
             return <span className={"whitespace-pre-line"}>{applyDisplay(text)}</span>
         }
 
@@ -341,33 +368,49 @@ export default function ConversationBox(props: ConversationBoxProps) {
     function buildButtonGroup() {
         let inner: ReactNode[] = []
 
-        if(isInEditing) {
-            inner.push(<Button key={"editSaveButton"} startContent={<MdOutlineCheck size={"20"}/>} onPress={editSelf}>저장</Button>)
+        if (isInEditing) {
+            inner.push(<Button key={"editSaveButton"} startContent={<MdOutlineCheck size={"20"}/>}
+                               onPress={editSelf}>저장</Button>)
             inner.push(<Button key={"editCancelButton"} startContent={<MdOutlineCancel size={"20"}/>} onPress={() => {
                 setIsInEditing(false)
             }}>취소</Button>)
         }
 
-        if(isLast) {
-            inner.push(<Button key={"reRollButton"} aria-label={"리롤"} isIconOnly onPress={reRollSelf}><MdRepeat size={"20"}/></Button>)
-            inner.push(<Button key={"editButton"} aria-label={"수정"} isIconOnly onPress={() => {
-                if (!conversation.assistant_message) return;
-                setEditingText(conversation.assistant_message)
-                setIsInEditing(true)
-            }}><MdModeEdit size={"20"}/></Button>)
+        if (isLast) {
+            inner.push(<Button key={"reRollButton"} aria-label={"리롤"} isIconOnly onPress={reRollSelf}><MdRepeat
+                size={"20"}/></Button>)
+        }
+
+        if (isLast || isInTranslateView) {
+            inner.push(<Button key={"editButton"} aria-label={isInTranslateView ? '번역수정' : '수정'} isIconOnly
+                               onPress={() => {
+                                   if (isInTranslateView) {
+                                       if (!conversation.assistant_message_translated) return;
+                                       setEditingText(conversation.assistant_message_translated)
+                                   } else {
+                                       if (!conversation.assistant_message) return;
+                                       setEditingText(conversation.assistant_message)
+                                   }
+                                   setIsInEditing(true)
+                               }}><MdModeEdit size={"20"}/></Button>)
+        }
+
+        if (isLast) {
             inner.push(<DeleteConfirmButton key={"deleteButton"} confirmCount={2} onConfirmed={() => {
                 revertSelf().then()
             }}/>)
         }
 
         if (room?.translate_method) {
-            if(isInTranslateView) {
-                inner.push(<Button key={"reTranslateButton"} startContent={<MdRepeat size={"20"}/>} onPress={translateSelf}>다시 번역</Button>)
+            if (isInTranslateView) {
+                inner.push(<Button key={"reTranslateButton"} startContent={<MdRepeat size={"20"}/>}
+                                   onPress={translateSelf}>다시 번역</Button>)
                 inner.push(<Button key={"disableTranslateViewButton"} aria-label={"번역"} disableAnimation isIconOnly
-                        onPress={switchTranslate}><MdOutlineTranslate color={"green"}
-                                                                      size={20}/></Button>)
+                                   onPress={switchTranslate}><MdOutlineTranslate color={"green"}
+                                                                                 size={20}/></Button>)
             } else {
-                inner.push(<Button key={"enableTranslateViewButton"} aria-label={"번역"} disableAnimation onPress={switchTranslate}
+                inner.push(<Button key={"enableTranslateViewButton"} aria-label={"번역"} disableAnimation
+                                   onPress={switchTranslate}
                                    isIconOnly><MdOutlineTranslate size={20}/></Button>)
             }
         }

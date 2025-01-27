@@ -180,6 +180,7 @@ def register(room_router: APIRouter, app: FastAPI):
 
             conversation.user_message = user_new_message
             conversation.assistant_message = apply_filter(room, 'output', bot_response)
+            conversation.assistant_message_translated = ''
             conversation.room_id = room.id
 
             conversation.created_at = datetime.datetime.now()
@@ -375,7 +376,6 @@ def register(room_router: APIRouter, app: FastAPI):
         cbs.user = room.persona.name
         cbs.char = room.bot.name
         conversation.assistant_message, _ = parse_prompt(argument.text, cbs)
-        conversation.assistant_message_translated = ''
         conversation.room_id = room.id
         conversation.created_at = datetime.datetime.now()
 

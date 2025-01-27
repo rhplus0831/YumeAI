@@ -323,8 +323,11 @@ def register(room_router: APIRouter, app: FastAPI):
                 yield value
 
             conversation.user_message_translated = apply_filter(room, 'translate', user_response)
-            conversation.assistant_message_translated = "<COT>" + cot + "</COT>" + apply_filter(room, 'translate',
-                                                                                                assistant_response)
+            if cot:
+                conversation.assistant_message_translated = "<COT>" + cot + "</COT>" + apply_filter(room, 'translate',
+                                                                                                    assistant_response)
+            else:
+                conversation.assistant_message_translated = apply_filter(room, 'translate', assistant_response)
 
             session.add(conversation)
             session.commit()

@@ -16,7 +16,8 @@ import {Card, CardBody} from "@nextui-org/card";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
 import {buildImageLink} from "@/lib/data/Image";
 import Persona from "@/lib/data/Persona";
-import Summary from "@/lib/data/Summary";
+import Summary, {reRollSummary} from "@/lib/data/Summary";
+import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 
 export interface ConversationBoxProps {
     room: Room | null,
@@ -435,7 +436,15 @@ export default function ConversationBox(props: ConversationBoxProps) {
                 size={"20"}/></Button>)
         }
 
-        if (room?.translate_method) {
+        if (isInSummaryView) {
+            inner.push(<AsyncProgressButton key={"reRollButton"} aria-label={"리롤"} isIconOnly
+                                            onPressAsync={async () => {
+                                                setSummary(await reRollSummary(conversation))
+                                            }}><MdRepeat
+                size={"20"}/></AsyncProgressButton>)
+        }
+
+        if (room?.translate_method && !isInSummaryView && !isInEditing) {
             if (isInTranslateView) {
                 inner.push(<Button key={"reTranslateButton"} startContent={<MdRepeat size={"20"}/>}
                                    onPress={translateSelf}>다시 번역</Button>)

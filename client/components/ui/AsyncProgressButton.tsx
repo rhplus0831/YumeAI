@@ -36,10 +36,8 @@ export default function AsyncProgressButton(props: AsyncProgressButtonProps) {
     }
 
     return (<ErrorPopover errorMessage={errorMessage}>
-        <div>
-            <Button {...restProps} isLoading={internalIsLoading} onPress={internalOnPress}>
-                {restProps.children}
-            </Button>
-        </div>
+        <Button {...restProps} isLoading={internalIsLoading} onPress={internalOnPress}>
+            {restProps.children}
+        </Button>
     </ErrorPopover>)
 }

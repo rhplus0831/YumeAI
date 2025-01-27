@@ -7,7 +7,8 @@ from starlette.responses import JSONResponse
 
 from api import common
 from api.common import SessionDependency, ClientErrorException
-from database.sql_model import Summary
+from database.sql_model import Summary, Conversation
+from lib.summary import summarize_conversation
 
 
 def register(room_router: APIRouter, app: FastAPI):
@@ -33,3 +34,13 @@ def register(room_router: APIRouter, app: FastAPI):
             return summary.model_dump()
         else:
             raise ClientErrorException(status_code=404, detail=f"Summary does not exist")
+
+    @room_router.post('/{id}/summary/{conversation_id}/re_roll')
+    async def re_roll_summary(session: SessionDependency, id: str, conversation_id: str):
+        conversation: Conversation = session.exec(
+            select(Conversation).where(Conversation.id == conversation_id)).one_or_none()
+        summary: Summary = session.exec(
+            select(Summary).where(Summary.conversation_id == conversation_id)).one_or_none()
+        if summary and conversation:
+            summary = await summarize_conversation(session, conversation, summary)
+            return summary.model_dump()

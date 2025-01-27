@@ -11,30 +11,40 @@ from lib.llm import llm_common
 
 # TODO: "재 요약본" 보다 더 나은 단어 선택이 필요
 
-async def summarize_conversation(session: Session, conversation: Conversation):
-    exist_summary = session.exec(select(Summary).where(Summary.conversation_id == conversation.id)).all()
-    # 이미 다른 번역본이 있음 (리롤, 메시지 삭제 후 다른 메시지 전달 등)
-    if len(exist_summary) != 0:
-        return
+async def summarize_conversation(session: Session, conversation: Conversation, overwrite_to: Summary | None = None):
+    if not overwrite_to:
+        exist_summary = session.exec(select(Summary).where(Summary.conversation_id == conversation.id)).all()
+        # 이미 다른 번역본이 있음 (리롤, 메시지 삭제 후 다른 메시지 전달 등)
+        if len(exist_summary) != 0:
+            return
 
     summary_content = (f'{conversation.room.persona.name}: {conversation.user_message}\n'
                        f'{conversation.room.bot.name}: {remove_cot_string(conversation.assistant_message)}')
     cbs = CBSHelper()
     cbs.content = summary_content
     cbs.user = conversation.room.persona.name
+    cbs.user_prompt = conversation.room.persona.prompt
     cbs.user_message = conversation.user_message
     cbs.char = conversation.room.bot.name
+    cbs.char_prompt = conversation.room.bot.prompt
     cbs.char_message = conversation.assistant_message
 
     summarized = await llm_common.perform_prompt(conversation.room.summary_prompt, cbs, session)
-    summary = Summary()
-    summary.created_at = datetime.datetime.now()
-    summary.room_id = conversation.room.id
-    summary.conversation_id = conversation.id
-    summary.is_top = True
-    summary.content = summarized
-    session.add(summary)
-    session.commit()
+    if overwrite_to:
+        overwrite_to.content = summarized
+        session.add(overwrite_to)
+        session.commit()
+        session.refresh(overwrite_to)
+        return overwrite_to
+    else:
+        summary = Summary()
+        summary.created_at = datetime.datetime.now()
+        summary.room_id = conversation.room.id
+        summary.conversation_id = conversation.id
+        summary.is_top = True
+        summary.content = summarized
+        session.add(summary)
+        session.commit()
 
 
 async def get_summaries(session: Session, room: Room):

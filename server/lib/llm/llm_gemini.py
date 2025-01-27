@@ -74,14 +74,12 @@ def convert_to_gemini(messages: list) -> (list, str):
     return reload, system.rstrip()
 
 
-def process_content(content) -> [str, bool]:
-    # Reference: https://github.com/kwaroran/RisuAI/blob/main/src/ts/process/request.ts
-    # But... why?
+def process_content(content, in_cot: bool) -> [str, bool]:
     if len(content.parts) == 2:
         result = content.parts[0].text or ""
         result += "</COT>"
         result += content.parts[1].text or ""
-    elif isinstance(content.parts[0].thought, bool) and not content.parts[0].thought:
+    elif in_cot and isinstance(content.parts[0].thought, bool) and not content.parts[0].thought:
         result = "</COT>"
         result += content.parts[0].text or ""
     else:
@@ -96,10 +94,11 @@ def generate_client(prompt_value: Prompt, cbs: CBSHelper, session: Session):
     contents, system = convert_to_gemini(messages)
     config = GeminiConfig(prompt_value.llm_config)
 
-    client = genai.Client(api_key=get_key(config, session))
+    client = genai.Client(api_key=get_key(config, session), http_options={'api_version': 'v1alpha'})
     generate_config = types.GenerateContentConfig(
         system_instruction=system,
-        safety_settings=safety_settings
+        safety_settings=safety_settings,
+        thinking_config=types.ThinkingConfig(include_thoughts=True),
     )
 
     if config.max_input:
@@ -119,7 +118,7 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session)
                                                         config=generate_config)
 
     from lib.llm.llm_common import messages_dump
-    result = process_content(response.candidates[0].content)
+    result = process_content(response.candidates[0].content, True)
 
     # TODO: Better COT Model Check
     if 'thinking' in config.model:
@@ -135,16 +134,18 @@ async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
     parsed_prompt, messages, contents, client, generate_config, config = generate_client(prompt_value, cbs, session)
     collected_messages = []
 
+    in_cot = False
     # TODO: Better COT Model Check
     if 'thinking' in config.model:
         collected_messages.append('<COT>')
         yield generate_event_stream_message('stream', '<COT>')
+        in_cot = True
 
     async for chunk in client.aio.models.generate_content_stream(model=config.model, contents=contents,
                                                                  config=generate_config):
         chunk_message = ''
         for candidate in chunk.candidates:
-            chunk_message = process_content(candidate.content)
+            chunk_message = process_content(candidate.content, in_cot)
 
         collected_messages.append(chunk_message)
 

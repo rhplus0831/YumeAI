@@ -8,7 +8,7 @@ import {ReactNode, useEffect, useRef, useState} from "react";
 import {googleTranslate} from "@/lib/import/GoogleTranslate";
 import {buildAPILink} from "@/lib/api-client";
 import {Button, ButtonGroup, Chip} from "@nextui-org/react";
-import {MdModeEdit, MdOutlineCancel, MdOutlineCheck, MdOutlineTranslate, MdRepeat} from "react-icons/md";
+import {MdModeEdit, MdOutlineCancel, MdOutlineCheck, MdOutlineTranslate, MdRepeat, MdSummarize} from "react-icons/md";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {Textarea} from "@nextui-org/input";
 import {HiOutlineChatBubbleOvalLeftEllipsis} from "react-icons/hi2";
@@ -16,6 +16,7 @@ import {Card, CardBody} from "@nextui-org/card";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
 import {buildImageLink} from "@/lib/data/Image";
 import Persona from "@/lib/data/Persona";
+import Summary from "@/lib/data/Summary";
 
 export interface ConversationBoxProps {
     room: Room | null,
@@ -56,9 +57,18 @@ export default function ConversationBox(props: ConversationBoxProps) {
     const [isInTranslateView, setIsInTranslateView] = useState<boolean>(false);
     const [isInSummaryView, setIsInSummaryView] = useState<boolean>(false)
 
-    const activeSummaryView = async () => {
+    const [summary, setSummary] = useState<Summary | undefined>(undefined)
+
+    const switchSummaryView = async () => {
         if (!room) return;
-        if (conversation.summary) {
+        if (blockInSending.current) return;
+        if (isInSummaryView) {
+            rollbackPreventResize()
+            setIsInSummaryView(false)
+            return
+        }
+        preventResize()
+        if (summary) {
             setIsInSummaryView(true)
             return
         }
@@ -66,11 +76,9 @@ export default function ConversationBox(props: ConversationBoxProps) {
         setIsInSending(true);
 
         try {
-            let newConversation = conversation
-            newConversation.summary = await pendingFetch(buildAPILink('room/' + room.id + `/conversation/get_summary/${conversation.id}`), pendingProps, {
+            setSummary(await pendingFetch(buildAPILink('room/' + room.id + `/summary/${conversation.id}`), pendingProps, {
                 method: "GET"
-            }, "요약 정보를 가져오고 있습니다...")
-            updateConversation(newConversation)
+            }, "요약 정보를 가져오고 있습니다..."))
             setIsInSummaryView(true)
         } finally {
             blockInSending.current = false;
@@ -355,13 +363,30 @@ export default function ConversationBox(props: ConversationBoxProps) {
         }
     }
 
-    const containerRef = useRef<HTMLDivElement>(null);
+    const articleRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (containerRef?.current) {
-            containerRef.current.scrollIntoView({behavior: "instant", block: "end"});
+        if (isLast) {
+            //TODO: Better way...
+            setTimeout(() => {
+                if (articleRef?.current) {
+                    articleRef.current.scrollIntoView({behavior: "instant", block: "end"});
+                }
+            }, 16);
         }
-    }, [conversation, conversation.user_message, conversation.assistant_message, receivingUserMessage, receivingAssistantMessage, isInTranslateView, isInSummaryView, isInEditing, editingText, isInTranslate, isInSending]);
+    }, [conversation]);
+
+    function preventResize() {
+        if (!articleRef.current) return;
+        articleRef.current.style.minHeight = `${articleRef.current.clientHeight}px`;
+    }
+
+    function rollbackPreventResize() {
+        setTimeout(() => {
+            if (!articleRef.current) return;
+            articleRef.current.style.minHeight = ``;
+        }, 500);
+    }
 
     if (!room) return undefined
 
@@ -376,7 +401,7 @@ export default function ConversationBox(props: ConversationBoxProps) {
             }}>취소</Button>)
         }
 
-        if (isLast) {
+        if (isLast && conversation.user_message) {
             inner.push(<Button key={"reRollButton"} aria-label={"리롤"} isIconOnly onPress={reRollSelf}><MdRepeat
                 size={"20"}/></Button>)
         }
@@ -384,6 +409,7 @@ export default function ConversationBox(props: ConversationBoxProps) {
         if (isLast || isInTranslateView) {
             inner.push(<Button key={"editButton"} aria-label={isInTranslateView ? '번역수정' : '수정'} isIconOnly
                                onPress={() => {
+                                   preventResize()
                                    if (isInTranslateView) {
                                        if (!conversation.assistant_message_translated) return;
                                        setEditingText(conversation.assistant_message_translated)
@@ -395,10 +421,16 @@ export default function ConversationBox(props: ConversationBoxProps) {
                                }}><MdModeEdit size={"20"}/></Button>)
         }
 
-        if (isLast) {
+        if (isLast && conversation.user_message) {
             inner.push(<DeleteConfirmButton key={"deleteButton"} confirmCount={2} onConfirmed={() => {
                 revertSelf().then()
             }}/>)
+        }
+
+        if (!isLast) {
+            inner.push(<Button key={"summaryButton"} color={isInSummaryView ? 'primary' : undefined}
+                               onPress={switchSummaryView} isIconOnly><MdSummarize
+                size={"20"}/></Button>)
         }
 
         if (room?.translate_method) {
@@ -417,7 +449,7 @@ export default function ConversationBox(props: ConversationBoxProps) {
 
         if (inner.length === 0) return <></>
 
-        return <ButtonGroup isDisabled={isInSending} variant={"bordered"}>
+        return <ButtonGroup isDisabled={isInSending} variant={"ghost"}>
             <>{inner}</>
         </ButtonGroup>
     }
@@ -428,7 +460,27 @@ export default function ConversationBox(props: ConversationBoxProps) {
         return persona.name
     }
 
-    return <article ref={containerRef} className={"flex flex-col gap-4"}>
+    if (isInSummaryView) {
+        const buttonGroup = buildButtonGroup();
+
+        return <article ref={articleRef} className={"flex flex-col gap-4 relative"}>
+            <div className={"w-full flex flex-row gap-2 justify-start"}>
+                <span className={"self-center"}>요약 보기</span>
+                {buttonGroup}
+            </div>
+            {isInEditing ?
+                <Textarea value={editingText} maxRows={9999} onChange={(e) => setEditingText(e.target.value)}/>
+                : <span>
+                {summary?.content}
+            </span>}
+            <PendingAlert {...pendingProps} />
+            <div className={"absolute bottom-0 w-full flex flex-row gap-2 justify-end"}>
+                {buttonGroup}
+            </div>
+        </article>
+    }
+
+    return <article ref={articleRef} className={"flex flex-col gap-4"}>
         {conversation.user_message &&
             <MessageBox message={getUserMessage()} name={getDisplayName(room.persona)}
                         profileImageId={room.persona?.profileImageId}/>}
@@ -442,11 +494,12 @@ export default function ConversationBox(props: ConversationBoxProps) {
                             </button>} name={getDisplayName(room.bot)}
                             profileImageId={room.bot?.profileImageId}/>}
             {isInEditing &&
-                <Textarea value={editingText} maxRows={9999} onChange={(e) => setEditingText(e.target.value)}/>}
-            <div className={"w-full flex flex-row gap-2 justify-end"}>
-                {buildButtonGroup()}
-            </div>
+                <Textarea value={editingText} maxRows={9999}
+                          onChange={(e) => setEditingText(e.target.value)}/>}
         </>}
+        <div className={"w-full flex flex-row gap-2 justify-end"}>
+            {buildButtonGroup()}
+        </div>
         <PendingAlert {...pendingProps} />
     </article>
 }

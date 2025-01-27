@@ -95,10 +95,15 @@ def generate_client(prompt_value: Prompt, cbs: CBSHelper, session: Session):
     config = GeminiConfig(prompt_value.llm_config)
 
     client = genai.Client(api_key=get_key(config, session), http_options={'api_version': 'v1alpha'})
+
+    thinking_config = types.ThinkingConfig(include_thoughts=True)
+    if 'thinking' not in config.model:
+        thinking_config = None
+
     generate_config = types.GenerateContentConfig(
         system_instruction=system,
         safety_settings=safety_settings,
-        thinking_config=types.ThinkingConfig(include_thoughts=True),
+        thinking_config=thinking_config,
     )
 
     if config.max_input:

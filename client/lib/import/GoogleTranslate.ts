@@ -8,6 +8,28 @@ function splitByBraces(text: string): string[] {
     return text.split(/({{.*?}}|}})/g).filter(Boolean);
 }
 
+export async function googleTranslatePlain(text: string) {
+    const messages = text.split("\n")
+    const translated = []
+    for (let index = 0; index < messages.length; index++) {
+        const message = messages[index]
+        if (index !== 0) {
+            translated.push("\n")
+        }
+        const splited = splitByBraces(message)
+        for (let i = 0; i < splited.length; i++) {
+            const part = splited[i]
+            if (part.startsWith("{{") && part.endsWith("}}")) {
+                translated.push(part)
+            } else {
+                const translatedText = await translateLine('auto', 'ko', part)
+                translated.push(translatedText)
+            }
+        }
+    }
+    return translated.join("")
+}
+
 export async function googleTranslate(text: string, props: UsePendingAlertReturn, streamingReceiver?: (message: string) => void) {
     const messages = text.split("\n")
 
@@ -28,7 +50,7 @@ export async function googleTranslate(text: string, props: UsePendingAlertReturn
         updateStatus(0)
         props.onOpen?.()
 
-        for(let index = 0; index < messages.length; index++) {
+        for (let index = 0; index < messages.length; index++) {
             updateStatus(index)
             const message = messages[index]
             if (index !== 0) {

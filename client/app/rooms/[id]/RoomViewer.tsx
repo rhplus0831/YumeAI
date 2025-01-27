@@ -59,7 +59,7 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                 <div className={"text-lg"}>
                     <SubmitSpan label={'방 이름'} value={room.name} submit={async (value) => {
                         setRoom(await putRoom(room.id, {"name": value}))
-                    }} />
+                    }}/>
                 </div>
                 <Divider/>
                 <span>페르소나</span>
@@ -106,6 +106,10 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                         }} filterType={"translate"} prompt={room.translate_prompt}/>
                     </>
                 }
+                <span>입력 추천용 프롬프트</span>
+                <SelectablePromptCardWithModal onSelect={async (prompt) => {
+                    setRoom(await putRoom(room.id, {"suggest_prompt_id": prompt.id}))
+                }} filterType={"suggest"} prompt={room.suggest_prompt}/>
                 <span>표시 옵션</span>
                 <AsyncProgressCheckbox isSelected={displayOption.use_card} onValueChangeAsync={async (value) => {
                     const json = room.display_option ? JSON.parse(room.display_option) : {}
@@ -121,11 +125,12 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                 }}>
                     두번 개행 되었을때 카드를 나누기
                 </AsyncProgressCheckbox>
-                <AsyncProgressCheckbox isSelected={displayOption.highlight_quoted_string} onValueChangeAsync={async (value) => {
-                    const json = room.display_option ? JSON.parse(room.display_option) : {}
-                    json['highlight_quoted_string'] = value;
-                    setRoom(await putRoom(room.id, {"display_option": JSON.stringify(json)}))
-                }}>
+                <AsyncProgressCheckbox isSelected={displayOption.highlight_quoted_string}
+                                       onValueChangeAsync={async (value) => {
+                                           const json = room.display_option ? JSON.parse(room.display_option) : {}
+                                           json['highlight_quoted_string'] = value;
+                                           setRoom(await putRoom(room.id, {"display_option": JSON.stringify(json)}))
+                                       }}>
                     &#34;대화&#34;를 강조하기
                 </AsyncProgressCheckbox>
                 <ExportButton export_type={'room'} export_id={room.id} label={'채팅방 백업하기'}/>

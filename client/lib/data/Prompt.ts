@@ -78,3 +78,12 @@ export async function deletePrompt(id: string): Promise<void> {
         method: 'DELETE'
     })
 }
+
+export async function performTranslate(id: string, text: string): Promise<string> {
+    return (await api(`prompt/${id}/perform_translate`, {
+        method: 'POST',
+        body: JSON.stringify({
+            'text': text
+        })
+    })).result
+}

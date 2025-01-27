@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {Checkbox, useDisclosure} from "@nextui-org/react";
+import {useDisclosure} from "@nextui-org/react";
 import BaseSelectModal from "@/components/ui/base/BaseSelectModal";
 import SelectablePromptCard from "@/components/features/prompt/SelectablePromptCard";
 import Prompt, {getPrompts} from "@/lib/data/Prompt";
@@ -27,11 +27,13 @@ export default function SelectablePromptCardWithModal({prompt, displayName = "�
                              await onSelect(prompt)
                              disclosure.onClose()
                          }} generateBox={(prompt) => (<PromptBox prompt={prompt}/>)}
-                         extraFooter={<AsyncProgressCheckbox isSelected={useAll} onValueChangeAsync={async (value) => {
+                         extraFooter={<>
+                             <AsyncProgressCheckbox isSelected={useAll} onValueChangeAsync={async (value) => {
                              setUseAll(value)
                              setPrompts(await getPrompts(value ? "all" : filterType))
                          }}>
                              모든 프롬프트 보기
-                         </AsyncProgressCheckbox>}/>
+                             </AsyncProgressCheckbox>
+                         </>}/>
     </>)
 }

@@ -31,6 +31,7 @@ class RoomUpdate(BaseModel):
     filters: str | None = None
     last_message_time: datetime.datetime | None = None
     display_option: str | None = None
+    suggest_prompt_id: str | None = None
 
 
 class RoomGet(BaseModel):
@@ -48,6 +49,8 @@ class RoomGet(BaseModel):
 
     last_message_time: datetime.datetime | None = None
     display_option: Optional[str] = None
+
+    suggest_prompt: Optional[Prompt] = None
 
 
 common.validate_update_model(RoomBase, RoomUpdate)
@@ -95,3 +98,4 @@ def register():
         exporter.finish()
 
         return JSONResponse({"uuid": exporter.uuid})
+

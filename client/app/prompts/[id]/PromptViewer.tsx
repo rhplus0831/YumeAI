@@ -66,6 +66,7 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                     <SelectItem key={"summary"}>요약</SelectItem>
                     <SelectItem key={"re-summary"}>재요약</SelectItem>
                     <SelectItem key={"translate"}>번역</SelectItem>
+                    <SelectItem key={"suggest"}>입력 제안</SelectItem>
                 </AsyncProgressSelect>
                 <AsyncProgressCheckbox isSelected={prompt.use_stream} onValueChangeAsync={async (value) => {
                     setPrompt(await putPrompt(prompt.id, {
@@ -81,7 +82,9 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                         filters: filters,
                     }))
                 }}/>
-                {prompt.type === 'chat' && <EditablePromptToggleList prompt={prompt} onEdited={async (toggles) => {
+                {prompt.type === 'chat' || prompt.type === 'suggest' &&
+                    <EditablePromptToggleList isSuggest={prompt.type === 'suggest'} prompt={prompt}
+                                              onEdited={async (toggles) => {
                     setPrompt(await putPrompt(prompt.id, {
                         toggles: toggles,
                     }))

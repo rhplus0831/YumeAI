@@ -409,6 +409,31 @@ def register(room_router: APIRouter, app: FastAPI):
             'Content-Type': 'text/event-stream'
         })
 
+    class SuggestArgument(BaseModel):
+        inputs: dict[str, str]
+
+    @room_router.post("/{id}/conversation/suggest")
+    async def suggest(session: SessionDependency, id: str, argument: SuggestArgument):
+        room = get_room_or_404(id, session=session)
+        if not room.suggest_prompt_id:
+            raise ClientErrorException(status_code=400, detail='Suggest prompt not found')
+        conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
+            Conversation.created_at.desc()).limit(1)).all()
+        if len(conversations) == 0:
+            raise ClientErrorException(status_code=400, detail="There no conversation")
+        conversation: Conversation = conversations[0]
+
+        cbs = CBSHelper()
+        cbs.user = room.persona.name
+        cbs.char = room.bot.name
+        cbs.user_prompt = room.persona.prompt
+        cbs.char_prompt = room.bot.prompt
+        cbs.inputs = argument.inputs
+        cbs.content = conversation.assistant_message
+
+        result = await llm_common.perform_prompt(room.suggest_prompt, cbs, session)
+        return JSONResponse({"result": result})
+
     @room_router.post("/{id}/conversation/edit")
     async def edit(session: SessionDependency, id: str, argument: SingleTextArgument):
         room = get_room_or_404(id, session=session)

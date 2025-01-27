@@ -12,6 +12,7 @@ export default interface Room extends BaseData {
     prompt: Prompt | undefined,
     summary_prompt: Prompt | undefined
     re_summary_prompt: Prompt | undefined
+    suggest_prompt: Prompt | undefined
     translate_method: string | undefined
     translate_prompt: Prompt | undefined
     translate_only_assistant: boolean
@@ -27,6 +28,7 @@ export interface RawRoom extends BaseData {
     prompt_id?: string;
     summary_prompt_id?: string;
     re_summary_prompt_id?: string;
+    suggest_prompt_id?: string;
 
     translate_method?: string;
     translate_prompt_id?: string;
@@ -89,6 +91,15 @@ export async function applyFirstMessage(id: string, text: string): Promise<Conve
             "text": text,
         })
     })
+}
+
+export async function suggestMessage(id: string, inputs: Record<string, string>): Promise<string> {
+    return (await api(`room/${id}/conversation/suggest`, {
+        method: 'POST',
+        body: JSON.stringify({
+            "inputs": inputs,
+        })
+    })).result
 }
 
 export async function exportRoom(id: string): Promise<string> {

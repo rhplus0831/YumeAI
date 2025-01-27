@@ -82,6 +82,8 @@ class CBSHelper:
         self.user_message = ''
         self.char_message = ''
 
+        self.inputs = {}
+
     def check(self, text: str) -> [str, bool]:
         if text.startswith("#if "):
             sub_text = text[4:]
@@ -96,6 +98,10 @@ class CBSHelper:
         if text.startswith("getglobalvar"):
             key = text.split("::")[1]
             return self.global_vars.get(key, '0'), True
+
+        if text.startswith("input_"):
+            key = text.split("_")[1]
+            return self.inputs.get(key, ''), True
 
         def calc(text: str):
             aeval = Interpreter()

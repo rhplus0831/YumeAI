@@ -2,14 +2,18 @@ import Prompt from "@/lib/data/Prompt";
 import SubmitSpan from "@/components/ui/SubmitSpan";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 
-export default function EditablePromptToggleList({prompt, onEdited}: {
+export default function EditablePromptToggleList({prompt, onEdited, isSuggest}: {
     prompt: Prompt,
-    onEdited: (value: string) => Promise<void>
+    onEdited: (value: string) => Promise<void>,
+    isSuggest: boolean,
 }) {
     return <div>
         <div className={"flex flex-col mb-2"}>
             <span>토글 목록</span>
-            <span className={"text-xs"}>텍스트를 비우고 저장하면 토글이 제거됩니다.</span>
+            <span className={"text-xs"}>
+                텍스트를 비우고 저장하면 토글이 제거됩니다.
+                {isSuggest && <><br/>입력 선택 모드에서는 유저가 입력할 수 있는 입력이 됩니다.</>}
+            </span>
         </div>
         <section className={"flex flex-col gap-1"}>
             {prompt.toggles && prompt.toggles.split("\n").map((toggle, index) => {

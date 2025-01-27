@@ -10,6 +10,7 @@ from api import common
 from api.common import SessionDependency
 from database.sql_model import PromptBase, Prompt
 from lib.cbs import CBSHelper
+from lib.llm import llm_common
 from lib.prompt import lint_chat, lint_summary, lint_content_only, parse_prompt
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
@@ -56,7 +57,7 @@ def register():
             result = lint_chat(prompt)
         elif prompt.type == 'summary':
             result = lint_summary(prompt)
-        elif prompt.type == 're-summary' or prompt.type == 'translate':
+        elif prompt.type == 're-summary' or prompt.type == 'translate' or prompt.type == 'suggest':
             result = lint_content_only(prompt)
 
         result = list(set(result))
@@ -105,3 +106,16 @@ def register():
         return JSONResponse(content={
             'message': parse_prompt(prompt.prompt, cbs)
         })
+
+    class TranslateArgumentModal(BaseModel):
+        text: str
+
+    @router.post("/{id}/perform_translate")
+    async def translate(argument: TranslateArgumentModal, session: SessionDependency, id: str):
+        prompt: Prompt = common.get_or_404(Prompt, session, id)
+        cbs = CBSHelper()
+        cbs.content = ''.join(argument.text)
+        result = await llm_common.perform_prompt(prompt, cbs, session)
+        return {
+            "result": result,
+        }

@@ -85,6 +85,7 @@ class RoomBase(SQLModel):
 
     last_message_time: Optional[datetime.datetime] = Field(default_factory=datetime.datetime.now)
     display_option: Optional[str] = Field(default=None)
+    suggest_prompt_id: Optional[str] = Field(default=None, foreign_key="prompt.id")
 
 
 class Room(RoomBase, table=True):
@@ -100,6 +101,8 @@ class Room(RoomBase, table=True):
 
     translate_prompt: Optional[Prompt] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Room.translate_prompt_id]"})
+    suggest_prompt: Optional[Prompt] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Room.suggest_prompt_id]"})
 
 
 class ConversationBase(SQLModel):

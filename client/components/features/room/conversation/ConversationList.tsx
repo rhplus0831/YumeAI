@@ -2,7 +2,7 @@ import Conversation from "@/lib/data/Conversation";
 import ConversationBox from "@/components/features/room/conversation/ConversationBox";
 import Room, {applyFirstMessage, getConversations, RoomDisplayOption} from "@/lib/data/Room";
 import {useEffect, useMemo, useRef, useState} from "react";
-import {Button, CircularProgress} from "@nextui-org/react";
+import {Button, CircularProgress, useDisclosure} from "@nextui-org/react";
 import {pendingFetch, usePendingAlert} from "@/components/ui/PendingAlert/usePendingAlert";
 import {buildAPILink} from "@/lib/api-client";
 import PendingAlert from "@/components/ui/PendingAlert/PendingAlert";
@@ -11,6 +11,9 @@ import Filter from "@/lib/data/Filter";
 import FirstMessageSelectButtonWithModal
     from "@/components/features/bot/firstMessage/FirstMessageSelectButtonWithModal";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
+import {FaWandMagicSparkles} from "react-icons/fa6";
+import {MdSend} from "react-icons/md";
+import InputSuggestModal from "@/components/features/room/conversation/InputSuggestModal";
 
 export default function ConversationList({room, checkedToggles, displayOption}: {
     room: Room,
@@ -145,6 +148,8 @@ export default function ConversationList({room, checkedToggles, displayOption}: 
         ));
     }, [conversations, room, filters]);
 
+    const suggestModalDisclosure = useDisclosure()
+
     return <section className={"w-full h-full relative flex flex-col gap-4"}>
         {isLoading && <CircularProgress size={"lg"} label={"기존 대화를 불러오는중..."}
                                         className={"absolute top-0 left-0 right-0 bottom-0 m-auto"}/>}
@@ -161,7 +166,12 @@ export default function ConversationList({room, checkedToggles, displayOption}: 
             <div className={"flex flex-row w-full gap-2"}>
                 <Textarea className={"flex-1"} minRows={1} maxRows={9999} size={"sm"} value={userMessage}
                           onChange={(e) => setUserMessage(e.target.value)}/>
-                <Button className={"flex-none h-full"} onPress={sendMessage}>보내기</Button>
+                {room.suggest_prompt && <>
+                    <InputSuggestModal setUserMessage={setUserMessage} room={room} {...suggestModalDisclosure} />
+                    <Button isIconOnly className={"flex-none h-full"}
+                            onPress={suggestModalDisclosure.onOpen}><FaWandMagicSparkles/></Button>
+                </>}
+                <Button isIconOnly className={"flex-none h-full"} onPress={sendMessage}><MdSend/></Button>
             </div>
         </div>
     </section>

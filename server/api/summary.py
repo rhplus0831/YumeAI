@@ -13,7 +13,7 @@ from lib.summary import summarize_conversation
 
 def register(room_router: APIRouter, app: FastAPI):
     class SummaryRestore(BaseModel):
-        datas: Sequence[Summary]
+        datas: Sequence[dict]
 
     @app.post('/summary/restore')
     async def put_summary(summaries: SummaryRestore, session: SessionDependency, overwrite: str = 'false'):

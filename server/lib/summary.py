@@ -2,10 +2,10 @@ import datetime
 
 from sqlmodel import Session, select
 
-import configure
 import settings
 from database.sql_model import Conversation, Room, Summary
 from lib.cbs import CBSHelper
+from lib.filter import remove_cot_string
 from lib.llm import llm_common
 
 
@@ -18,7 +18,7 @@ async def summarize_conversation(session: Session, conversation: Conversation):
         return
 
     summary_content = (f'{conversation.room.persona.name}: {conversation.user_message}\n'
-                       f'{conversation.room.bot.name}: {conversation.assistant_message}')
+                       f'{conversation.room.bot.name}: {remove_cot_string(conversation.assistant_message)}')
     cbs = CBSHelper()
     cbs.content = summary_content
     cbs.user = conversation.room.persona.name

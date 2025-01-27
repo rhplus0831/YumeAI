@@ -14,7 +14,7 @@ from api import common
 from api.common import SessionDependency, EngineDependency, ClientErrorException
 from database.sql_model import ConversationBase, Room, Conversation, Summary
 from lib.cbs import CBSHelper
-from lib.filter import apply_filter
+from lib.filter import apply_filter, remove_cot_string
 from lib.llm import llm_common
 from lib.prompt import parse_prompt
 from lib.summary import summarize_conversation, need_summarize, summarize, get_re_summaries, get_summaries
@@ -134,7 +134,7 @@ def register(room_router: APIRouter, app: FastAPI):
 
             for conversation in conversations:
                 conversation_converted.append(f'||user||\n{conversation.user_message}\n')
-                conversation_converted.append(f'||assistant||\n{conversation.assistant_message}\n')
+                conversation_converted.append(f'||assistant||\n{remove_cot_string(conversation.assistant_message)}\n')
 
             message = f'||user||\n{user_new_message}\n'
             chat_combined = conversation_converted[:]
@@ -430,7 +430,7 @@ def register(room_router: APIRouter, app: FastAPI):
         cbs.user_prompt = room.persona.prompt
         cbs.char_prompt = room.bot.prompt
         cbs.inputs = argument.inputs
-        cbs.content = conversation.assistant_message
+        cbs.content = remove_cot_string(conversation.assistant_message)
 
         result = await llm_common.perform_prompt(room.suggest_prompt, cbs, session)
         return JSONResponse({"result": result})

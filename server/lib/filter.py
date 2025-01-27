@@ -35,3 +35,7 @@ def apply_filter(room: Room, filter_type: str, text: str) -> str:
         building = replace_with_regex(regex, replace, building)
 
     return building
+
+
+def remove_cot_string(text: str):
+    return replace_with_regex(r'<COT>[\s\S]*<\/COT>', '', text)

@@ -237,7 +237,8 @@ export default function ConversationBox(props: ConversationBoxProps) {
         } finally {
             blockInSending.current = false;
             setIsInSending(false);
-            setIsInEditing(false)
+            setIsInEditing(false);
+            rollbackPreventResize();
         }
     }
 
@@ -397,6 +398,7 @@ export default function ConversationBox(props: ConversationBoxProps) {
             inner.push(<Button key={"editSaveButton"} startContent={<MdOutlineCheck size={"20"}/>}
                                onPress={editSelf}>저장</Button>)
             inner.push(<Button key={"editCancelButton"} startContent={<MdOutlineCancel size={"20"}/>} onPress={() => {
+                rollbackPreventResize()
                 setIsInEditing(false)
             }}>취소</Button>)
         }

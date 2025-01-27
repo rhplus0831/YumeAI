@@ -36,6 +36,8 @@ export default function InputSuggestModal(props: InputSuggestModalProps) {
 
     function onSuggestAccept(text: string) {
         props.setUserMessage(text)
+        setResponses([])
+        setInputs({})
         onClose()
     }
 
@@ -59,7 +61,8 @@ export default function InputSuggestModal(props: InputSuggestModalProps) {
         return undefined
     }
 
-    return (<Modal isOpen={isOpen} placement={"center"} scrollBehavior={"outside"} onOpenChange={onOpenChange}>
+    return (<Modal isOpen={isOpen} isDismissable={true} placement={"center"} scrollBehavior={"outside"}
+                   onOpenChange={onOpenChange}>
         <ModalContent>
             {(onClose) => (
                 <>

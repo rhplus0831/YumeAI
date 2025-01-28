@@ -165,3 +165,80 @@ class GlobalSettingBase(SQLModel):
 
 class GlobalSetting(GlobalSettingBase, table=True):
     id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
+
+
+class LoreBookBase(SQLModel):
+    name: str
+    description: str = Field(default="")
+
+
+class LoreBook(LoreBookBase, table=True):
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
+
+
+class LoreBookChapterBase(SQLModel):
+    lore_book_id: str = Field(foreign_key="lorebook.id", index=True)
+
+    parent_id: Optional[str] = Field(foreign_key="lorebookchapter.id", default=None, nullable=True)
+
+    name: str
+    description: str = Field(default="")
+
+    header: str
+    footer: str
+
+    # 이 옵션이 켜져있으면 하위 챕터를 진행하기 전에 자신이 가지고 있는 모든 로어를 체크하고 출력한 후 하위 챕터를 진행합니다.
+    # 마크 다운 레벨을 지켜야 하는 경우 유용할 수 있습니다.
+    greedy: bool = Field(default=False)
+
+    display_order: int
+
+
+class LoreBookChapter(LoreBookChapterBase, table=True):
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
+    parent: Optional["LoreBookChapter"] = Relationship(sa_relationship_kwargs=dict(remote_side='LoreBookChapter.id'))
+
+    def __hash__(self):
+        return self.id.__hash__()
+
+
+class LoreBase(SQLModel):
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
+    lore_book_id: str = Field(foreign_key="lorebook.id", index=True)
+    chapter_id: str = Field(foreign_key="lorebookchapter.id", index=True)
+
+    name: str
+    content: str
+    keyword: str
+
+    searchable: bool
+    # 이 설정이 붙은 로어는 챕터가 활성화 되었을때 자동으로 포함됩니다.
+    attached: bool
+    always: bool
+
+    display_order: int
+    order: int
+
+    priority: int
+    summary_priority: int
+    throw_on_summarize: bool
+    summarized_id: Optional[str] = Field(foreign_key="lore.id", default=None, nullable=True)
+
+
+class Lore(LoreBase, table=True):
+    chapter: LoreBookChapter = Relationship()
+    summarized: Optional["Lore"] = Relationship(sa_relationship_kwargs=dict(remote_side='Lore.id'))
+
+    def __hash__(self):
+        return self.id.__hash__()
+
+
+class LoreBookReaderBase(SQLModel):
+    reader_id: str = Field(foreign_key="room.id", index=True, primary_key=True)
+    lore_book_id: str = Field(foreign_key="lorebook.id", index=True, primary_key=True)
+    search_depth: int
+
+
+class LoreBookReader(LoreBookReaderBase, table=True):
+    reader: Room = Relationship()
+    lore_book: LoreBook = Relationship()

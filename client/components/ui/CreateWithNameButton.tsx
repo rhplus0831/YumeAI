@@ -1,16 +1,28 @@
 "use client";
 
-import {Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure} from "@nextui-org/react";
+import {
+    Button,
+    ButtonProps,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
+    useDisclosure
+} from "@nextui-org/react";
 import {Input} from "@nextui-org/input";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
-import {createRoom} from "@/lib/data/Room";
 import {useState} from "react";
 import {useRouter} from "next/navigation";
 
-export default function CreateWithNameButton({dataName, createSelf}: {
+export interface CreateWithNameButtonProps extends ButtonProps {
     dataName: string,
     createSelf: (name: string) => Promise<unknown>
-}) {
+}
+
+export default function CreateWithNameButton(props: CreateWithNameButtonProps) {
+    const {dataName, createSelf, ...buttonProps} = props
+
     const disclosure = useDisclosure()
     const [name, setName] = useState("")
     const [nameInvalid, setNameInvalid] = useState(false)
@@ -18,7 +30,7 @@ export default function CreateWithNameButton({dataName, createSelf}: {
     const router = useRouter()
 
     return (<>
-        <Button onPress={disclosure.onOpen}>
+        <Button {...buttonProps} onPress={disclosure.onOpen}>
             {dataName} 만들기
         </Button>
         <Modal isOpen={disclosure.isOpen} onOpenChange={disclosure.onOpenChange}>

@@ -1,6 +1,6 @@
 "use client";
 
-import {Checkbox, CheckboxProps} from "@nextui-org/react";
+import {Checkbox, CheckboxProps, CircularProgress} from "@nextui-org/react";
 import {useState} from "react";
 import ErrorPopover from "@/components/ui/ErrorPopover";
 
@@ -37,9 +37,15 @@ export default function AsyncProgressCheckbox(props: AsyncProgressCheckboxProps)
     return (
         <ErrorPopover errorMessage={errorMessage}>
             <div>
-                <Checkbox {...restProps} disabled={internalIsLoading} onValueChange={internalOnValueChange}>
-                    {props.children}
-                </Checkbox>
+                {internalIsLoading ? <div className={"flex flex-row items-center gap-2"}>
+                        <CircularProgress classNames={{
+                            svg: "w-6 h-6"
+                        }}/>
+                        {props.children}
+                    </div>
+                    : <Checkbox {...restProps} disabled={internalIsLoading} onValueChange={internalOnValueChange}>
+                        {props.children}
+                    </Checkbox>}
             </div>
         </ErrorPopover>)
 }

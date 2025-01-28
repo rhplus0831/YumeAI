@@ -16,7 +16,7 @@ from starlette.responses import JSONResponse
 
 import configure
 import delayed.processor
-from api import room, persona, common, image, bot, prompt, conversation, setting, summary
+from api import room, persona, common, image, bot, prompt, conversation, setting, summary, lore
 from api.bot import BotUpdate, BotGet
 from api.common import ClientErrorException, UsernameDependency, SessionDependency
 from api.persona import PersonaUpdate
@@ -167,6 +167,9 @@ app.include_router(prompt.router)
 
 setting.register()
 app.include_router(setting.router)
+
+lore.register()
+app.include_router(lore.router)
 
 
 class LoginData(BaseModel):

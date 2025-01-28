@@ -1,10 +1,10 @@
 "use client";
 
 import {ReactNode, useState} from "react";
-import {Autocomplete, AutocompleteItem, Button, ButtonGroup, CircularProgress} from "@nextui-org/react";
+import {Autocomplete, Button, ButtonGroup, CircularProgress} from "@nextui-org/react";
 import {MdCheck, MdOutlineCancel} from "react-icons/md";
 import ErrorPopover from "@/components/ui/ErrorPopover";
-import {Input} from "@nextui-org/input";
+import {Input, Textarea} from "@nextui-org/input";
 
 
 export interface SubmitSpanProps {
@@ -18,7 +18,9 @@ export interface SubmitSpanProps {
     enforceNumber?: boolean
     enforceInteger?: boolean
     enforceNumberRange?: [number, number]
-    autoComplete?: ReactNode
+    autoComplete?: ReactNode,
+    useTextarea?: boolean
+    adaptiveDescriptionDisplay?: boolean
 }
 
 export default function SubmitSpan(props: SubmitSpanProps) {
@@ -33,7 +35,9 @@ export default function SubmitSpan(props: SubmitSpanProps) {
         enforceNumber,
         enforceInteger,
         enforceNumberRange,
-        autoComplete
+        autoComplete,
+        useTextarea,
+        adaptiveDescriptionDisplay
     } = props;
 
     const [internalValue, setInternalValue] = useState("")
@@ -119,43 +123,61 @@ export default function SubmitSpan(props: SubmitSpanProps) {
         return value
     }
 
+    function getEditor() {
+        // 클릭했을때 바로 나오는 항목이기 때문에, 이 항목은 autoFocus를 쓰는게 유저 경험상 더 바람직함
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        if (autoComplete) return (<Autocomplete className={"w-full"} disabled={inSubmit} autoFocus size={"sm"}
+                                                allowsCustomValue
+                                                defaultInputValue={internalValue}
+                                                label={label}
+                                                description={description}
+                                                type={inputType}
+                                                placeholder={placeholder}
+                                                onInputChange={(value) => {
+                                                    setInternalValue(value)
+                                                }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}>
+            <>{autoComplete}</>
+        </Autocomplete>)
+
+        if (useTextarea) {
+            // eslint-disable-next-line jsx-a11y/no-autofocus
+            return (<Textarea className={"w-full"} disabled={inSubmit} autoFocus size={"sm"} label={label}
+                              defaultValue={internalValue}
+                              description={description} type={inputType} placeholder={placeholder}
+                              onValueChange={(value) => {
+                                  setInternalValue(value)
+                              }}
+                              endContent={inSubmit ? <CircularProgress/> : editButtonGroup}>
+
+            </Textarea>)
+        }
+
+
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        return (<Input className={"w-full"} disabled={inSubmit} autoFocus size={"sm"} defaultValue={internalValue}
+                       label={label}
+                       description={description}
+                       type={inputType}
+                       placeholder={placeholder}
+                       onValueChange={(value) => {
+                           setInternalValue(value)
+                       }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}/>)
+    }
+
     return (<ErrorPopover errorMessage={errorMessage}>
         {inEdit ?
             <div>
-                {/*클릭했을때 바로 나오는 항목이기 때문에, 이 항목은 autoFocus를 쓰는게 유저 경험상 더 바람직함*/}
-                {autoComplete ?
-                    // eslint-disable-next-line jsx-a11y/no-autofocus
-                    <Autocomplete className={"w-full"} disabled={inSubmit} autoFocus size={"sm"}
-                                  allowsCustomValue
-                                  defaultInputValue={internalValue}
-                                  label={label}
-                                  description={description}
-                                  type={inputType}
-                                  placeholder={placeholder}
-                                  onInputChange={(value) => {
-                                      setInternalValue(value)
-                                  }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}>
-                        <>{autoComplete}</>
-                    </Autocomplete>
-                    :
-                    // eslint-disable-next-line jsx-a11y/no-autofocus
-                    <Input className={"w-full"} disabled={inSubmit} autoFocus size={"sm"} defaultValue={internalValue}
-                           label={label}
-                           description={description}
-                           type={inputType}
-                           placeholder={placeholder}
-                           onValueChange={(value) => {
-                               setInternalValue(value)
-                           }} endContent={inSubmit ? <CircularProgress/> : editButtonGroup}/>}
+                {getEditor()}
             </div>
             :
             <>
                 <button className={"w-full flex flex-col cursor-text text-left"} onClick={startEditing}>
                     <span className={"text-xs"}>{label}</span>
                     <span
-                        className={value && !hideOnIdle ? '' : 'text-foreground-400 italic'}>{getDisplayValue()}</span>
+                        className={(value && !hideOnIdle ? '' : 'text-foreground-400 italic') + (useTextarea ? ' whitespace-pre-line' : '')}>{getDisplayValue()}</span>
                 </button>
-                {description && <span className={"w-full text-xs text-foreground-400"}>{description}</span>}
+                {description && (!adaptiveDescriptionDisplay || (adaptiveDescriptionDisplay && !value)) &&
+                    <span className={"w-full text-xs text-foreground-400"}>{description}</span>}
             </>
         }
     </ErrorPopover>)

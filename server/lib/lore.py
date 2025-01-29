@@ -142,6 +142,9 @@ def run_parser_on_lores(parsed: LoreParser, lores: list[Lore], extra_text_list: 
                 found = True
             return start_inx
 
+        if lore.keyword.strip() == '':
+            continue
+
         for keyword in lore.keyword.split(','):
             if found:
                 break

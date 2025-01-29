@@ -99,8 +99,5 @@ export async function readLoreBook(id: string): Promise<OpenedLoreBook> {
 
     result.chapters = result.chapters.sort((a, b) => a.display_order - b.display_order)
 
-    console.log(data)
-    console.log(result)
-
     return result
 }

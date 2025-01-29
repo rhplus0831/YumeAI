@@ -82,7 +82,7 @@ export default function PromptViewer({startPrompt}: { startPrompt: Prompt }) {
                         filters: filters,
                     }))
                 }}/>
-                {prompt.type === 'chat' || prompt.type === 'suggest' &&
+                {(prompt.type === 'chat' || prompt.type === 'suggest') &&
                     <EditablePromptToggleList isSuggest={prompt.type === 'suggest'} prompt={prompt}
                                               onEdited={async (toggles) => {
                     setPrompt(await putPrompt(prompt.id, {

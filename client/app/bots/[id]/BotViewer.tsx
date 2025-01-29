@@ -7,13 +7,15 @@ import PromptTextarea from "@/components/ui/PromptTextarea";
 import UploadableAvatar from "@/components/features/profileImage/UploadableAvatar";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {useRouter} from "next/navigation";
-import Bot, {deleteBot, putBot} from "@/lib/data/bot/Bot";
-import {Accordion, AccordionItem, Button, Select, SelectItem, Tab, Tabs} from "@nextui-org/react";
+import Bot, {createLoreBookForBot, deleteBot, putBot} from "@/lib/data/bot/Bot";
+import {Accordion, AccordionItem, Button, CircularProgress, Select, SelectItem, Tab, Tabs} from "@nextui-org/react";
 import FirstMessage from "@/lib/data/bot/FirstMessage";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 import ImageAsset from "@/lib/data/bot/ImageAsset";
 import ErrorPopover from "@/components/ui/ErrorPopover";
 import Image, {buildImageLink, deleteImage, uploadImage} from "@/lib/data/Image";
+import {OpenedLoreBook, readLoreBook} from "@/lib/data/lore/ReadLoreBook";
+import LoreBookReaderBox from "@/components/features/lore/LoreBookReaderBox";
 
 function simpleStringHash(str: string) {
     var hash = 0,
@@ -40,6 +42,9 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
     const [imageAssets, setImageAssets] = useState<ImageAsset[]>([])
 
     const hiddenFileInput = useRef<HTMLInputElement>(null);
+
+    const [book, setBook] = useState<OpenedLoreBook | undefined>(undefined)
+    const [bookLoadingError, setBookLoadingError] = useState<string | undefined>(undefined)
 
     useEffect(() => {
         let firstMessageData: FirstMessage[] = [{
@@ -72,6 +77,21 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
         }
 
         setImageAssets(imageAssetData)
+
+        if (bot.lore_book_id) {
+            setBookLoadingError(undefined)
+            setBook(undefined)
+            readLoreBook(bot.lore_book_id).then(book => {
+                setBook(book)
+            }).catch(err => {
+                console.log(err)
+                if (err instanceof Error) {
+                    setBookLoadingError(err.message)
+                } else {
+                    setBookLoadingError("알 수 없는 오류")
+                }
+            })
+        }
     }, [bot])
 
     const [imageAssetUploadErrorMessage, setImageAssetUploadErrorMessage] = useState<string>('')
@@ -102,6 +122,45 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
         } finally {
             setIsInImageAssetUploading(false)
         }
+    }
+
+    function getLoreBookDisplay() {
+        if (!bot.lore_book_id) {
+            return <div className={"h-full flex flex-col gap-4 justify-center items-center"}>
+                <span>이 봇에게 아직 할당된 로어북이 없는것 같습니다!</span>
+                <AsyncProgressButton onPressAsync={async () => {
+                    setBot(await createLoreBookForBot(bot.id))
+                }}>
+                    로어북 만들기
+                </AsyncProgressButton>
+            </div>
+        }
+
+        if (bookLoadingError) {
+            return <div className={"h-full flex flex-col gap-4 justify-center items-center"}>
+                <span>오류가 발생했습니다: {bookLoadingError}</span>
+                <AsyncProgressButton onPressAsync={async () => {
+                    setBot(await createLoreBookForBot(bot.id))
+                }}>
+                    재생성 시도하기
+                </AsyncProgressButton>
+                <AsyncProgressButton onPressAsync={async () => {
+                    setBot(await putBot(bot.id, {
+                        "lore_book_id": ""
+                    }))
+                }}>
+                    기존 로어북 연결 해제하기
+                </AsyncProgressButton>
+            </div>
+        }
+
+        if (!book) {
+            return <div className={"h-full flex flex-col gap-4 justify-center items-center"}>
+                <CircularProgress label={""}/>
+            </div>
+        }
+
+        return <LoreBookReaderBox startBook={book}/>
     }
 
     return <>
@@ -143,14 +202,17 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
                 tabContent: "flex-1",
             }}>
                 <Tab key="prompt" title="정보 프롬프트" className={"h-full"}>
-                    <PromptTextarea setStatus={setStatus} title={"정보 프롬프트"} prompt={bot.prompt} onSave={async (text) => {
-                        setBot(await putBot(bot.id, {
-                            prompt: text
-                        }))
-                    }}/>
+                    <PromptTextarea setStatus={setStatus} title={"정보 프롬프트"} prompt={bot.prompt}
+                                    onSave={async (text) => {
+                                        setBot(await putBot(bot.id, {
+                                            prompt: text
+                                        }))
+                                    }}/>
                 </Tab>
                 <Tab key="post_prompt" title="지시 프롬프트" className={"h-full"}>
-                    <PromptTextarea setStatus={setStatus} title={"지시 프롬프트"} description={"리스AI의 글로벌 노트 덮어쓰기와 비슷합니다, 주로 이미지 에셋 표시 지시 등 봇의 구현에는 필요하지만, 봇의 정보가 아닌 내용을 적습니다."} prompt={bot.post_prompt ?? ''} onSave={async (text) => {
+                    <PromptTextarea setStatus={setStatus} title={"지시 프롬프트"}
+                                    description={"리스AI의 글로벌 노트 덮어쓰기와 비슷합니다, 주로 이미지 에셋 표시 지시 등 봇의 구현에는 필요하지만, 봇의 정보가 아닌 내용을 적습니다."}
+                                    prompt={bot.post_prompt ?? ''} onSave={async (text) => {
                         setBot(await putBot(bot.id, {
                             post_prompt: text
                         }))
@@ -232,6 +294,9 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
                                             setQueuedFirstMessage(selectedFirstMessage)
                                         }}/>
                     </div>
+                </Tab>
+                <Tab key={"lorebook"} title={"로어북"} className={"w-full h-full flex flex-col gap-1"}>
+                    {getLoreBookDisplay()}
                 </Tab>
                 <Tab key={"image-asset"} title={"이미지 에셋"} className={"h-full"}>
                     <ErrorPopover errorMessage={imageAssetUploadErrorMessage}>

@@ -13,6 +13,7 @@ export default interface Bot extends Persona, BaseData, ProfileImage {
     post_prompt: string | undefined
     first_message: string | undefined
     image_assets: string | undefined
+    lore_book_id: string | undefined
 }
 
 type PartialBot = Partial<Bot>;
@@ -45,6 +46,12 @@ export async function putBot(id: string, data: PartialBot): Promise<Bot> {
     return await api(`bot/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
+    })
+}
+
+export async function createLoreBookForBot(id: string): Promise<Bot> {
+    return await api(`bot/${id}/lorebook`, {
+        method: 'POST'
     })
 }
 

@@ -38,6 +38,8 @@ class BotBase(SQLModel):
 
     image_assets: Optional[str] = Field(default=None)
 
+    lore_book_id: Optional[str] = Field(default=None, foreign_key="lorebook.id")
+
 
 class Bot(BotBase, table=True):
     id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)

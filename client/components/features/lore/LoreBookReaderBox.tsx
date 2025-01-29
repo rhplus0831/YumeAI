@@ -7,13 +7,16 @@ import {createChapter} from "@/lib/data/lore/LoreChapter";
 import CreateWithNameButton from "@/components/ui/CreateWithNameButton";
 import YumeMenu from "@/components/MenuPortal";
 import SubmitSpan from "@/components/ui/SubmitSpan";
-import LoreBook, {updateLoreBook} from "@/lib/data/lore/LoreBook";
+import LoreBook, {deleteLoreBook, updateLoreBook} from "@/lib/data/lore/LoreBook";
 import {useEffect, useState} from "react";
 import Lore from "@/lib/data/lore/Lore";
 import LoreTestButton from "@/components/features/lore/LoreTestButton";
+import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
+import {useRouter} from "next/navigation";
 
-export default function LoreBookReaderBox({startBook}: { startBook: OpenedLoreBook }) {
+export default function LoreBookReaderBox({startBook, useMenu}: { startBook: OpenedLoreBook, useMenu?: boolean }) {
     const [book, setBook] = useState(startBook)
+    const router = useRouter()
 
     useEffect(() => {
         setBook(startBook)
@@ -91,18 +94,26 @@ export default function LoreBookReaderBox({startBook}: { startBook: OpenedLoreBo
         setBook(newBook)
     }
 
+    const controller = (
+        <div className={`flex flex-col gap-2${useMenu ? " p-2" : " mb-4"}`}>
+            <SubmitSpan value={book.name} label={"로어북 이름"} submit={async (value) => {
+                await applyLoreBookValue(value, "name")
+            }}/>
+            <SubmitSpan value={book.description} useTextarea label={"로어북 설명"} submit={async (value) => {
+                await applyLoreBookValue(value, "description")
+            }}/>
+            <LoreTestButton book={book}/>
+            <DeleteConfirmButton confirmCount={4} onConfirmedAsync={async () => {
+                await deleteLoreBook(book.id)
+                router.refresh()
+            }}/>
+        </div>
+    )
+
     return <>
-        <YumeMenu>
-            <div className={"flex flex-col p-2 gap-2"}>
-                <SubmitSpan value={book.name} label={"로어북 이름"} submit={async (value) => {
-                    await applyLoreBookValue(value, "name")
-                }}/>
-                <SubmitSpan value={book.description} useTextarea label={"로어북 설명"} submit={async (value) => {
-                    await applyLoreBookValue(value, "description")
-                }}/>
-                <LoreTestButton book={book}/>
-            </div>
-        </YumeMenu>
+        {useMenu ? <YumeMenu>
+            {controller}
+        </YumeMenu> : controller}
         <section className={"flex flex-col gap-4"}>
             <CreateWithNameButton className={"w-full"} dataName={"챕터"} createSelf={async (name) => {
                 await createChapter(book, name);

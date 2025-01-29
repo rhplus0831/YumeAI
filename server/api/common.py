@@ -37,11 +37,16 @@ class ClientErrorException(Exception):
         self.detail: str = detail
 
 
-def validate_update_model(base_model: Type[SQLModel], update_model: Type[BaseModel]):
+def validate_update_model(base_model: Type[SQLModel], update_model: Type[BaseModel], exclude_list=[]):
     base_keys = dict(base_model.__dict__)['__annotations__'].keys()
     update_keys = dict(update_model.__dict__)['__annotations__'].keys()
 
+    base_keys = list(filter(lambda k: k not in exclude_list, base_keys)).sort()
+    update_keys = list(filter(lambda k: k not in exclude_list, update_keys)).sort()
+
     if base_keys != update_keys:
+        print(base_keys)
+        print(update_keys)
         raise Exception(f"{base_model.__name__} is not matching with {update_model.__name__}")
 
 
@@ -50,7 +55,8 @@ def validate_get_model(base_model: Type[SQLModel], get_model: Type[BaseModel], e
     get_keys = dict(get_model.__dict__)['__annotations__'].keys()
 
     base_keys = list(map(lambda k: k.replace('_id', ''), base_keys))
-    get_keys = list(filter(lambda k: k != 'id' and k not in exclude_list, get_keys))
+    base_keys = list(filter(lambda k: k not in exclude_list, base_keys)).sort()
+    get_keys = list(filter(lambda k: k != 'id' and k not in exclude_list, get_keys)).sort()
 
     if base_keys != get_keys:
         print(base_keys)

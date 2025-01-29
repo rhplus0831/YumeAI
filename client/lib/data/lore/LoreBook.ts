@@ -27,3 +27,9 @@ export async function updateLoreBook(id: string, book: Partial<LoreBook>): Promi
         body: JSON.stringify(book)
     })
 }
+
+export async function deleteLoreBook(id: string) {
+    return await api(`lorebook/${id}`, {
+        method: 'DELETE'
+    })
+}

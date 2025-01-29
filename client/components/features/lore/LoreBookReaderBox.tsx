@@ -12,10 +12,15 @@ import {useEffect, useState} from "react";
 import Lore, {RawLore} from "@/lib/data/lore/Lore";
 import LoreTestButton from "@/components/features/lore/LoreTestButton";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
-import {router} from "next/client";
+import {useRouter} from "next/navigation";
 
-export default function LoreBookReaderBox({startBook, useMenu}: { startBook: OpenedLoreBook, useMenu?: boolean }) {
+export default function LoreBookReaderBox({startBook, isStandalone}: {
+    startBook: OpenedLoreBook,
+    isStandalone?: boolean
+}) {
     const [book, setBook] = useState(startBook)
+
+    const router = useRouter()
 
     useEffect(() => {
         setBook(startBook)
@@ -113,7 +118,7 @@ export default function LoreBookReaderBox({startBook, useMenu}: { startBook: Ope
     }
 
     const controller = (
-        <div className={`flex flex-col gap-2${useMenu ? " p-2" : " mb-4"}`}>
+        <div className={`flex flex-col gap-2${isStandalone ? " p-2" : " mb-4"}`}>
             <SubmitSpan value={book.name} label={"로어북 이름"} submit={async (value) => {
                 await applyLoreBookValue(value, "name")
             }}/>
@@ -121,15 +126,15 @@ export default function LoreBookReaderBox({startBook, useMenu}: { startBook: Ope
                 await applyLoreBookValue(value, "description")
             }}/>
             <LoreTestButton book={book}/>
-            <DeleteConfirmButton confirmCount={4} onConfirmedAsync={async () => {
+            {isStandalone && <DeleteConfirmButton confirmCount={4} onConfirmedAsync={async () => {
                 await deleteLoreBook(book.id)
-                router.reload()
-            }}/>
+                router.push('/lores')
+            }}/>}
         </div>
     )
 
     return <>
-        {useMenu ? <YumeMenu>
+        {isStandalone ? <YumeMenu>
             {controller}
         </YumeMenu> : controller}
         <section className={"flex flex-col gap-4"}>

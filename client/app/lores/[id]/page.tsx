@@ -14,7 +14,7 @@ export default async function LoreBookPage({params}: {
     try {
         const book = await readLoreBook(id)
 
-        return (<LoreBookReaderBox startBook={book}/>)
+        return (<LoreBookReaderBox isStandalone startBook={book}/>)
     } catch (err) {
         return <span>찾는 로어북이 없는것 같습니다!</span>
     }

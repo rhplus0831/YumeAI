@@ -58,7 +58,7 @@ export default function LoreBox(props: LoreBoxProps) {
         <span
             className={"text-xs text-foreground-400"}>이 옵션을 활성화 하면, 다른 로어가 이 로어가 속한 챕터를 활성화 한경우에도 이 로어가 따라 나옵니다.</span>
         <ValueCheckBox target={'always'}>항상 사용</ValueCheckBox>
-        <span className={"text-xs text-foreground-400"}>이 옵션을 활성화 하면, 검색가능 여부나 키워드 매치 여부와 상관없이 이 로어가 사용됩니다.</span>
+        <span className={"text-xs text-foreground-400"}>이 옵션을 활성화 하면, 검색 가능한 상태일 때 항상 이 로어가 사용됩니다.</span>
 
         <SubmitSpan value={lore.order.toString()} enforceInteger label={"출력 순서"} submit={async (value) => {
             await applyValue(value, 'order')

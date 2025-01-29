@@ -9,9 +9,10 @@ import LoreChapter, {
     createChildChapter,
     deleteChapter,
     LoreChapterBase,
+    RawLoreChapter,
     updateChapter
 } from "@/lib/data/lore/LoreChapter";
-import Lore, {createLore} from "@/lib/data/lore/Lore";
+import Lore, {createLore, RawLore} from "@/lib/data/lore/Lore";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import SubmitSpan from "@/components/ui/SubmitSpan";
 import AsyncProgressCheckbox from "@/components/ui/AsyncProgressCheckbox";
@@ -24,8 +25,10 @@ interface OrderedNode {
 export interface LoreChapterBoxProps {
     book: OpenedLoreBook,
     chapter: OpenedLoreChapter,
+    insertChapter: (chapter: RawLoreChapter, parent?: OpenedLoreChapter) => void,
     updateChapter: (chapter: OpenedLoreChapter) => void,
     deleteChapter: (chapter: OpenedLoreChapter) => void,
+    insertLore: (lore: RawLore, parent: OpenedLoreChapter) => void,
     updateLore: (chapter: OpenedLoreChapter, lore: Lore) => void,
     deleteLore: (chapter: OpenedLoreChapter, lore: Lore) => void,
 }
@@ -84,10 +87,10 @@ export default function LoreChapterBox(props: LoreChapterBoxProps) {
             <div className={"flex flex-col gap-2 px-4"}>
                 <ButtonGroup className={"w-full justify-start"}>
                     <CreateWithNameButton dataName={"하위 챕터"} createSelf={async (name) => {
-                        await createChildChapter(book, chapter, name);
+                        props.insertChapter(await createChildChapter(book, chapter, name), chapter)
                     }}/>
                     <CreateWithNameButton dataName={"로어"} createSelf={async (name) => {
-                        await createLore(book, chapter, name);
+                        props.insertLore(await createLore(book, chapter, name), chapter);
                     }}/>
                     <DeleteConfirmButton confirmCount={4} onConfirmedAsync={async () => {
                         await deleteChapter(book, chapter);

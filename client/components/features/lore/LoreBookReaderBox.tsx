@@ -3,23 +3,23 @@
 import {Accordion, AccordionItem} from "@nextui-org/react";
 import {OpenedLoreBook, OpenedLoreChapter} from "@/lib/data/lore/ReadLoreBook";
 import LoreChapterBox from "@/components/features/lore/LoreChapterBox";
-import {createChapter} from "@/lib/data/lore/LoreChapter";
+import {createChapter, RawLoreChapter} from "@/lib/data/lore/LoreChapter";
 import CreateWithNameButton from "@/components/ui/CreateWithNameButton";
 import YumeMenu from "@/components/MenuPortal";
 import SubmitSpan from "@/components/ui/SubmitSpan";
 import LoreBook, {deleteLoreBook, updateLoreBook} from "@/lib/data/lore/LoreBook";
 import {useEffect, useState} from "react";
-import Lore from "@/lib/data/lore/Lore";
+import Lore, {RawLore} from "@/lib/data/lore/Lore";
 import LoreTestButton from "@/components/features/lore/LoreTestButton";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
-import {useRouter} from "next/navigation";
+import {router} from "next/client";
 
 export default function LoreBookReaderBox({startBook, useMenu}: { startBook: OpenedLoreBook, useMenu?: boolean }) {
     const [book, setBook] = useState(startBook)
-    const router = useRouter()
 
     useEffect(() => {
         setBook(startBook)
+        console.log('start book', startBook)
     }, [startBook])
 
     function updateChapterOnChild(parentChapter: OpenedLoreChapter, target: OpenedLoreChapter) {
@@ -32,6 +32,18 @@ export default function LoreBookReaderBox({startBook, useMenu}: { startBook: Ope
                 return child;
             }
         )
+    }
+
+    function insertChapter(chapter: RawLoreChapter, parent?: OpenedLoreChapter) {
+        const openedChapter = {...chapter, lores: [], children: []}
+        if (parent) {
+            parent.children.push(openedChapter)
+            updateChapter(parent)
+        } else {
+            const newBook = {...book}
+            newBook.chapters.push(openedChapter)
+            setBook(newBook)
+        }
     }
 
     function updateChapter(target: OpenedLoreChapter) {
@@ -71,6 +83,12 @@ export default function LoreBookReaderBox({startBook, useMenu}: { startBook: Ope
         setBook(newBook)
     }
 
+    function insertLore(lore: RawLore, parent: OpenedLoreChapter) {
+        const newLore = {...lore, summarized: undefined}
+        parent.lores.push(newLore)
+        updateChapter(parent)
+    }
+
     function updateLore(chapter: OpenedLoreChapter, lore: Lore) {
         const newChapter = {...chapter}
         newChapter.lores = chapter.lores.map(l => l.id === lore.id ? lore : l)
@@ -105,7 +123,7 @@ export default function LoreBookReaderBox({startBook, useMenu}: { startBook: Ope
             <LoreTestButton book={book}/>
             <DeleteConfirmButton confirmCount={4} onConfirmedAsync={async () => {
                 await deleteLoreBook(book.id)
-                router.refresh()
+                router.reload()
             }}/>
         </div>
     )
@@ -116,14 +134,15 @@ export default function LoreBookReaderBox({startBook, useMenu}: { startBook: Ope
         </YumeMenu> : controller}
         <section className={"flex flex-col gap-4"}>
             <CreateWithNameButton className={"w-full"} dataName={"챕터"} createSelf={async (name) => {
-                await createChapter(book, name);
+                insertChapter(await createChapter(book, name));
             }}/>
             <Accordion className={"p-0"} selectionMode={"multiple"} variant={"bordered"}>
                 {book.chapters.map((chapter) => <AccordionItem classNames={{
                     title: "px-4",
                     indicator: "px-4",
                 }} key={chapter.id} title={chapter.name}>
-                    <LoreChapterBox book={book} chapter={chapter} updateChapter={updateChapter} updateLore={updateLore}
+                    <LoreChapterBox insertChapter={insertChapter} insertLore={insertLore} book={book} chapter={chapter}
+                                    updateChapter={updateChapter} updateLore={updateLore}
                                     deleteChapter={deleteChapter} deleteLore={deleteLore}/>
                 </AccordionItem>)}
             </Accordion>

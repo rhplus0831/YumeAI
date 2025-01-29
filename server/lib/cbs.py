@@ -4,6 +4,8 @@ import random
 
 from asteval import Interpreter
 
+from database.sql_model import Room
+
 
 def yume_cutter_check(text: str) -> [str, bool]:
     if text.startswith("YUMEPass"):
@@ -76,13 +78,21 @@ class CBSHelper:
         self.conversations = ''
         self.message = ''
         self.message_count = 0
-
+        self.parsed_lore_book = ''
         self.content = ''
 
         self.user_message = ''
         self.char_message = ''
 
         self.inputs = {}
+
+    def put_data_with_room(self, room: Room):
+        self.user = room.persona.name
+        self.user_prompt = room.persona.prompt
+        self.char = room.bot.name
+        self.char_prompt = room.bot.prompt
+        if room.bot.post_prompt:
+            self.char_post_prompt = room.bot.post_prompt
 
     def check(self, text: str) -> [str, bool]:
         if text.startswith("#if "):
@@ -172,5 +182,8 @@ class CBSHelper:
 
         if text == "post_prompt":
             return self.char_post_prompt, True
+
+        if text == "lore_book":
+            return self.parsed_lore_book, True
 
         return text, False

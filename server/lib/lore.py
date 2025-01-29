@@ -2,8 +2,10 @@ from typing import Optional
 
 from sqlmodel import select, Session, col
 
-from database.sql_model import LoreBookChapter, Lore, Room, LoreBookReader, Conversation
+from database.sql_model import LoreBookChapter, Lore, Room, LoreBookReader, Conversation, LoreBook
 from lib import tokenizer
+from lib.cbs import CBSHelper
+from lib.prompt import parse_prompt
 
 
 class ParsedChapter:
@@ -16,11 +18,12 @@ class ParsedChapter:
 
 
 class LoreParser:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, cbs: CBSHelper = None):
         self.parsed_chapters = []
         self.chapter_to_parsed_map = {}
         self.lore_to_parsed_chapter_map = {}
         self.session = session
+        self.cbs = cbs
 
     def put_chapter(self, chapter: LoreBookChapter) -> ParsedChapter:
         parent: Optional[ParsedChapter] = None
@@ -95,7 +98,7 @@ class LoreParser:
 
         def process_parsed_chapter(paring_chapter: ParsedChapter):
             if paring_chapter.header != '':
-                result.append(paring_chapter.header)
+                result.append(parse_prompt(paring_chapter.header, self.cbs)[0])
 
             delayed_chapters = []
             for element in paring_chapter.elements:
@@ -107,13 +110,13 @@ class LoreParser:
                         process_parsed_chapter(element)
                 else:
                     element: Lore
-                    result.append(element.content)
+                    result.append(parse_prompt(element.content, self.cbs)[0])
 
             for parsed_chapter in delayed_chapters:
                 process_parsed_chapter(parsed_chapter)
 
             if paring_chapter.footer != '':
-                result.append(paring_chapter.footer)
+                result.append(parse_prompt(paring_chapter.footer, self.cbs)[0])
 
         for chapter in self.parsed_chapters:
             process_parsed_chapter(chapter)
@@ -152,10 +155,10 @@ def run_parser_on_lores(parsed: LoreParser, lores: list[Lore], extra_text_list: 
             for conversation in conversations:
                 if found:
                     break
-                check_keyword_match(conversation.request)
+                check_keyword_match(conversation.user_message)
                 if found:
                     break
-                check_keyword_match(conversation.response)
+                check_keyword_match(conversation.assistant_message)
 
     max_token_for_lore = 1000
     if token_limit_override != -1:
@@ -206,15 +209,16 @@ def run_parser_on_lores(parsed: LoreParser, lores: list[Lore], extra_text_list: 
                 return parsed
 
 
-def parse_lore(session: Session, room: Optional[Room] = None, extra_text_list: Optional[list] = None,
+def parse_lore(session: Session, cbs: CBSHelper, room: Optional[Room] = None, extra_text_list: Optional[list] = None,
                token_limit_override=-1):
     if extra_text_list is None:
         extra_text_list = []
     lore_book_readers = session.exec(select(LoreBookReader).where(LoreBookReader.reader_id == room.id)).all()
-    if len(lore_book_readers) == 0:
-        return
+    if len(lore_book_readers) == 0 and room.bot.lore_book_id is None:
+        return ''
 
-    search_depth = 0
+    # TODO: Impl
+    search_depth = 9999
     lore_books = []
     lores = []
     for lore_book_reader in lore_book_readers:
@@ -224,6 +228,14 @@ def parse_lore(session: Session, room: Optional[Room] = None, extra_text_list: O
         lore_query = session.exec(select(Lore).where(Lore.lore_book_id == lore_book_reader.lore_book_id)).all()
         for lore in lore_query:
             lores.append(lore)
+
+    if room.bot.lore_book_id:
+        bot_lore_book = session.exec(select(LoreBook).where(LoreBook.id == room.bot.lore_book_id)).first()
+        if bot_lore_book is not None:
+            lore_books.append(bot_lore_book)
+            lore_query = session.exec(select(Lore).where(Lore.lore_book_id == bot_lore_book.id)).all()
+            for lore in lore_query:
+                lores.append(lore)
 
     conversations = []
     if room is not None:
@@ -235,5 +247,5 @@ def parse_lore(session: Session, room: Optional[Room] = None, extra_text_list: O
         for conversation in conversation_query:
             conversations.append(conversation)
 
-    parsed = LoreParser(session)
-    return run_parser_on_lores(parsed, lores, extra_text_list, token_limit_override).build()
+    parsed = LoreParser(session, cbs)
+    return run_parser_on_lores(parsed, lores, extra_text_list, conversations, token_limit_override).build()

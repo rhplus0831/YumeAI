@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Optional
 
 from fastapi import APIRouter
 from fastapi.params import Query
@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 
 from api import common
 from api.common import SessionDependency
-from database.sql_model import PromptBase, Prompt
+from database.sql_model import PromptBase, Prompt, Room
 from lib.cbs import CBSHelper
 from lib.llm import llm_common
 from lib.prompt import lint_chat, lint_summary, lint_content_only, parse_prompt
@@ -93,7 +93,7 @@ def register():
         cbs.content = '!!Content!!'
         cbs.user_content = '!!User Message!!'
         cbs.char_message = '!!Char Message!!'
-
+        cbs.parsed_lore_book = '!!Lore Book!!'
 
         cbs.conversations = '||user||\nHello?\n||assistant||\nHi!'
         cbs.message = 'How have you been?'
@@ -108,13 +108,18 @@ def register():
         })
 
     class TranslateArgumentModal(BaseModel):
+        room_id: Optional[str] = None
         text: str
 
     @router.post("/{id}/perform_translate")
-    async def translate(argument: TranslateArgumentModal, session: SessionDependency, id: str):
+    async def perform_translate_prompt(argument: TranslateArgumentModal, session: SessionDependency, id: str):
         prompt: Prompt = common.get_or_404(Prompt, session, id)
         cbs = CBSHelper()
         cbs.content = ''.join(argument.text)
+        if argument.room_id:
+            room: Room = common.get_or_404(Room, session, argument.room_id)
+            cbs.put_data_with_room(room)
+
         result = await llm_common.perform_prompt(prompt, cbs, session)
         return {
             "result": result,

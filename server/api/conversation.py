@@ -16,6 +16,7 @@ from database.sql_model import ConversationBase, Room, Conversation, Summary
 from lib.cbs import CBSHelper
 from lib.filter import apply_filter, remove_cot_string
 from lib.llm import llm_common
+from lib.lore import parse_lore
 from lib.prompt import parse_prompt
 from lib.summary import summarize_conversation, need_summarize, summarize, get_re_summaries, get_summaries
 from lib.web import generate_event_stream_message
@@ -149,12 +150,8 @@ def register(room_router: APIRouter, app: FastAPI):
             yield generate_progress('봇이 응답하는중...')
 
             cbs = CBSHelper()
-            cbs.user = room.persona.name
-            cbs.user_prompt = room.persona.prompt
-            cbs.char = room.bot.name
-            cbs.char_prompt = room.bot.prompt
-            if room.bot.post_prompt:
-                cbs.char_post_prompt = room.bot.post_prompt
+            cbs.put_data_with_room(room)
+
             cbs.summaries = combined_summary
             cbs.re_summaries = combined_re_summary
             cbs.chat = ''.join(chat_combined)
@@ -165,6 +162,8 @@ def register(room_router: APIRouter, app: FastAPI):
             if argument.active_toggles:
                 for active_toggle in argument.active_toggles.split(','):
                     cbs.global_vars[f"toggle_{active_toggle}"] = '1'
+
+            cbs.parsed_lore_book = parse_lore(session, cbs, room)
 
             if room.prompt.use_stream:
                 async for value in llm_common.stream_prompt(room.prompt, cbs, session, receiver):
@@ -270,6 +269,7 @@ def register(room_router: APIRouter, app: FastAPI):
 
                 cbs = CBSHelper()
                 cbs.content = ''.join(rebuilded_content)
+                cbs.put_data_with_room(room)
 
                 uuid_pattern = r"(_[0-9]+?_)"
 

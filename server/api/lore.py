@@ -8,6 +8,7 @@ from starlette.responses import Response
 from api import common
 from api.common import SessionDependency, ClientErrorException
 from database.sql_model import LoreBook, LoreBookBase, LoreBookChapter, LoreBookChapterBase, Lore
+from lib.cbs import CBSHelper
 from lib.lore import run_parser_on_lores, LoreParser
 
 router = APIRouter(prefix="/lorebook", tags=["lorebook"])
@@ -98,7 +99,9 @@ def register():
     @router.post("/{id}/test")
     def test_arg(session: SessionDependency, id: str, arg: LoreBookTestArgument):
         lore_list = session.exec(select(Lore).where(Lore.lore_book_id == id)).all()
-        parsed = LoreParser(session)
+        cbs = CBSHelper()
+        parsed = LoreParser(session, cbs)
+
         return {
             "result": run_parser_on_lores(parsed, lore_list, [arg.trigger], [], -1).build()
         }

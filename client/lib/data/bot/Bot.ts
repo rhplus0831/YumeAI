@@ -8,6 +8,9 @@ import mimedb from 'mime-db'
 // @ts-ignore
 import {MimeType} from 'mime-type'
 import * as fflate from "fflate";
+import {createChapter} from "@/lib/data/lore/LoreChapter";
+import {createLore, updateLore} from "@/lib/data/lore/Lore";
+import {getLoreBook} from "@/lib/data/lore/LoreBook";
 
 export default interface Bot extends Persona, BaseData, ProfileImage {
     post_prompt: string | undefined
@@ -61,6 +64,17 @@ export async function deleteBot(id: string): Promise<void> {
     })
 }
 
+interface CardV3LoreBookEntry {
+    keys: string[],
+    content: string,
+    enabled: boolean,
+    insertion_order: number,
+    constant: boolean,
+    selective: boolean,
+    name: string,
+    comment: string,
+}
+
 export async function importBotFromZip(arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void) {
     return new Promise<void>((resolve, reject) => {
         try {
@@ -83,7 +97,7 @@ export async function importBotFromZip(arrayBuffer: ArrayBuffer, setLoadingStatu
                 const data = card['data'];
 
                 setLoadingStatus("봇 카드 등록하는중...");
-                const bot = await createBot(data['name'])
+                let bot = await createBot(data['name'])
 
                 const firstMessages: { name: string; message: string }[] = [];
                 const imageAssets: { name: string; alias: string; imageId: string }[] = [];
@@ -156,7 +170,28 @@ export async function importBotFromZip(arrayBuffer: ArrayBuffer, setLoadingStatu
                     image_assets: JSON.stringify(imageAssets),
                 }
 
-                await putBot(bot.id, putData)
+                bot = await putBot(bot.id, putData)
+
+                const lores: CardV3LoreBookEntry[] = data?.character_book?.entries || undefined;
+                if (lores) {
+                    bot = await createLoreBookForBot(bot.id);
+                    setLoadingStatus(`로어북 초기화중...`)
+                    const loreBook = await getLoreBook(bot.lore_book_id!)
+                    const chapter = await createChapter(loreBook, '가져온 로어')
+                    for (const lore of lores) {
+                        const keyword = lore.keys.join(', ')
+                        const yumeLore = await createLore(loreBook, chapter, lore.name)
+                        setLoadingStatus(`로어 "${lore.name}" 가져오는중...`)
+                        // TODO: 아니 왜 로어만 설명 없냐
+                        await updateLore(loreBook, chapter, yumeLore.id, {
+                            order: yumeLore.order,
+                            always: lore.constant,
+                            content: lore.content,
+                            keyword: keyword,
+                        })
+                    }
+                }
+
                 resolve()
             });
         } catch (err) {

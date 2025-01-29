@@ -21,6 +21,12 @@ export async function getLoreBooks(offset: number = 0, limit: number = 100): Pro
     })
 }
 
+export async function getLoreBook(id: string): Promise<LoreBook> {
+    return await api(`lorebook/${id}`, {
+        method: 'GET'
+    })
+}
+
 export async function updateLoreBook(id: string, book: Partial<LoreBook>): Promise<LoreBook> {
     return await api(`lorebook/${id}`, {
         method: 'PUT',

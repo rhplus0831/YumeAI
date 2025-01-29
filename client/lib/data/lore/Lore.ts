@@ -1,6 +1,7 @@
 import BaseData from "@/lib/data/BaseData";
-import {OpenedLoreBook, OpenedLoreChapter} from "@/lib/data/lore/ReadLoreBook";
 import {api} from "@/lib/api-client";
+import LoreBook from "@/lib/data/lore/LoreBook";
+import {LoreChapterBase} from "@/lib/data/lore/LoreChapter";
 
 export interface LoreBase extends BaseData {
     name: string,
@@ -29,7 +30,7 @@ export interface RawLore extends LoreBase {
     summarized_id: string | undefined
 }
 
-export async function createLore(book: OpenedLoreBook, chapter: OpenedLoreChapter, name: string): Promise<RawLore> {
+export async function createLore(book: LoreBook, chapter: LoreChapterBase, name: string): Promise<RawLore> {
     return await api(`lorebook/${book.id}/chapter/${chapter.id}/lore`, {
         method: 'POST',
         body: JSON.stringify({
@@ -38,14 +39,14 @@ export async function createLore(book: OpenedLoreBook, chapter: OpenedLoreChapte
     })
 }
 
-export async function updateLore(book: OpenedLoreBook, chapter: OpenedLoreChapter, id: string, data: Partial<Lore>): Promise<RawLore> {
+export async function updateLore(book: LoreBook, chapter: LoreChapterBase, id: string, data: Partial<Lore>): Promise<RawLore> {
     return await api(`lorebook/${book.id}/chapter/${chapter.id}/lore/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
     })
 }
 
-export async function deleteLore(book: OpenedLoreBook, chapter: OpenedLoreChapter, id: string) {
+export async function deleteLore(book: LoreBook, chapter: LoreChapterBase, id: string) {
     return await api(`lorebook/${book.id}/chapter/${chapter.id}/lore/${id}`, {
         method: 'DELETE'
     })

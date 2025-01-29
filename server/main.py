@@ -30,6 +30,7 @@ from lib.storage import delete_file
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print(f"Using Storage Limit: {configure.get_storage_limit()}")
     thread = threading.Thread(target=delayed.processor.main)
     thread.start()
     yield
@@ -233,7 +234,7 @@ def register(data: LoginData):
 @app.post("/clear-all")
 def clear_all(username: UsernameDependency, session: SessionDependency):
     for i in session.exec(select(Image)):
-        delete_file(image.get_file_path(username, i.id))
+        delete_file(session, image.get_file_path(username, i.id))
 
     # Clear all sqlmodel tables from session
     for table in reversed(SQLModel.metadata.sorted_tables):

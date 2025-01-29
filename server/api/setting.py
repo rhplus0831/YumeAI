@@ -6,6 +6,7 @@ from starlette.responses import JSONResponse
 
 from api.common import SessionDependency
 from database.sql_model import GlobalSetting
+from lib.storage import get_total_storage_size
 
 router = APIRouter(prefix="/settings", tags=["Setting"])
 
@@ -16,6 +17,8 @@ def register():
         result = {}
         for setting in session.exec(select(GlobalSetting)):
             result[setting.key] = setting.value
+
+        result['storage_usage'] = f"{round(get_total_storage_size(session) / 1024 / 1024, 3)}MB"
 
         return JSONResponse(content=result)
 

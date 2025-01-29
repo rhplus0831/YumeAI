@@ -42,7 +42,7 @@ async def upload_image(session: SessionDependency, username: UsernameDependency,
 
     file_id = uuid.uuid4().hex
     file_path = get_file_path(username, file_id)
-    put_file(in_file.file, file_path)
+    put_file(session, in_file.file, file_path)
 
     image = Image(file_id=file_id, file_type=in_file.content_type)
     session.add(image)
@@ -59,7 +59,7 @@ async def restore_image(session: SessionDependency, username: UsernameDependency
     if image is None:
         image = Image(file_id=file_id, file_type=in_file.content_type)
     file_path = get_file_path(username, file_id)
-    put_file(in_file.file, file_path)
+    put_file(session, in_file.file, file_path)
 
     session.add(image)
     session.commit()
@@ -87,5 +87,5 @@ class ImageDeleted(BaseModel):
 @router.delete('/{file_id}')
 async def delete_image(session: SessionDependency, username: UsernameDependency, file_id: str) -> ImageDeleted:
     image, file_path = get_image_and_file_path_or_404(session, username, file_id)
-    delete_file(file_path)
+    delete_file(session, file_path)
     return ImageDeleted()

@@ -39,6 +39,7 @@ export default function SettingsViewer({settings}: { settings: GlobalSettings })
         </AccordionItem>
         <AccordionItem key={"data-manage"} title={"데이터 관리"}>
             <div className={"flex flex-col gap-4"}>
+                <span>현재 에셋 저장을 위해 약 {settings.storage_usage} 만큼의 저장공간을 사용하고 있습니다.</span>
                 <YumeImportButton/>
                 <ExportButton export_type={'all'} label={'모든 데이터 내보내기'}/>
                 <span className={"text-xs"}>모든 데이터를 내보냅니다, API키 정보는 기록되지 않으며, 비암호화 상태로 저장됩니다.</span>

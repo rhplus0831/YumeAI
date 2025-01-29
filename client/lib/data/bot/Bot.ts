@@ -77,9 +77,9 @@ interface CardV3LoreBookEntry {
 
 export async function importBotFromZip(arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void) {
     return new Promise<void>((resolve, reject) => {
-        try {
-            // fflate.unzipSync 대신 비동기 unzip 사용 (더 큰 파일에 적합)
-            fflate.unzip(new Uint8Array(arrayBuffer), async (err, zipData) => {
+        // fflate.unzipSync 대신 비동기 unzip 사용 (더 큰 파일에 적합)
+        fflate.unzip(new Uint8Array(arrayBuffer), async (err, zipData) => {
+            try {
                 if (err || !zipData) {
                     throw new Error(`Error unzipping file: ${err?.message}`);
                 }
@@ -191,11 +191,11 @@ export async function importBotFromZip(arrayBuffer: ArrayBuffer, setLoadingStatu
                         })
                     }
                 }
+            } catch (err) {
+                reject(err)
+            }
 
-                resolve()
-            });
-        } catch (err) {
-            reject(err)
-        }
+            resolve()
+        });
     });
 }

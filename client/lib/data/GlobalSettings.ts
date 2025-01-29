@@ -7,6 +7,7 @@ export default interface GlobalSettings {
     max_re_summary_count?: string,
     max_summary_count?: string,
     max_conversation_count?: string,
+    storage_usage: string,
 }
 
 export async function getGlobalSettings() {

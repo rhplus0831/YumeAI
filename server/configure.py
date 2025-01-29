@@ -36,9 +36,39 @@ def get_s3_bucket():
     return os.getenv('S3_BUCKET')
 
 
+def get_storage_limit():
+    limit_str = os.getenv('STORAGE_LIMIT')
+
+    units = {"K": 1024, "M": 1024 ** 2, "G": 1024 ** 3, "T": 1024 ** 4}
+
+    if not limit_str:
+        return -1
+
+    # Extract the numeric part and the unit
+    num, unit = "", ""
+    for char in limit_str:
+        if char.isdigit() or char == '.':
+            num += char
+        else:
+            unit += char.upper()
+
+    if num == "":
+        raise ValueError(f"Invalid storage limit format: '{limit_str}'")
+
+    # Convert the number to a float or int
+    size = float(num) if '.' in num else int(num)
+
+    # Convert to bytes based on the unit
+    if unit == "":
+        return int(size)  # No unit provided, assume bytes
+    elif unit in units:
+        return int(size * units[unit])
+    else:
+        raise ValueError(f"Unsupported unit in storage limit: '{unit}'")
+
+
 def get_s3_client():
     import boto3
-    from botocore.config import Config
     return boto3.client('s3', endpoint_url=get_s3_address(),
                         aws_access_key_id=get_s3_access_key(),
                         aws_secret_access_key=get_s3_secret_key())

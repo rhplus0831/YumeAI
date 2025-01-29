@@ -19,41 +19,44 @@ export default function ImportButton({mime, importer, label}: {
 
     const router = useRouter();
 
+    function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const arrayBuffer = e.target?.result as ArrayBuffer;
+                if (!arrayBuffer) {
+                    reject(new Error("Array buffer is empty"));
+                } else {
+                    resolve(arrayBuffer);
+                }
+            };
+
+            reader.onerror = (err) => {
+                reject(err);
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
     async function uploadZip(fileList: FileList) {
+        setErrorMessage("")
         setIsInUpload(true)
         const file = fileList[0];
-        const reader = new FileReader();
 
-        reader.onload = async (e) => {
-            const arrayBuffer = e.target?.result as ArrayBuffer;
-            if (!arrayBuffer) {
-                throw new Error("Array buffer is empty")
-            }
-
-            importer(arrayBuffer, setLoadingStatus).then(() => {
-                setIsInUpload(false)
-                router.refresh()
-            }).catch((err) => {
-                console.log(err)
-                if (err instanceof Error) {
-                    setErrorMessage(err.message)
-                }
-                setIsInUpload(false)
-            })
-        };
-
-        reader.onerror = (err) => {
-            console.log(err)
+        try {
+            const arrayBuffer = await readFileAsArrayBuffer(file);
+            await importer(arrayBuffer, setLoadingStatus);
+            setIsInUpload(false);
+            router.refresh();
+        } catch (err) {
+            console.error(err);
             if (err instanceof Error) {
-                setErrorMessage(err.message)
+                setErrorMessage(err.message);
             }
-            setIsInUpload(false)
-        };
-
-        reader.readAsArrayBuffer(file);
-
-        setErrorMessage("")
-        router.refresh()
+            setIsInUpload(false);
+        }
     }
 
     return <>

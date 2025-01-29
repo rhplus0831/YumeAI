@@ -244,3 +244,12 @@ class LoreBookReaderBase(SQLModel):
 class LoreBookReader(LoreBookReaderBase, table=True):
     reader: Room = Relationship()
     lore_book: LoreBook = Relationship()
+
+
+class StorageFileBase(SQLModel):
+    path: str = Field(unique=True, index=True)
+    size: int
+
+
+class StorageFile(StorageFileBase, table=True):
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)

@@ -13,8 +13,8 @@ interface MetaData {
 }
 
 
-export async function importDataFromZip(arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void) {
-    return new Promise<void>((resolve, reject) => {
+export async function importDataFromZip(mime: string, arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void) {
+    return new Promise<undefined>((resolve, reject) => {
         try {
             // fflate.unzipSync 대신 비동기 unzip 사용 (더 큰 파일에 적합)
             fflate.unzip(new Uint8Array(arrayBuffer), async (err, zipData) => {
@@ -66,7 +66,7 @@ export async function importDataFromZip(arrayBuffer: ArrayBuffer, setLoadingStat
                     await uploadImage(`image/${data.file_id}`, new Blob([zipData[`images/${data.file_id}.bin`]], {type: data.file_type}), 'in_file')
                 })
 
-                resolve()
+                resolve(undefined)
             });
         } catch (err) {
             reject(err)

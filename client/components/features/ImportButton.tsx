@@ -8,12 +8,13 @@ import {useRouter} from "next/navigation";
 
 export default function ImportButton({mime, importer, label}: {
     mime: string,
-    importer: (arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void) => Promise<void>,
+    importer: (mime: string, arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void) => Promise<string | undefined>,
     label: string,
 }) {
     const hiddenFileInput = useRef<HTMLInputElement>(null);
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [isInUpload, setIsInUpload] = useState(false);
+    const [importMessage, setImportMessage] = useState<string | undefined>(undefined);
 
     const [loadingStatus, setLoadingStatus] = useState<string>("초기화...")
 
@@ -47,7 +48,7 @@ export default function ImportButton({mime, importer, label}: {
 
         try {
             const arrayBuffer = await readFileAsArrayBuffer(file);
-            await importer(arrayBuffer, setLoadingStatus);
+            setImportMessage(await importer(file.type, arrayBuffer, setLoadingStatus));
             setIsInUpload(false);
             router.refresh();
         } catch (err) {
@@ -68,15 +69,20 @@ export default function ImportButton({mime, importer, label}: {
                    }
                    uploadZip(fileList).then()
                }}></input>
-        <Modal isOpen={isInUpload}>
+        <Modal isOpen={isInUpload || !!importMessage}>
             <ModalContent>
                 {(onClose) => (
                     <>
                         <ModalHeader className="flex flex-col gap-1">{label}</ModalHeader>
                         <ModalBody>
-                            <Progress isIndeterminate label={loadingStatus} className="max-w-md" size="sm"/>
+                            {importMessage ? <span>{importMessage}</span> :
+                                <Progress isIndeterminate label={loadingStatus} className="max-w-md" size="sm"/>}
                         </ModalBody>
-                        <ModalFooter/>
+                        <ModalFooter>
+                            {importMessage && <Button onPress={() => {
+                                setImportMessage(undefined)
+                            }}>확인했습니다</Button>}
+                        </ModalFooter>
                     </>
                 )}
             </ModalContent>

@@ -9,7 +9,8 @@ from sqlmodel import Session, select, desc
 
 from api import common
 from api.common import SessionDependency
-from database.sql_model import RoomBase, Room, Conversation, Bot, Persona, Prompt, Summary
+from database.sql import sql_exec
+from database.sql_model import RoomBase, Room, Conversation, Bot, Persona, Prompt, Summary, OperationLog
 
 router = APIRouter(prefix="/room", tags=["room"])
 engine: Engine
@@ -56,11 +57,11 @@ common.validate_get_model(RoomBase, RoomGet)
 
 
 async def room_delete_side_effect(session: Session, username: str, room: Room):
-    conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id)).all()
+    conversations = sql_exec(session, select(Conversation).where(Conversation.room_id == room.id)).all()
     for conversation in conversations:
         session.delete(conversation)
 
-    summaries = session.exec(select(Summary).where(Summary.room_id == room.id)).all()
+    summaries = sql_exec(session, select(Summary).where(Summary.room_id == room.id)).all()
     for summary in summaries:
         session.delete(summary)
 
@@ -82,8 +83,14 @@ def register():
     @router.get("", responses={200: {'model': list_model}, 404: {'model': room_not_exist_model}})
     def gets(session: SessionDependency, offset: int = 0, limit: int = Query(default=100, le=100)) -> Sequence[
         RoomGet]:
-        rooms = session.exec(
-            select(Room).order_by(desc(Room.last_message_time)).offset(offset).limit(limit)
-        ).all()
+        rooms = sql_exec(session,
+                         select(Room).order_by(desc(Room.last_message_time)).offset(offset).limit(limit)
+                         ).all()
 
         return rooms
+
+    @router.get("/{id}/log")
+    def get_log(session: SessionDependency, id: str, offset: int = 0, limit: int = Query(default=100, le=100)):
+        return sql_exec(session, select(OperationLog).where(OperationLog.related_room_id == id).order_by(
+            desc(OperationLog.created_at))
+                        .offset(offset).limit(limit)).all()

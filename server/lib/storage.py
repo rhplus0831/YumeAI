@@ -7,6 +7,7 @@ from starlette.responses import FileResponse, Response
 
 import configure
 from api.common import ClientErrorException
+from database.sql import sql_exec
 from database.sql_model import StorageFile
 from delayed.tasks import remove_file, upload_to_s3
 
@@ -20,7 +21,7 @@ def safe_remove(path):
 
 def get_total_storage_size(session: Session) -> int:
     # SQLAlchemy를 통해 총 size 합을 구하기
-    result = session.exec(select(func.sum(StorageFile.size)))
+    result = sql_exec(session, select(func.sum(StorageFile.size)))
 
     total_size = result.one_or_none()
     return total_size if total_size else 0
@@ -57,7 +58,7 @@ def put_file(session: Session, src: str | bytes | typing.BinaryIO, dest_path: st
 
 
 def delete_file(session: Session, path: str):
-    sf = session.exec(select(StorageFile).where(StorageFile.path == path)).one_or_none()
+    sf = sql_exec(session, select(StorageFile).where(StorageFile.path == path)).one_or_none()
     if sf is not None:
         session.delete(sf)
         session.commit()

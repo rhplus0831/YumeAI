@@ -11,6 +11,7 @@
 	},
 	"dependencies": {
 		"@nextui-org/react": "^2.6.11",
+      "@nextui-org/use-infinite-scroll": "^2.2.2",
 		"@react-aria/ssr": "3.9.7",
 		"@react-aria/visually-hidden": "3.8.18",
 		"clsx": "2.1.1",

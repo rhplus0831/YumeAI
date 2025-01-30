@@ -4,9 +4,13 @@ from typing import Type, Sequence, Callable, Any, Annotated, Coroutine, Optional
 from fastapi import APIRouter, BackgroundTasks
 from fastapi.params import Query, Depends
 from pydantic import BaseModel, create_model
-from sqlmodel import SQLModel, Session, select
+from sqlalchemy import Engine, Select
+from sqlmodel import SQLModel, Session, select, desc
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+
+from database.sql import sql_exec
+from database.sql_model import OperationLog
 
 
 def get_db(request: Request):
@@ -31,13 +35,87 @@ def get_session(request: Request):
 SessionDependency = Annotated[Session, Depends(get_session)]
 
 
+class RequestWrapper:
+    def __init__(self, request: Request):
+        self.request = request
+        self.session = Session(request.state.db)
+        self.log_data = OperationLog()
+        self.messages = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def close(self):
+        self.flush_log()
+        self.session.close()
+
+    def register_room_id(self, room_id: str):
+        self.log_data.related_room_id = room_id
+
+    def register_conversation_id(self, conversation_id: str):
+        self.log_data.related_conversation_id = conversation_id
+
+    def register_title(self, title: str):
+        self.log_data.title = title
+
+    def get_username(self) -> str:
+        return self.request.state.username
+
+    def get_engine(self) -> Engine:
+        return self.request.state.db
+
+    def get_session(self) -> Session:
+        return self.session
+
+    def log(self, message: str, use_spliter: bool = True):
+        if use_spliter:
+            self.messages.append('=====   ' + message + '   =====')
+        else:
+            self.messages.append(message)
+
+    def flush_log(self):
+        if len(self.messages) == 0:
+            return
+        session = self.session
+        self.log_data.message = '\n'.join(self.messages)
+        session.add(self.log_data)
+        session.commit()
+
+        # 로그 개수가 만 개를 초과하는 경우 오래된 로그 삭제
+        max_log_limit = 10000
+        statement = select(OperationLog).order_by(desc(OperationLog.created_at)).offset(max_log_limit).limit(1)
+        old_item = sql_exec(session, statement).one_or_none()
+        if old_item is not None:
+            session.delete(old_item)
+            session.commit()
+
+
+def get_request_wrapper(request: Request):
+    with RequestWrapper(request) as wrapper:
+        yield wrapper
+
+
+def get_manual_request_wrapper(request: Request):
+    return RequestWrapper(request)
+
+
+RequestDependency = Annotated[RequestWrapper, Depends(get_request_wrapper)]
+ManualRequestDependency = Annotated[RequestWrapper, Depends(get_manual_request_wrapper)]
+
+
 class ClientErrorException(Exception):
     def __init__(self, status_code: int, detail: str):
         self.status_code = status_code
         self.detail: str = detail
 
 
-def validate_update_model(base_model: Type[SQLModel], update_model: Type[BaseModel], exclude_list=[]):
+def validate_update_model(base_model: Type[SQLModel], update_model: Type[BaseModel], exclude_list=None):
+    if exclude_list is None:
+        exclude_list = []
     base_keys = dict(base_model.__dict__)['__annotations__'].keys()
     update_keys = dict(update_model.__dict__)['__annotations__'].keys()
 
@@ -50,7 +128,9 @@ def validate_update_model(base_model: Type[SQLModel], update_model: Type[BaseMod
         raise Exception(f"{base_model.__name__} is not matching with {update_model.__name__}")
 
 
-def validate_get_model(base_model: Type[SQLModel], get_model: Type[BaseModel], exclude_list=[]):
+def validate_get_model(base_model: Type[SQLModel], get_model: Type[BaseModel], exclude_list=None):
+    if exclude_list is None:
+        exclude_list = []
     base_keys = dict(base_model.__dict__)['__annotations__'].keys()
     get_keys = dict(get_model.__dict__)['__annotations__'].keys()
 
@@ -65,10 +145,11 @@ def validate_get_model(base_model: Type[SQLModel], get_model: Type[BaseModel], e
 
 
 def get_or_404(db_model: Type[SQLModel], session: Session, id: str):
-    statement = select(db_model).where(db_model.id == id)
-    item = session.exec(statement).one_or_none()
+    statement: Select = select(db_model).where(db_model.id == id)
+    item: Optional[db_model] = sql_exec(session, statement).one_or_none()
     if item is None:
         raise ClientErrorException(status_code=404, detail=f"{db_model.__name__} does not exist")
+    # noinspection PyTypeChecker
     return item
 
 
@@ -95,7 +176,7 @@ def restore_data(data: dict, db_model: Type[SQLModel], overwrite: str, session: 
     print(fixed_data)
 
     statement = select(db_model).where(db_model.id == fixed_data['id'])
-    item = session.exec(statement).one_or_none()
+    item = sql_exec(session, statement).one_or_none()
     if item is not None:
         if overwrite.lower() == 'true':
             db_data = item.sqlmodel_update(fixed_data)
@@ -136,8 +217,8 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
     def dump(id: str, session: Session = Depends(get_session), offset: int = 0,
              limit: int = Query(default=100, le=100)) -> db_model | Sequence[db_model]:
         if id == 'all':
-            return session.exec(select(db_model).offset(offset).limit(limit)).all()
-        return session.exec(select(db_model).where(db_model.id == id)).one_or_none()
+            return sql_exec(session, select(db_model).offset(offset).limit(limit)).all()
+        return sql_exec(session, select(db_model).where(db_model.id == id)).one_or_none()
 
     def get(id: str, session: Session = Depends(get_session)) -> get_model:
         return get_or_404(db_model, session, id)
@@ -149,7 +230,7 @@ def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQ
 
     def gets(offset: int = 0, limit: int = Query(default=100, le=100), session: Session = Depends(get_session)) -> \
             Sequence[get_model]:
-        return session.exec(select(db_model).offset(offset).limit(limit)).all()
+        return sql_exec(session, select(db_model).offset(offset).limit(limit)).all()
 
     def update(id: str, base_update: update_model, session: Session = Depends(get_session)) -> get_model:
         data = get_or_404(db_model, session, id)

@@ -155,14 +155,18 @@ class SettingKey(str, Enum):
     gemini_api_key = "gemini_api_key"
 
 
+def utcnow():
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+
 class GlobalSettingBase(SQLModel):
     key: str = Field(index=True, unique=True)  # 설정 키
     value: Optional[str] = None  # 설정 값
     type: Optional[str] = Field(default="string", index=True)  # 설정의 데이터 유형 (예: string, int, json 등)
 
     description: Optional[str] = None  # 설정 설명
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)  # 생성 시간
-    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)  # 수정 시간
+    created_at: datetime.datetime = Field(default_factory=utcnow)  # 생성 시간
+    updated_at: datetime.datetime = Field(default_factory=utcnow)  # 수정 시간
 
 
 class GlobalSetting(GlobalSettingBase, table=True):
@@ -253,3 +257,12 @@ class StorageFileBase(SQLModel):
 
 class StorageFile(StorageFileBase, table=True):
     id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
+
+
+class OperationLog(SQLModel, table=True):
+    id: Optional[str] = Field(default_factory=uuid4_hex, primary_key=True, index=True)
+    related_room_id: Optional[str] = None
+    related_conversation_id: Optional[str] = None
+    title: str
+    message: str = ''
+    created_at: datetime.datetime = Field(default_factory=utcnow)

@@ -6,6 +6,7 @@ from openai import AsyncOpenAI
 from sqlmodel import Session
 
 import lib.prompt
+from api.common import RequestWrapper
 from database.sql_model import Prompt
 from lib.cbs import CBSHelper
 from lib.llm.config_helper import JsonConfigHelper
@@ -88,8 +89,9 @@ def num_tokens_from_messages(messages, model="gpt-4o-mini-2024-07-18"):
     return num_tokens
 
 
-def generate_client(prompt_value: Prompt, cbs: CBSHelper, session: Session):
-    parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
+def generate_client(prompt_value: Prompt, cbs: CBSHelper, wrapper: RequestWrapper):
+    session = wrapper.session
+    parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs, wrapper)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
 
     config = OpenAIConfig(prompt_value.llm_config)
@@ -108,8 +110,8 @@ def generate_client(prompt_value: Prompt, cbs: CBSHelper, session: Session):
     return parsed_prompt, messages, oai, config
 
 
-async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session):
-    parsed_prompt, messages, oai, config = generate_client(prompt_value, cbs, session)
+async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, wrapper: RequestWrapper):
+    parsed_prompt, messages, oai, config = generate_client(prompt_value, cbs, wrapper)
 
     response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=config.temperature,
                                                  max_tokens=config.max_output,
@@ -123,9 +125,9 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session)
     return response.choices[0].message.content
 
 
-async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
+async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, wrapper: RequestWrapper,
                         complete_receiver: Callable[[str], None] | None, response_as_message: bool = True):
-    parsed_prompt, messages, oai, config = generate_client(prompt_value, cbs, session)
+    parsed_prompt, messages, oai, config = generate_client(prompt_value, cbs, wrapper)
 
     response = await oai.chat.completions.create(model=config.model, messages=messages, temperature=config.temperature,
                                                  max_tokens=config.max_output,

@@ -1,7 +1,8 @@
 from typing import Optional
 
-from sqlmodel import select, Session, col
+from sqlmodel import Session, col, select
 
+from database.sql import sql_exec
 from database.sql_model import LoreBookChapter, Lore, Room, LoreBookReader, Conversation, LoreBook
 from lib import tokenizer
 from lib.cbs import CBSHelper
@@ -36,8 +37,8 @@ class LoreParser:
             else:
                 self.parsed_chapters.append(parsed_chapter)
             self.chapter_to_parsed_map[chapter] = parsed_chapter
-            attached_query = self.session.exec(
-                select(Lore).where(Lore.chapter_id == chapter.id).where(Lore.attached == True)).all()
+            attached_query = sql_exec(self.session, select(Lore).where(Lore.chapter_id == chapter.id).where(
+                Lore.attached == True)).all()
             for attached in attached_query:
                 self.add_lore(attached)
         else:
@@ -216,7 +217,8 @@ def parse_lore(session: Session, cbs: CBSHelper, room: Optional[Room] = None, ex
                token_limit_override=-1):
     if extra_text_list is None:
         extra_text_list = []
-    lore_book_readers = session.exec(select(LoreBookReader).where(LoreBookReader.reader_id == room.id)).all()
+
+    lore_book_readers = sql_exec(session, select(LoreBookReader).where(LoreBookReader.reader_id == room.id)).all()
     if len(lore_book_readers) == 0 and room.bot.lore_book_id is None:
         return ''
 
@@ -228,21 +230,21 @@ def parse_lore(session: Session, cbs: CBSHelper, room: Optional[Room] = None, ex
         if search_depth < lore_book_reader.search_depth:
             search_depth = lore_book_reader.search_depth
         lore_books.append(lore_book_reader.lore_book)
-        lore_query = session.exec(select(Lore).where(Lore.lore_book_id == lore_book_reader.lore_book_id)).all()
+        lore_query = sql_exec(session, select(Lore).where(Lore.lore_book_id == lore_book_reader.lore_book_id)).all()
         for lore in lore_query:
             lores.append(lore)
 
     if room.bot.lore_book_id:
-        bot_lore_book = session.exec(select(LoreBook).where(LoreBook.id == room.bot.lore_book_id)).first()
+        bot_lore_book = sql_exec(session, select(LoreBook).where(LoreBook.id == room.bot.lore_book_id)).first()
         if bot_lore_book is not None:
             lore_books.append(bot_lore_book)
-            lore_query = session.exec(select(Lore).where(Lore.lore_book_id == bot_lore_book.id)).all()
+            lore_query = sql_exec(session, select(Lore).where(Lore.lore_book_id == bot_lore_book.id)).all()
             for lore in lore_query:
                 lores.append(lore)
 
     conversations = []
     if room is not None:
-        conversation_query = session.exec(
+        conversation_query = sql_exec(session, 
             select(Conversation).where(Conversation.room_id == room.id).order_by(
                 col(Conversation.created_at).desc()).limit(
                 search_depth)).all()

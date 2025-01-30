@@ -3,22 +3,24 @@ from typing import Optional, Callable
 
 from google import genai
 from google.genai import types
-from google.genai.types import SafetySetting
+# noinspection PyProtectedMember
+from google.genai.types import SafetySetting, HarmBlockThreshold, HarmCategory
 from sqlmodel import Session
 
 import lib.prompt
 import settings
+from api.common import RequestWrapper
 from database.sql_model import Prompt
 from lib.cbs import CBSHelper
 from lib.llm.config_helper import JsonConfigHelper
 from lib.web import generate_event_stream_message
 
 safety_settings = [
-    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_CIVIC_INTEGRITY"),
-    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_DANGEROUS_CONTENT"),
-    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_HARASSMENT"),
-    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_HATE_SPEECH"),
-    SafetySetting(threshold="BLOCK_NONE", category="HARM_CATEGORY_SEXUALLY_EXPLICIT"),
+    SafetySetting(threshold=HarmBlockThreshold.BLOCK_NONE, category=HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY),
+    SafetySetting(threshold=HarmBlockThreshold.BLOCK_NONE, category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT),
+    SafetySetting(threshold=HarmBlockThreshold.BLOCK_NONE, category=HarmCategory.HARM_CATEGORY_HARASSMENT),
+    SafetySetting(threshold=HarmBlockThreshold.BLOCK_NONE, category=HarmCategory.HARM_CATEGORY_HATE_SPEECH),
+    SafetySetting(threshold=HarmBlockThreshold.BLOCK_NONE, category=HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT),
 ]
 
 
@@ -76,25 +78,31 @@ def convert_to_gemini(messages: list) -> (list, str):
 
 def process_content(content, in_cot: bool) -> [str, bool]:
     if len(content.parts) == 2:
-        result = content.parts[0].text or ""
+        result = "<COT>"
+        result += content.parts[0].text or ""
         result += "</COT>"
         result += content.parts[1].text or ""
+        return result, False
     elif in_cot and isinstance(content.parts[0].thought, bool) and not content.parts[0].thought:
         result = "</COT>"
         result += content.parts[0].text or ""
-    else:
-        result = content.parts[0].text or ""
+        return result, False
+    elif not in_cot and isinstance(content.parts[0].thought, bool) and content.parts[0].thought:
+        result = "<COT>"
+        result += content.parts[0].text or ""
+        return result, True
 
-    return result
+    return content.parts[0].text or "", in_cot
 
 
-def generate_client(prompt_value: Prompt, cbs: CBSHelper, session: Session):
-    parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs)
+def generate_client(prompt_value: Prompt, cbs: CBSHelper, wrapper: RequestWrapper):
+    session = wrapper.session
+    parsed_prompt, _ = lib.prompt.parse_prompt(prompt_value.prompt, cbs, wrapper)
     messages = lib.prompt.generate_openai_messages(parsed_prompt)
     contents, system = convert_to_gemini(messages)
     config = GeminiConfig(prompt_value.llm_config)
 
-    client = genai.Client(api_key=get_key(config, session), http_options={'api_version': 'v1alpha'})
+    client = genai.Client(api_key=get_key(config, session), http_options={'api_version': 'v1alpha'})  # type: ignore
 
     thinking_config = types.ThinkingConfig(include_thoughts=True)
     if 'thinking' not in config.model:
@@ -116,41 +124,32 @@ def generate_client(prompt_value: Prompt, cbs: CBSHelper, session: Session):
     return parsed_prompt, messages, contents, client, generate_config, config
 
 
-async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session):
-    parsed_prompt, messages, contents, client, generate_config, config = generate_client(prompt_value, cbs, session)
+async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, wrapper: RequestWrapper):
+    parsed_prompt, messages, contents, client, generate_config, config = generate_client(prompt_value, cbs, wrapper)
 
     response = await client.aio.models.generate_content(model=config.model, contents=contents,
                                                         config=generate_config)
 
     from lib.llm.llm_common import messages_dump
-    result = process_content(response.candidates[0].content, True)
-
-    # TODO: Better COT Model Check
-    if 'thinking' in config.model:
-        result = '<COT>' + result
+    result, _ = process_content(response.candidates[0].content, True)
 
     messages_dump(messages, result)
 
     return result
 
 
-async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, session: Session,
+async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, wrapper: RequestWrapper,
                         complete_receiver: Callable[[str], None] | None, response_as_message: bool = True):
-    parsed_prompt, messages, contents, client, generate_config, config = generate_client(prompt_value, cbs, session)
+    parsed_prompt, messages, contents, client, generate_config, config = generate_client(prompt_value, cbs, wrapper)
     collected_messages = []
 
     in_cot = False
-    # TODO: Better COT Model Check
-    if 'thinking' in config.model:
-        collected_messages.append('<COT>')
-        yield generate_event_stream_message('stream', '<COT>')
-        in_cot = True
 
     async for chunk in client.aio.models.generate_content_stream(model=config.model, contents=contents,
                                                                  config=generate_config):
         chunk_message = ''
         for candidate in chunk.candidates:
-            chunk_message = process_content(candidate.content, in_cot)
+            chunk_message, in_cot = process_content(candidate.content, in_cot)
 
         collected_messages.append(chunk_message)
 

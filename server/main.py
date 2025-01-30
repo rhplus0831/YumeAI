@@ -58,8 +58,7 @@ origins = [
     "http://localhost:831",
 ]
 
-app.add_middleware(
-    CORSMiddleware,
+app.add_middleware(CORSMiddleware,  # type: ignore
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
@@ -134,7 +133,7 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         return response
 
 
-app.add_middleware(AuthorizationMiddleware)
+app.add_middleware(AuthorizationMiddleware)  # type: ignore
 
 room.room_not_exist_model = common.insert_crud(room.router, RoomBase, Room, RoomUpdate,
                                                handle_delete_side_effect=room.room_delete_side_effect,

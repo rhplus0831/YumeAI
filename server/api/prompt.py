@@ -7,7 +7,7 @@ from sqlmodel import select
 from starlette.responses import JSONResponse
 
 from api import common
-from api.common import SessionDependency
+from api.common import SessionDependency, RequestDependency
 from database.sql_model import PromptBase, Prompt, Room
 from lib.cbs import CBSHelper
 from lib.llm import llm_common
@@ -112,15 +112,18 @@ def register():
         text: str
 
     @router.post("/{id}/perform_translate")
-    async def perform_translate_prompt(argument: TranslateArgumentModal, session: SessionDependency, id: str):
+    async def perform_translate_prompt(argument: TranslateArgumentModal, wrapper: RequestDependency, id: str):
+        session = wrapper.session
         prompt: Prompt = common.get_or_404(Prompt, session, id)
         cbs = CBSHelper()
         cbs.content = ''.join(argument.text)
         if argument.room_id:
             room: Room = common.get_or_404(Room, session, argument.room_id)
             cbs.put_data_with_room(room)
+            wrapper.register_room_id(room.id)
 
-        result = await llm_common.perform_prompt(prompt, cbs, session)
+        wrapper.register_title('번역 작업')
+        result = await llm_common.perform_prompt(prompt, cbs, wrapper)
         return {
             "result": result,
         }

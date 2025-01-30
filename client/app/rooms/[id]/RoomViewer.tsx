@@ -19,6 +19,7 @@ import YumeAvatar from "@/components/ui/YumeAvatar";
 import SubmitSpan from "@/components/ui/SubmitSpan";
 import {buildImageLink} from "@/lib/data/Image";
 import ExportButton from "@/components/features/ExportButton";
+import RoomOperationLogQueryButton from "@/components/features/log/RoomOperationLogQueryButton";
 
 export default function RoomViewer({startRoom}: { startRoom: Room }) {
     const router = useRouter()
@@ -141,6 +142,7 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                     이 방이 사용하고 있는 페르소나 등 관련 데이터(API 키 제외)가 한꺼번에 백업됩니다.
                     <br/>암호화가 풀린 상태로 저장되므로 암호화가 필요한경우 별도로 암호화 해주세요.
                 </span>
+                <RoomOperationLogQueryButton room={room}/>
                 <DeleteConfirmButton className={"mt-10"} confirmCount={5} onConfirmed={async () => {
                     await deleteRoom(room.id)
                     router.replace("/rooms")

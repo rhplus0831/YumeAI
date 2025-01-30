@@ -11,7 +11,8 @@ from starlette.responses import StreamingResponse, JSONResponse
 
 import settings
 from api import common
-from api.common import SessionDependency, EngineDependency, ClientErrorException
+from api.common import SessionDependency, ClientErrorException, RequestWrapper, \
+    ManualRequestDependency, RequestDependency
 from database.sql_model import ConversationBase, Room, Conversation, Summary
 from lib.cbs import CBSHelper
 from lib.filter import apply_filter, remove_cot_string
@@ -75,9 +76,10 @@ def register(room_router: APIRouter, app: FastAPI):
         text: str
         active_toggles: str
 
-    async def send_message_streamer(argument: SendMessageArgument, room: Room, session: Session,
+    async def send_message_streamer(argument: SendMessageArgument, room: Room, wrapper: RequestWrapper,
                                     custom_conversation_id: Optional[str] = None):
         try:
+            session = wrapper.session
             if room.prompt is None:
                 yield generate_error("프롬프트를 선택해야 합니다")
                 return
@@ -89,6 +91,9 @@ def register(room_router: APIRouter, app: FastAPI):
             if room.persona is None:
                 yield generate_error("페르소나를 선택해야 합니다")
                 return
+
+            wrapper.register_room_id(room.id)
+            wrapper.register_title(f'{room.name}의 대화처리')
 
             user_new_message = apply_filter(room, 'input', argument.text)
 
@@ -108,12 +113,12 @@ def register(room_router: APIRouter, app: FastAPI):
             # 유저가 메시지를 새로 보내어 이전 대화를 확정한경우 요약합니다.
             if len(conversations) != 0:
                 yield generate_progress('이전 대화를 요약하는중...')
-                await summarize_conversation(session, conversations[-1])
+                await summarize_conversation(wrapper, conversations[-1])
 
             # 이전 요약으로 인해 새 응답을 요약해야 하는지 확인
             if await need_summarize(session, room):
                 yield generate_progress('쌓인 요약을 재 요약하는중...')
-                await summarize(session, room)
+                await summarize(wrapper, room)
 
             combined_re_summary = ''
             combined_summary = ''
@@ -148,6 +153,7 @@ def register(room_router: APIRouter, app: FastAPI):
                 bot_response = rep
 
             yield generate_progress('봇이 응답하는중...')
+            wrapper.log('봇의 응답 생성')
 
             cbs = CBSHelper()
             cbs.put_data_with_room(room)
@@ -166,10 +172,10 @@ def register(room_router: APIRouter, app: FastAPI):
             cbs.parsed_lore_book = parse_lore(session, cbs, room)
 
             if room.prompt.use_stream:
-                async for value in llm_common.stream_prompt(room.prompt, cbs, session, receiver):
+                async for value in llm_common.stream_prompt(room.prompt, cbs, wrapper, receiver):
                     yield value
             else:
-                bot_response = await llm_common.perform_prompt(room.prompt, cbs, session)
+                bot_response = await llm_common.perform_prompt(room.prompt, cbs, wrapper)
 
             if custom_conversation_id:
                 conversation = session.exec(
@@ -190,28 +196,32 @@ def register(room_router: APIRouter, app: FastAPI):
             session.commit()
             session.refresh(conversation)
 
+            wrapper.register_conversation_id(conversation.id)
+
             yield generate_event_stream_message('complete', conversation.model_dump_json())
         except Exception as e:
             logging.exception(e)
+            wrapper.log(f'오류 발생: {str(e)}')
             yield generate_event_stream_message('error', str(e))
         finally:
-            session.close()
+            wrapper.close()
 
     @room_router.post("/{id}/conversation/send",
                       responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def send_message(engine: EngineDependency, id: str, argument: SendMessageArgument) -> StreamingResponse:
-        session = Session(engine)
+    async def send_message(wrapper: ManualRequestDependency, id: str,
+                           argument: SendMessageArgument) -> StreamingResponse:
         try:
-            room = get_room_or_404(id, session=session)
+            room = get_room_or_404(id, session=wrapper.session)
         except:
-            session.close()
+            wrapper.close()
             raise
-        return StreamingResponse(send_message_streamer(argument, room, session), headers={
+        return StreamingResponse(send_message_streamer(argument, room, wrapper), headers={
             'Content-Type': 'text/event-stream'
         })
 
-    async def translate_message_streamer(conversation: Conversation, room: Room, session: Session):
+    async def translate_message_streamer(conversation: Conversation, room: Room, wrapper: RequestWrapper):
         try:
+            session = wrapper.session
             if room.translate_method != "prompt":
                 yield generate_error("번역 방법이 프롬프트가 아닙니다.")
                 return
@@ -219,6 +229,10 @@ def register(room_router: APIRouter, app: FastAPI):
             if room.translate_prompt_id is None:
                 yield generate_error("번역 방법이 프롬프트 이지만 선택된 프롬프트가 없습니다")
                 return
+
+            wrapper.register_room_id(room.id)
+            wrapper.register_conversation_id(conversation.id)
+            wrapper.register_title('번역 작업 시작')
 
             user_response = ''
             assistant_response = ''
@@ -233,7 +247,7 @@ def register(room_router: APIRouter, app: FastAPI):
 
             filtered_user_message = apply_filter(room, "display", conversation.user_message)
 
-            if conversation.assistant_message.startswith("<COT>"):
+            if conversation.assistant_message.startswith("<COT>") and "</COT>" in conversation.assistant_message:
                 cot, filtered_assistant_message = conversation.assistant_message.split("</COT>")
                 cot = cot[5:]
             else:
@@ -267,6 +281,11 @@ def register(room_router: APIRouter, app: FastAPI):
                     else:
                         rebuilded_content.append(parts[i])
 
+                wrapper.log('번역 원문')
+                wrapper.log(content, False)
+                wrapper.log('전처리')
+                wrapper.log(''.join(rebuilded_content), False)
+
                 cbs = CBSHelper()
                 cbs.content = ''.join(rebuilded_content)
                 cbs.put_data_with_room(room)
@@ -294,7 +313,7 @@ def register(room_router: APIRouter, app: FastAPI):
                         buffer.clear()
                         return generate_event_stream_message('stream', inner_buffer)
 
-                    async for value in llm_common.stream_prompt(room.translate_prompt, cbs, session, None, False):
+                    async for value in llm_common.stream_prompt(room.translate_prompt, cbs, wrapper, None, False):
                         buffer.append(value)
                         result = process_buffer()
                         if result:
@@ -303,20 +322,26 @@ def register(room_router: APIRouter, app: FastAPI):
                     if len(buffer) > 0:
                         yield process_buffer(True)
 
-                    complete_receiver(''.join(internal_complete_buffer))
+                    raw_result = ''.join(internal_complete_buffer)
+                    wrapper.log('전처리 복구')
+                    wrapper.log(raw_result, False)
+                    complete_receiver(raw_result)
                 else:
                     result = re.sub(uuid_pattern, replace_hashed_bucket,
-                                    await llm_common.perform_prompt(room.translate_prompt, cbs, session))
+                                    await llm_common.perform_prompt(room.translate_prompt, cbs, wrapper))
+                    wrapper.log('전처리 복구')
+                    wrapper.log(result, False)
                     yield result
                     complete_receiver(result)
 
             if not room.translate_only_assistant and filtered_user_message:
                 yield generate_progress('유저의 메시지를 번역하는중...')
-
+                wrapper.log('유저 메시지 번역')
                 async for value in perform_translate(filtered_user_message, user_receiver):
                     yield value
 
             yield generate_progress('봇의 메시지를 번역하는중...')
+            wrapper.log('봇 메시지 번역')
             yield generate_event_stream_message('stream', 'yume||switch')
 
             async for value in perform_translate(filtered_assistant_message, assistant_receiver):
@@ -336,23 +361,25 @@ def register(room_router: APIRouter, app: FastAPI):
             yield generate_event_stream_message('complete', conversation.model_dump_json())
         except Exception as e:
             logging.exception(e)
+            wrapper.log(str(e))
             raise e
         finally:
-            session.close()
+            wrapper.close()
 
     @room_router.post("/{id}/conversation/{conversation_id}/translate",
                       responses={200: {'model': ConversationsResponse}, 404: {'model': room_not_exist_model}})
-    async def translate_conversation(engine: EngineDependency, id: str, conversation_id: str) -> StreamingResponse:
-        session = Session(engine)
+    async def translate_conversation(wrapper: ManualRequestDependency, id: str,
+                                     conversation_id: str) -> StreamingResponse:
+        session = wrapper.session
         try:
             room = get_room_or_404(id, session=session)
             conversation = common.get_or_404(Conversation, session, conversation_id)
         except:
-            session.close()
+            wrapper.close()
             raise
         if conversation.room_id != room.id:
             raise Exception("Conversation Room ID doesn't match")
-        return StreamingResponse(translate_message_streamer(conversation, room, session), headers={
+        return StreamingResponse(translate_message_streamer(conversation, room, wrapper), headers={
             'Content-Type': 'text/event-stream'
         })
 
@@ -389,9 +416,11 @@ def register(room_router: APIRouter, app: FastAPI):
         return conversation.model_dump()
 
     @room_router.post("/{id}/conversation/re_roll")
-    async def re_roll(engine: EngineDependency, argument: ReRollArgument, id: str):
+    async def re_roll(wrapper: ManualRequestDependency, argument: ReRollArgument, id: str):
+        message_argument = None
+        conversation_id = None
         try:
-            session = Session(engine)
+            session = wrapper.session
             room = get_room_or_404(id, session=session)
             conversations = session.exec(select(Conversation).where(Conversation.room_id == room.id).order_by(
                 Conversation.created_at.desc()).limit(1)).all()
@@ -406,10 +435,10 @@ def register(room_router: APIRouter, app: FastAPI):
                 conversation_id = conversation.id
                 break
         except:
-            session.close()
+            wrapper.close()
             raise
 
-        return StreamingResponse(send_message_streamer(message_argument, room, session, conversation_id), headers={
+        return StreamingResponse(send_message_streamer(message_argument, room, wrapper, conversation_id), headers={
             'Content-Type': 'text/event-stream'
         })
 
@@ -417,7 +446,8 @@ def register(room_router: APIRouter, app: FastAPI):
         inputs: dict[str, str]
 
     @room_router.post("/{id}/conversation/suggest")
-    async def suggest(session: SessionDependency, id: str, argument: SuggestArgument):
+    async def suggest(wrapper: RequestDependency, id: str, argument: SuggestArgument):
+        session = wrapper.session
         room = get_room_or_404(id, session=session)
         if not room.suggest_prompt_id:
             raise ClientErrorException(status_code=400, detail='Suggest prompt not found')
@@ -427,6 +457,7 @@ def register(room_router: APIRouter, app: FastAPI):
             raise ClientErrorException(status_code=400, detail="There no conversation")
         conversation: Conversation = conversations[0]
 
+
         cbs = CBSHelper()
         cbs.user = room.persona.name
         cbs.char = room.bot.name
@@ -435,7 +466,10 @@ def register(room_router: APIRouter, app: FastAPI):
         cbs.inputs = argument.inputs
         cbs.content = remove_cot_string(conversation.assistant_message)
 
-        result = await llm_common.perform_prompt(room.suggest_prompt, cbs, session)
+        wrapper.register_room_id(room.id)
+        wrapper.register_conversation_id(conversation.id)
+        wrapper.register_title('입력 추천')
+        result = await llm_common.perform_prompt(room.suggest_prompt, cbs, wrapper)
         return JSONResponse({"result": result})
 
     @room_router.post("/{id}/conversation/edit")

@@ -10,6 +10,7 @@ import configure
 from database.sql import get_engine
 from database.sql_model import LoreBook, LoreBookChapter, Lore, Room, LoreBookReader
 from lib import tokenizer, lore
+from lib.cbs import CBSHelper
 from lib.lore import LoreParser
 
 
@@ -126,42 +127,45 @@ if __name__ == '__main__':
         print("-" * 45)
 
 
+    cbs = CBSHelper()
+
     print_spliter("기초 테스트")
-    print_parsed('보컬로이드', lore.parse_lore(session, room, ['보컬로이드']))
-    result = print_parsed('음성 합성 기술', lore.parse_lore(session, room, ['음성 합성 기술']))
-    print_compare_parsed('음성 합성 기술(200)', result, lore.parse_lore(session, room, ['음성 합성 기술'], 200))
-    print_compare_parsed('음성 합성 기술(100)', result, lore.parse_lore(session, room, ['음성 합성 기술'], 100))
+    print_parsed('보컬로이드', lore.parse_lore(session, cbs, room, ['보컬로이드']))
+    result = print_parsed('음성 합성 기술', lore.parse_lore(session, cbs, room, ['음성 합성 기술']))
+    print_compare_parsed('음성 합성 기술(200)', result, lore.parse_lore(session, cbs, room, ['음성 합성 기술'], 200))
+    print_compare_parsed('음성 합성 기술(100)', result, lore.parse_lore(session, cbs, room, ['음성 합성 기술'], 100))
 
     print_spliter("검색 불가능 로어 테스트")
     attached_lore.searchable = False
     session.add(attached_lore)
     session.commit()
-    print_parsed('보컬로이드 -> 로어 검색 불가능 처리', lore.parse_lore(session, room, ['보컬로이드']))
+    print_parsed('보컬로이드 -> 로어 검색 불가능 처리', lore.parse_lore(session, cbs, room, ['보컬로이드']))
 
     print_spliter("활성화 로어 테스트")
     attached_lore.searchable = True
     attached_lore.always = True
     session.add(attached_lore)
     session.commit()
-    print_parsed(' -> 항상 활성화 처리', lore.parse_lore(session, room, ['']))
+    print_parsed(' -> 항상 활성화 처리', lore.parse_lore(session, cbs, room, ['']))
 
     attached_lore.always = False
     session.add(attached_lore)
     session.commit()
 
     print_spliter("우선순위 테스트")
-    result = print_parsed('음성 합성 기술 사용 범위 (200)', lore.parse_lore(session, room, ['음성 합성 기술 사용 범위'], 200))
+    result = print_parsed('음성 합성 기술 사용 범위 (200)', lore.parse_lore(session, cbs, room, ['음성 합성 기술 사용 범위'], 200))
     priority_test_lore.priority = 1
     session.add(priority_test_lore)
     session.commit()
     print_compare_parsed('음성 합성 기술 사용 범위 (200) -> 음성 합성 기술 우선', result,
-                         lore.parse_lore(session, room, ['음성 합성 기술 사용 범위'], 200))
+                         lore.parse_lore(session, cbs, room, ['음성 합성 기술 사용 범위'], 200))
 
     print_spliter("요약 우선순위 테스트")
-    result = print_parsed('음성 합성 기술 지속적인 발전', lore.parse_lore(session, room, ['음성 합성 기술 지속적인 발전']))
-    print_compare_parsed('음성 합성 기술 지속적인 발전(200)', result, lore.parse_lore(session, room, ['음성 합성 기술 지속적인 발전'], 200))
+    result = print_parsed('음성 합성 기술 지속적인 발전', lore.parse_lore(session, cbs, room, ['음성 합성 기술 지속적인 발전']))
+    print_compare_parsed('음성 합성 기술 지속적인 발전(200)', result,
+                         lore.parse_lore(session, cbs, room, ['음성 합성 기술 지속적인 발전'], 200))
     summary_priority_test_lore.summary_priority = 2
     session.add(summary_priority_test_lore)
     session.commit()
     print_compare_parsed('음성 합성 기술 지속적인 발전(200) -> 지속적인 발전 우선', result,
-                         lore.parse_lore(session, room, ['음성 합성 기술 지속적인 발전'], 200))
+                         lore.parse_lore(session, cbs, room, ['음성 합성 기술 지속적인 발전'], 200))

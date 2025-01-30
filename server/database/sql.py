@@ -2,7 +2,8 @@ import os
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, SelectBase
+from sqlmodel import Session
 
 import configure
 from configure import use_encrypted_db
@@ -30,3 +31,7 @@ def get_engine(path: str = "_DEF_", password: str = ""):
     command.upgrade(alembic_config, "head")
 
     return engine
+
+
+def sql_exec(session: Session, query: SelectBase):
+    return session.exec(query)  # type: ignore

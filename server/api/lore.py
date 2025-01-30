@@ -7,6 +7,7 @@ from starlette.responses import Response
 
 from api import common
 from api.common import SessionDependency, ClientErrorException
+from database.sql import sql_exec
 from database.sql_model import LoreBook, LoreBookBase, LoreBookChapter, LoreBookChapterBase, Lore
 from lib.cbs import CBSHelper
 from lib.lore import run_parser_on_lores, LoreParser
@@ -75,8 +76,8 @@ class LoreUpdate(BaseModel):
 
 
 async def lore_book_delete_side_effect(session: Session, username: str, lore_book: LoreBook):
-    for chapter in session.exec(select(LoreBookChapter).where(LoreBookChapter.lore_book_id == lore_book.id)).all():
-        for lore in session.exec(select(Lore).where(Lore.chapter_id == chapter.id)).all():
+    for chapter in sql_exec(session, select(LoreBookChapter).where(LoreBookChapter.lore_book_id == lore_book.id)).all():
+        for lore in sql_exec(session, select(Lore).where(Lore.chapter_id == chapter.id)).all():
             session.delete(lore)
         session.delete(chapter)
     session.commit()
@@ -89,8 +90,8 @@ def register():
     @router.get("/{id}/read")
     def read_lore_book(session: SessionDependency, id: str):
         lore_book = common.get_or_404(LoreBook, session, id)
-        chapter_list = session.exec(select(LoreBookChapter).where(LoreBookChapter.lore_book_id == id)).all()
-        lore_list = session.exec(select(Lore).where(Lore.lore_book_id == id)).all()
+        chapter_list = sql_exec(session, select(LoreBookChapter).where(LoreBookChapter.lore_book_id == id)).all()
+        lore_list = sql_exec(session, select(Lore).where(Lore.lore_book_id == id)).all()
         return {"book": lore_book, "chapters": chapter_list, "lores": lore_list}
 
     class LoreBookTestArgument(BaseModel):
@@ -98,7 +99,7 @@ def register():
 
     @router.post("/{id}/test")
     def test_arg(session: SessionDependency, id: str, arg: LoreBookTestArgument):
-        lore_list = session.exec(select(Lore).where(Lore.lore_book_id == id)).all()
+        lore_list = sql_exec(session, select(Lore).where(Lore.lore_book_id == id)).all()
         cbs = CBSHelper()
         parsed = LoreParser(session, cbs)
 
@@ -148,10 +149,10 @@ def register():
         return chapter
 
     def internal_delete_chapter(session: Session, chapter: LoreBookChapter):
-        for lore in session.exec(select(Lore).where(Lore.chapter_id == chapter.id)).all():
+        for lore in sql_exec(session, select(Lore).where(Lore.chapter_id == chapter.id)).all():
             session.delete(lore)
 
-        for child in session.exec(select(LoreBookChapter).where(LoreBookChapter.parent_id == chapter.id)).all():
+        for child in sql_exec(session, select(LoreBookChapter).where(LoreBookChapter.parent_id == chapter.id)).all():
             internal_delete_chapter(session, child)
 
         session.delete(chapter)

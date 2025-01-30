@@ -61,6 +61,7 @@ def fix_asteval_result(value) -> str:
 
     return str(value)
 
+
 class CBSHelper:
     def __init__(self):
         self.data = ""

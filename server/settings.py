@@ -1,10 +1,11 @@
 from sqlmodel import Session, select
 
+from database.sql import sql_exec
 from database.sql_model import GlobalSetting
 
 
 def get_setting_with_key(session: Session, key: str, default=None):
-    global_key = session.exec(select(GlobalSetting).where(GlobalSetting.key == key)).one_or_none()
+    global_key = sql_exec(session, select(GlobalSetting).where(GlobalSetting.key == key)).one_or_none()
     if global_key and global_key.value:
         return global_key.value
     return default

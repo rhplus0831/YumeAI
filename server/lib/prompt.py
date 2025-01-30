@@ -1,6 +1,8 @@
 import re
 from collections.abc import Callable
+from typing import Optional
 
+from api.common import RequestWrapper
 from database.sql_model import Prompt
 from lib.cbs import CBSHelper, yume_cutter_check
 
@@ -31,6 +33,7 @@ def parse_tag(text: str, check: Callable[[str], [[str, bool]]], start_word: str,
             content = text[start + len(start_word):end]
             processed_content, found = check(content)
             if not found:
+
                 mismatch.append(content)
                 processed_content = f"[[YUMEMismatch {processed_content}]]"
 
@@ -48,17 +51,31 @@ def parse_tag(text: str, check: Callable[[str], [[str, bool]]], start_word: str,
     return process_content(text), mismatch
 
 
-def parse_prompt(prompt: str, cbs: CBSHelper) -> tuple[str, list]:
-    mismatch = []
+def parse_prompt(prompt: str, cbs: CBSHelper, wrapper: Optional[RequestWrapper] = None) -> tuple[str, list]:
     lines = [line.strip() for line in prompt.split('\n')]
     filtered_lines = [line for line in lines if not line.startswith('//YUME')]
     parsed = '\n'.join(filtered_lines)
 
-    # parsed, first_mismatch = parse_tag(parsed, cbs.check, "<", ">")
-    parsed, second_mismatch = parse_tag(parsed, cbs.check, "{{", "}}")
+    parsed, mismatch = parse_tag(parsed, cbs.check, "{{", "}}")
+
+    def client_filter(value: str):
+        if value.startswith("img"):
+            return False
+        return True
+
+    mismatch = list(filter(client_filter, mismatch))
+
     parsed, _ = parse_tag(parsed, yume_cutter_check, '[[', ']]')
-    # mismatch.extend(first_mismatch)
-    mismatch.extend(second_mismatch)
+
+    if wrapper:
+        wrapper.log(f'CBS 처리전', True)
+        wrapper.log(prompt, False)
+        wrapper.log(f'CBS 처리후', True)
+        wrapper.log(parsed, False)
+        if len(mismatch) > 0:
+            wrapper.log('매칭되지 않은 항목', True)
+            wrapper.log(','.join(mismatch), False)
+
     return parsed, mismatch
 
 

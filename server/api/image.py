@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, UploadFile
 from pydantic import BaseModel
+from sqlalchemy import Select
 from sqlmodel import Session, select
 
 from api.common import ClientErrorException, UsernameDependency, SessionDependency
@@ -16,7 +17,8 @@ def get_file_path(user_id: str, file_id: str) -> str:
 
 
 def get_image_and_file_path_or_404(session: Session, user_id: str, file_id: str) -> (Image, str):
-    image = session.exec(select(Image).where(Image.file_id == file_id)).one_or_none()
+    statement: Select = select(Image).where(Image.file_id == file_id)
+    image = session.exec(statement).one_or_none()
     if image is None:
         raise ClientErrorException(status_code=404, detail="Image not found")
 

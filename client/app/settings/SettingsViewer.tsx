@@ -3,12 +3,12 @@
 import GlobalSettings from "@/lib/data/GlobalSettings";
 import {Accordion, AccordionItem} from "@nextui-org/react";
 import SubmitSingleSettingSpan from "@/components/features/settings/SubmitSingleSettingSpan";
-import {siteConfig} from "@/config/site";
 import ExportButton from "@/components/features/ExportButton";
 import YumeImportButton from "@/components/features/room/YumeImportButton";
 import ClearAllButton from "@/components/features/settings/ClearAllButton";
+import {VersionInfo} from "@/lib/version";
 
-export default function SettingsViewer({settings}: { settings: GlobalSettings }) {
+export default function SettingsViewer({settings, version}: { settings: GlobalSettings, version: VersionInfo }) {
     return <><Accordion variant={"splitted"} selectionMode={"multiple"}>
         <AccordionItem key={"key"} title={"기본 API 키"}>
             <div className={"flex flex-col gap-4"}>
@@ -47,6 +47,7 @@ export default function SettingsViewer({settings}: { settings: GlobalSettings })
             </div>
         </AccordionItem>
     </Accordion>
-        <div className={"mt-5 w-full text-center"}>YumeAI {siteConfig.version} - Yume like Ai with your AI</div>
+        <div className={"mt-5 w-full text-center"}>YumeAI - Yume like Ai with your AI</div>
+        <div className={"mt-5 w-full text-center"}>버전: {version.commitHash} / {version.commitDate}</div>
     </>
 }

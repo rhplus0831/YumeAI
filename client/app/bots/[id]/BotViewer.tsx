@@ -160,7 +160,15 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
             </div>
         }
 
-        return <LoreBookReaderBox startBook={book}/>
+        return <LoreBookReaderBox startBook={book} extraController={<>
+            <AsyncProgressButton onPressAsync={async () => {
+                setBot(await putBot(bot.id, {
+                    "lore_book_id": ""
+                }))
+            }}>
+                로어북 연결 해제하기
+            </AsyncProgressButton>
+        </>}/>
     }
 
     return <>

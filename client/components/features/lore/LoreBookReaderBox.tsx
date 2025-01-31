@@ -8,15 +8,16 @@ import CreateWithNameButton from "@/components/ui/CreateWithNameButton";
 import YumeMenu from "@/components/MenuPortal";
 import SubmitSpan from "@/components/ui/SubmitSpan";
 import LoreBook, {deleteLoreBook, updateLoreBook} from "@/lib/data/lore/LoreBook";
-import {useEffect, useState} from "react";
+import {ReactNode, useEffect, useState} from "react";
 import Lore, {RawLore} from "@/lib/data/lore/Lore";
 import LoreTestButton from "@/components/features/lore/LoreTestButton";
 import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import {useRouter} from "next/navigation";
 
-export default function LoreBookReaderBox({startBook, isStandalone}: {
+export default function LoreBookReaderBox({startBook, isStandalone, extraController}: {
     startBook: OpenedLoreBook,
-    isStandalone?: boolean
+    isStandalone?: boolean,
+    extraController?: ReactNode,
 }) {
     const [book, setBook] = useState(startBook)
 
@@ -126,6 +127,7 @@ export default function LoreBookReaderBox({startBook, isStandalone}: {
                 await applyLoreBookValue(value, "description")
             }}/>
             <LoreTestButton book={book}/>
+            {extraController}
             {isStandalone && <DeleteConfirmButton confirmCount={4} onConfirmedAsync={async () => {
                 await deleteLoreBook(book.id)
                 router.push('/lores')

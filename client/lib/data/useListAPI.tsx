@@ -1,13 +1,27 @@
 import {useState} from "react";
 import {api} from "@/lib/api-client";
 
-export function useListAPI<dataType>({endpoint, limit}: { endpoint: string, limit: number }) {
+export function useListAPI<dataType>({endpoint, limit}: { endpoint?: string, limit: number }) {
     const [items, setItems] = useState([] as dataType[]);
-    const [hasMore, setHasMore] = useState(true);
+    const [hasMore, setHasMore] = useState(!!endpoint);
     const [isLoading, setIsLoading] = useState(false);
     const [offset, setOffset] = useState(0);
 
-    if (!endpoint.endsWith("?") && endpoint.endsWith("&")) {
+    if (!endpoint) {
+        const onLoadMore = () => {
+            //do not anything
+        }
+
+        return {
+            items,
+            loadSelf,
+            hasMore,
+            isLoading,
+            onLoadMore,
+        };
+    }
+
+    if (!endpoint.endsWith("?") && !endpoint.endsWith("&")) {
         throw Error("Endpoint must end with '?' or '&'");
     }
 

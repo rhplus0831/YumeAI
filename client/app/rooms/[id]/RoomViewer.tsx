@@ -5,8 +5,6 @@ import YumeMenu from "@/components/MenuPortal";
 import {Checkbox, Divider, SelectItem} from "@nextui-org/react";
 import {useEffect, useState} from "react";
 import SelectablePersonaCardWithModal from "@/components/features/persona/SelectablePersonaCardWithModal";
-import {getBots} from "@/lib/data/bot/Bot";
-import {getPersonas} from "@/lib/data/Persona";
 import SelectablePromptCardWithModal from "@/components/features/prompt/SelectablePromptCardWithModal";
 import AsyncProgressSelect from "@/components/ui/AsyncProgressSelect";
 import ConversationList from "@/components/features/room/conversation/ConversationList";
@@ -66,11 +64,11 @@ export default function RoomViewer({startRoom}: { startRoom: Room }) {
                 <span>페르소나</span>
                 <SelectablePersonaCardWithModal onSelect={async (persona) => {
                     setRoom(await putRoom(room.id, {"persona_id": persona.id}))
-                }} persona={room.persona} fetchPersona={getPersonas}/>
+                }} persona={room.persona} endpoint={"persona?"}/>
                 <span>봇</span>
                 <SelectablePersonaCardWithModal displayName={"봇"} onSelect={async (bot) => {
                     setRoom(await putRoom(room.id, {"bot_id": bot.id}))
-                }} persona={room.bot} fetchPersona={getBots}/>
+                }} persona={room.bot} endpoint={"bot?"}/>
                 <span>프롬프트</span>
                 <SelectablePromptCardWithModal onSelect={async (prompt) => {
                     setRoom(await putRoom(room.id, {"prompt_id": prompt.id}))

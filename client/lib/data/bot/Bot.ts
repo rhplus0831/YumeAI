@@ -87,6 +87,7 @@ export async function importBotFromFile(mime: string, arrayBuffer: ArrayBuffer, 
 }
 
 async function processCardJson(card: any, loadAsset: (uri: string) => Uint8Array | undefined, setLoadingStatus: (status: string) => void) {
+    const isV3 = card['spec_version'].startsWith('3');
     const data = card['data'];
 
     setLoadingStatus("봇 카드 등록하는중...");
@@ -114,38 +115,55 @@ async function processCardJson(card: any, loadAsset: (uri: string) => Uint8Array
         });
     }
 
-    if (safeGet<{ type: string; uri: string; name: string; ext: string }[]>('assets')) {
-        const assets = safeGet<{ type: string; uri: string; name: string; ext: string }[]>('assets')!;
-        for (const asset of assets) {
-            const {type, uri, name, ext} = asset;
-            const mtype = new MimeType(mimedb)
-            const mockFileName = 'data.' + ext
-            const mime: string = mtype.lookup(mockFileName);
-            if (!mime) {
-                console.error(`MIME type for file "${name}"(${mockFileName}) not found`);
-                continue;
-            }
+    async function putAsset(name: string, uri: string, ext: string, type: string) {
+        const mtype = new MimeType(mimedb)
+        const mockFileName = 'data.' + ext
+        const mime: string = mtype.lookup(mockFileName);
+        if (!mime) {
+            console.error(`MIME type for file "${name}"(${mockFileName}) not found`);
+            return;
+        }
 
-            const fileData = loadAsset(uri);
-            if (!fileData) {
-                console.error(`Asset data for "${uri}" not found`);
-                continue;
-            }
+        const fileData = loadAsset(uri);
+        if (!fileData) {
+            console.error(`Asset data for "${uri}" not found`);
+            return;
+        }
 
-            if (type === "icon") {
-                setLoadingStatus('봇 아이콘 업로드중...')
-                const image: Image = await uploadImage(`bot/${bot.id}/profile_image`, new Blob([fileData], {type: mime}), 'image_file', 'profileImageId')
-                bot.profileImageId = image.file_id;
-            } else if (mime.startsWith('image/')) {
-                setLoadingStatus(`이미지 에셋 "${name}" 업로드중...`)
-                const image: Image = await uploadImage('image', new Blob([fileData], {type: mime}), 'in_file')
-                imageAssets.push({
-                    name: name,
-                    alias: '',
-                    imageId: image.file_id,
-                });
+        if (type === "icon") {
+            setLoadingStatus('봇 아이콘 업로드중...')
+            const image: Image = await uploadImage(`bot/${bot.id}/profile_image`, new Blob([fileData], {type: mime}), 'image_file', 'profileImageId')
+            bot.profileImageId = image.file_id;
+        } else if (mime.startsWith('image/')) {  //need check for audio, video, etc...
+            setLoadingStatus(`이미지 에셋 "${name}" 업로드중...`)
+            const image: Image = await uploadImage('image', new Blob([fileData], {type: mime}), 'in_file')
+            imageAssets.push({
+                name: name,
+                alias: '',
+                imageId: image.file_id,
+            });
+        }
+    }
+
+    if (isV3) {
+        if (safeGet<{ type: string; uri: string; name: string; ext: string }[]>('assets')) {
+            const assets = safeGet<{ type: string; uri: string; name: string; ext: string }[]>('assets')!;
+            for (const asset of assets) {
+                const {type, uri, name, ext} = asset;
+                await putAsset(name, uri, ext, type);
             }
         }
+    } else {
+        if (data?.extensions?.risuai?.additionalAssets) {
+            const additionalAssets = data?.extensions?.risuai?.additionalAssets;
+            for (const asset of additionalAssets) {
+                const name = asset[0];
+                const uri = asset[1];
+                const ext = asset[2];
+                await putAsset(name, uri, ext, 'image'); //need check for audio, video, etc...
+            }
+        }
+        await putAsset("icon", "ccdefault", "png", "icon")
     }
 
     const putData = {
@@ -159,7 +177,7 @@ async function processCardJson(card: any, loadAsset: (uri: string) => Uint8Array
     bot = await putBot(bot.id, putData)
 
     const lores: CardV3LoreBookEntry[] = data?.character_book?.entries || undefined;
-    if (lores) {
+    if (lores && lores.length > 0) {
         bot = await createLoreBookForBot(bot.id);
         setLoadingStatus(`로어북 초기화중...`)
         const loreBook = await getLoreBook(bot.lore_book_id!)
@@ -193,9 +211,12 @@ async function importBotFromPng(arrayBuffer: ArrayBuffer, setLoadingStatus: (sta
         return chunks.find(chunk => chunk.keyword === keyword);
     }
 
-    const card = findChunk('ccv3')
+    let card = findChunk('ccv3')
     if (!card) {
-        throw new Error("Invalid card? or character v2")
+        card = findChunk('chara')
+        if (!card) {
+            throw new Error("Invalid or not character card")
+        }
     }
 
     let cardJson: any
@@ -207,24 +228,47 @@ async function importBotFromPng(arrayBuffer: ArrayBuffer, setLoadingStatus: (sta
 
     console.log(cardJson)
 
-    function loadAsset(uri: string) {
-        if (uri.startsWith('ccdefault')) {
-            return new Uint8Array(arrayBuffer);
-        }
-        //in chunk: chara-ext-asset_:0
+    if (cardJson['spec_version'].startsWith('3')) {
+        function v3LoadAsset(uri: string) {
+            if (uri.startsWith('ccdefault')) {
+                return new Uint8Array(arrayBuffer);
+            }
 
-        //uri: __asset:0
-        if (!uri.startsWith('__asset:')) {
-            return undefined;
+            //in chunk: chara-ext-asset_:0
+            //uri: __asset:0
+            if (!uri.startsWith('__asset:')) {
+                return undefined;
+            }
+            const innerPath = uri.replace('__asset:', '');
+            const chunk = findChunk(`chara-ext-asset_:${innerPath}`)
+            if (!chunk) return undefined;
+            const buffer = Buffer.from(chunk.text, 'base64')
+            return buffer as unknown as Uint8Array;
         }
-        const innerPath = uri.replace('__asset:', '');
-        const chunk = findChunk(`chara-ext-asset_:${innerPath}`)
-        if (!chunk) return undefined;
-        const buffer = Buffer.from(chunk.text, 'base64')
-        return buffer as unknown as Uint8Array;
+
+        return await processCardJson(cardJson, v3LoadAsset, setLoadingStatus)
+    } else {
+        function v2LoadAsset(uri: string) {
+            if (uri.startsWith('ccdefault')) {
+                return new Uint8Array(arrayBuffer);
+            }
+
+            //in chunk: chara-ext-asset_47
+            //uri: __asset:1
+            if (!uri.startsWith('__asset:')) {
+                return undefined;
+            }
+            const innerPath = uri.replace('__asset:', '');
+            const chunk = findChunk(`chara-ext-asset_${innerPath}`)
+            if (!chunk) return undefined;
+            const buffer = Buffer.from(chunk.text, 'base64')
+            return buffer as unknown as Uint8Array;
+        }
+
+        return await processCardJson(cardJson, v2LoadAsset, setLoadingStatus)
     }
 
-    return await processCardJson(cardJson, loadAsset, setLoadingStatus)
+
 }
 
 async function importBotFromZip(arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void) {

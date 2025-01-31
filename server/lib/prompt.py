@@ -4,7 +4,7 @@ from typing import Optional
 
 from api.common import RequestWrapper
 from database.sql_model import Prompt
-from lib.cbs import CBSHelper, yume_cutter_check
+from lib.cbs import CBSHelper, yume_cutter_check, yume_legacy_check
 
 
 def parse_tag(text: str, check: Callable[[str], [[str, bool]]], start_word: str, end_word: str):
@@ -33,7 +33,6 @@ def parse_tag(text: str, check: Callable[[str], [[str, bool]]], start_word: str,
             content = text[start + len(start_word):end]
             processed_content, found = check(content)
             if not found:
-
                 mismatch.append(content)
                 processed_content = f"[[YUMEMismatch {processed_content}]]"
 
@@ -57,6 +56,18 @@ def parse_prompt(prompt: str, cbs: CBSHelper, wrapper: Optional[RequestWrapper] 
     parsed = '\n'.join(filtered_lines)
 
     parsed, mismatch = parse_tag(parsed, cbs.check, "{{", "}}")
+    parsed, _ = parse_tag(parsed, yume_cutter_check, '[[YUME', ']]')
+
+    # It's legacy check for <user> and <char>
+    def legacy_check(content):
+        if content == "user":
+            return cbs.user, True
+        if content == "char":
+            return cbs.char, True
+        return content, False
+
+    parsed, _ = parse_tag(parsed, legacy_check, "<", ">")
+    parsed, _ = parse_tag(parsed, yume_legacy_check, "[[YUME", "]]")
 
     def client_filter(value: str):
         if value.startswith("img"):
@@ -64,8 +75,6 @@ def parse_prompt(prompt: str, cbs: CBSHelper, wrapper: Optional[RequestWrapper] 
         return True
 
     mismatch = list(filter(client_filter, mismatch))
-
-    parsed, _ = parse_tag(parsed, yume_cutter_check, '[[', ']]')
 
     if wrapper:
         wrapper.log(f'CBS 처리전', True)

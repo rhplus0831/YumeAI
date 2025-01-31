@@ -18,6 +18,13 @@ def yume_cutter_check(text: str) -> [str, bool]:
     return text, False
 
 
+def yume_legacy_check(text: str) -> [str, bool]:
+    if text.startswith("YUMEMismatch "):
+        return '<' + text[13:] + '>', True
+
+    return text, False
+
+
 def fix_asteval_alias(text: str) -> str:
     modified_text = ""
     i = 0

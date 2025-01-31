@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 from starlette.responses import Response
 
 from api import common
-from api.common import SessionDependency, ClientErrorException
+from api.common import SessionDependency, ClientErrorException, RestoreData
 from database.sql import sql_exec
 from database.sql_model import LoreBook, LoreBookBase, LoreBookChapter, LoreBookChapterBase, Lore
 from lib.cbs import CBSHelper
@@ -93,6 +93,17 @@ def register():
         chapter_list = sql_exec(session, select(LoreBookChapter).where(LoreBookChapter.lore_book_id == id)).all()
         lore_list = sql_exec(session, select(Lore).where(Lore.lore_book_id == id)).all()
         return {"book": lore_book, "chapters": chapter_list, "lores": lore_list}
+
+    @router.post('/restore-read')
+    def restore_read(session: SessionDependency, restore: RestoreData):
+        print(restore.datas)
+        for data in restore.datas:
+            print(data)
+            common.restore_data(data['book'], LoreBook, 'false', session)
+            for chapter in data['chapters']:
+                common.restore_data(chapter, LoreBookChapter, 'false', session)
+            for lore in data['lores']:
+                common.restore_data(lore, Lore, 'false', session)
 
     class LoreBookTestArgument(BaseModel):
         trigger: str

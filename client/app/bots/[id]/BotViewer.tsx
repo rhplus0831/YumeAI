@@ -16,6 +16,7 @@ import ErrorPopover from "@/components/ui/ErrorPopover";
 import Image, {buildImageLink, deleteImage, uploadImage} from "@/lib/data/Image";
 import {OpenedLoreBook, readLoreBook} from "@/lib/data/lore/ReadLoreBook";
 import LoreBookReaderBox from "@/components/features/lore/LoreBookReaderBox";
+import LoreSelectButtonWithModal from "@/components/features/lore/LoreSelectButtonWithModal";
 
 function simpleStringHash(str: string) {
     var hash = 0,
@@ -133,6 +134,7 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
                 }}>
                     로어북 만들기
                 </AsyncProgressButton>
+                <LoreSelectButtonWithModal bot={bot} setBot={setBot}/>
             </div>
         }
 
@@ -140,9 +142,9 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
             return <div className={"h-full flex flex-col gap-4 justify-center items-center"}>
                 <span>오류가 발생했습니다: {bookLoadingError}</span>
                 <AsyncProgressButton onPressAsync={async () => {
-                    setBot(await createLoreBookForBot(bot.id))
+                    window.location.reload()
                 }}>
-                    재생성 시도하기
+                    새로고침 시도하기
                 </AsyncProgressButton>
                 <AsyncProgressButton onPressAsync={async () => {
                     setBot(await putBot(bot.id, {

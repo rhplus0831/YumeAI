@@ -153,11 +153,19 @@ def get_or_404(db_model: Type[SQLModel], session: Session, id: str):
     return item
 
 
+def get_or_new(db_model: Type[SQLModel], session: Session, id: str):
+    statement: Select = select(db_model).where(db_model.id == id)
+    item: Optional[db_model] = sql_exec(session, statement).one_or_none()
+    if item is None:
+        item = db_model(id=id)
+    return item
+
+
 class RestoreData(BaseModel):
     datas: Sequence[dict]
 
 
-def restore_data(data: dict, db_model: Type[SQLModel], overwrite: str, session: Session):
+def restore_data(data: dict, db_model: Type[SQLModel], overwrite: str, session: Session, need_result=False):
     fixed_data = {}
     annotations = {}
     for base_class in reversed(db_model.__mro__):  # __mro__는 클래스 상속 계층을 반환 (역순으로 조회)
@@ -181,11 +189,14 @@ def restore_data(data: dict, db_model: Type[SQLModel], overwrite: str, session: 
         if overwrite.lower() == 'true':
             db_data = item.sqlmodel_update(fixed_data)
         else:
-            return
+            return item
     else:
         db_data = db_model(**fixed_data)
     session.add(db_data)
     session.commit()
+    if need_result:
+        session.refresh(db_data)
+        return db_data
 
 
 def insert_crud(router: APIRouter, base_model: Type[SQLModel], db_model: Type[SQLModel], update_model: Type[BaseModel],

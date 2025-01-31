@@ -10,6 +10,7 @@ import Prompt, {getPrompt} from "@/lib/data/Prompt";
 import {RawConversation} from "@/lib/data/Conversation";
 import {api} from "@/lib/api-client";
 import Summary from "@/lib/data/Summary";
+import {LoreBookReadResult} from "@/lib/data/lore/ReadLoreBook";
 
 export class Exporter {
     zip: fflate.Zip;
@@ -20,6 +21,8 @@ export class Exporter {
     exportedImages = new Set<string>();
     exportedConversations = new Set<string>();
     exportedSummaries = new Set<string>();
+    exportedLorebooks = new Set<string>();
+
     private zipChunks: Uint8Array[] = [];
     setStatus: (status: string) => void = () => {
     };
@@ -60,6 +63,7 @@ export class Exporter {
             "images": [...this.exportedImages],
             "conversations": [...this.exportedConversations],
             "summaries": [...this.exportedSummaries],
+            "lorebooks": [...this.exportedLorebooks],
         }
         this.addFileToZip("meta.json", JSON.stringify(metadata));
         this.zip.end()
@@ -149,7 +153,22 @@ export class Exporter {
         if (this.exportedBots.has(bot_id)) return;
         const bot = await getBot(bot_id)
 
+        if (bot.lore_book_id) {
+            await this.exportLoreBook(bot.lore_book_id)
+        }
+
         await this.exportRawBot(bot)
+    }
+
+    async exportLoreBook(lore_id: string) {
+        if (this.exportedLorebooks.has(lore_id)) return;
+        const lore: LoreBookReadResult = await api(`lorebook/${lore_id}/read`, {
+            method: 'GET'
+        })
+
+        this.setStatus(`로어북 내보내기: ${lore.book.name}`)
+        this.addFileToZip(`lorebooks/${lore_id}.json`, JSON.stringify(lore));
+        this.exportedLorebooks.add(lore_id);
     }
 
     async exportRawBot(bot: Bot) {

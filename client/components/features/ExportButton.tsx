@@ -15,6 +15,7 @@ import {Exporter} from "@/lib/data/Exporter";
 import {getBots} from "@/lib/data/bot/Bot";
 import {getPersonas} from "@/lib/data/Persona";
 import {getPrompts} from "@/lib/data/Prompt";
+import {getLoreBooks} from "@/lib/data/lore/LoreBook";
 
 export interface ExportButtonProps extends ButtonProps {
     export_type: 'all' | 'room' | 'room_and_chat'
@@ -88,6 +89,18 @@ export default function ExportButton(props: ExportButtonProps) {
                     }
                     for (const prompt of data) {
                         await exporter.exportRawPrompt(prompt)
+                    }
+                    offset += data.length;
+                }
+
+                offset = 0;
+                while (true) {
+                    const data = await getLoreBooks(offset, limit)
+                    if (data.length == 0) {
+                        break
+                    }
+                    for (const book of data) {
+                        await exporter.exportLoreBook(book.id)
                     }
                     offset += data.length;
                 }

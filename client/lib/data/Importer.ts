@@ -10,6 +10,7 @@ interface MetaData {
     images: string[];
     conversations: string[];
     summaries: string[];
+    lorebooks: string[];
 }
 
 
@@ -65,6 +66,7 @@ export async function importDataFromZip(mime: string, arrayBuffer: ArrayBuffer, 
                 await loadTable("images", undefined, async (data: Image) => {
                     await uploadImage(`image/${data.file_id}`, new Blob([zipData[`images/${data.file_id}.bin`]], {type: data.file_type}), 'in_file')
                 })
+                await loadTable("lorebooks", 'lorebook/restore-read')
 
                 resolve(undefined)
             });

@@ -19,7 +19,7 @@ import DeleteConfirmButton from "@/components/ui/DeleteConfirmButton";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 
 export default function EditableFilterList({rawFilters, onEdited}: {
-    rawFilters: string | null,
+    rawFilters?: string,
     onEdited: (filters: string) => Promise<void>
 }) {
     const modalProps = useDisclosure()

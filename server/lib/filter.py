@@ -21,6 +21,8 @@ def apply_filter(room: Room, filter_type: str, text: str) -> str:
     filters = []
     if room.prompt and room.prompt.filters:
         filters.extend(json.loads(room.prompt.filters))
+    if room.bot.filters:
+        filters.extend(json.loads(room.bot.filters))
 
     building = text
 

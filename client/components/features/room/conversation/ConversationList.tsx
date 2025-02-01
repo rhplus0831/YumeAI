@@ -36,6 +36,13 @@ export default function ConversationList({room, checkedToggles, displayOption}: 
 
             }
         }
+        if (room.bot?.filters) {
+            try {
+                making = making.concat(JSON.parse(room.bot.filters))
+            } catch {
+
+            }
+        }
         setFilters(making)
 
         if (room.bot?.image_assets) {

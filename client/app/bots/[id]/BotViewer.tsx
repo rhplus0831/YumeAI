@@ -17,6 +17,7 @@ import Image, {buildImageLink, deleteImage, uploadImage} from "@/lib/data/Image"
 import {OpenedLoreBook, readLoreBook} from "@/lib/data/lore/ReadLoreBook";
 import LoreBookReaderBox from "@/components/features/lore/LoreBookReaderBox";
 import LoreSelectButtonWithModal from "@/components/features/lore/LoreSelectButtonWithModal";
+import EditableFilterList from "@/components/features/filter/EditableFilterList";
 
 function simpleStringHash(str: string) {
     var hash = 0,
@@ -200,7 +201,12 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
                     setBot(data)
                 }}/>
                 {status !== "normal" && <span className={"text-xs"}>프롬프트를 저장하기 전까지 변경할 수 없습니다.</span>}
-                <DeleteConfirmButton confirmCount={3} onConfirmed={async () => {
+                <EditableFilterList rawFilters={bot.filters} onEdited={async (filters) => {
+                    setBot(await putBot(bot.id, {
+                        filters: filters,
+                    }))
+                }}/>
+                <DeleteConfirmButton className={"mt-10"} confirmCount={3} onConfirmed={async () => {
                     await deleteBot(bot.id)
                     router.replace("/bots")
                 }}/>

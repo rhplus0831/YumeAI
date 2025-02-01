@@ -14,6 +14,7 @@ import {getLoreBook} from "@/lib/data/lore/LoreBook";
 import {extractPngTextChunks} from "@/lib/png";
 
 export default interface Bot extends Persona, BaseData, ProfileImage {
+    filters: string | undefined
     post_prompt: string | undefined
     first_message: string | undefined
     image_assets: string | undefined

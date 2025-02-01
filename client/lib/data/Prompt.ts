@@ -8,8 +8,8 @@ export interface PromptBase {
     llm: string
     llm_config: string
     use_stream: boolean
-    filters: string | null
-    toggles: string | null
+    filters: string | undefined
+    toggles: string | undefined
 }
 
 export default interface Prompt extends PromptBase, BaseData {

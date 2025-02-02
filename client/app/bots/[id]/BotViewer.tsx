@@ -326,6 +326,14 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
                             </Button>
                         </ErrorPopover>
                         <ImageAssetGroupRenameButton imageAssets={imageAssets} bot={bot} setBot={setBot}/>
+                        <Button onPress={() => {
+                            const copyText = imageAssets.map((asset) => asset.name).join(',')
+                            navigator.clipboard.writeText(copyText).then(() => {
+                                alert('복사 완료')
+                            }).catch((e) => {
+                                prompt('복사에 실패한 것 같습니다, 수동으로 복사해주세요', copyText)
+                            })
+                        }}>에셋 목록 복사하기</Button>
                     </div>
                     <Accordion>
                         {imageAssets.map((imageAsset) => (

@@ -1,53 +1,85 @@
-import re
 from collections.abc import Callable
 from typing import Optional
 
 from api.common import RequestWrapper
 from database.sql_model import Prompt
-from lib.cbs import CBSHelper, yume_cutter_check, yume_legacy_check
+from lib.cbs import CBSHelper
 
 
-def parse_tag(text: str, check: Callable[[str], [[str, bool]]], start_word: str, end_word: str):
+def parse_cbs(text: str, check: Callable[[str], [[str, bool]]]):
     mismatch = []
+    building_text = []
 
-    def process_content(text):
-        def find_innermost(text):
-            """가장 안쪽의 블록을 찾습니다."""
-            open_indices = [m.start() for m in re.finditer(re.escape(start_word), text)]
-            close_indices = [m.start() for m in re.finditer(re.escape(end_word), text)]
+    # 해야 하는것: 텍스트를 타고 들어가며 {{를 만나면 }}를 만날때까지 공간을 묶고, 그 공간을 체크하기
+    # }} 를 만나러 가는 중에 {{ 를 추가적으로 만나면 중첩으로 인식하고, 이를 올바르게 처리하기
 
-            if not open_indices or not close_indices:
-                return None, None
+    # 분석중인 태그, 중첩될 수 있으므로 list 자료형으로 구현
+    building_tag: list[list] = []
 
-            # 가장 마지막에 열린 '{'를 찾고, 그 이후에 가장 먼저 닫히는 '}'를 찾습니다.
-            for open_idx in reversed(open_indices):
-                for close_idx in close_indices:
-                    if close_idx > open_idx:
-                        return open_idx, close_idx
-            return None, None
+    # 전에 시작 태그 '{' 를 만났는지의 여부
+    previous_encounter_start = False
 
-        start, end = find_innermost(text)
-        if start is not None and end is not None:
-            head = text[:start]
-            foot = text[end + len(end_word):]
-            content = text[start + len(start_word):end]
-            processed_content, found = check(content)
-            if not found:
-                mismatch.append(content)
-                processed_content = f"[[YUMEMismatch {processed_content}]]"
+    # 전에 종료 태그 '}' 를 만났는지의 여부
+    previous_encounter_end = False
 
-            elif processed_content.strip() == '':
-                if head.endswith("\n"):
-                    head = head[:-1]
-                # if foot.startswith("\n"):
-                #     foot = foot[1:]
+    for c in text:
+        ### CHECK FOR START
+        if c == '{':
+            if previous_encounter_start:
+                # 전에 {를 만난 상태에서 다시 { 를 만난 경우이니 태그 분석 시작
+                building_tag.append([])
+                previous_encounter_start = False
+            else:
+                previous_encounter_start = True
+            # { 를 만난경우 일단 보류 시킴
+            continue
 
-            new_text = head + processed_content + foot
-            return process_content(new_text)  # 재귀 호출
+        if previous_encounter_start:
+            # 이전에 만난 { 가 완전히 열리지 않았으므로 설레발을 멈추고 보류했던 { 를 등록함
+            previous_encounter_start = False
+            building_text.append('{')
+
+        ### CHECK FOR END
+        if c == '}' and len(building_tag) > 0:
+            if previous_encounter_end:
+                # 태그가 닫혔다면, 마지막 태그를 열어 check 함수를 통해 처리
+                tag = ''.join(building_tag.pop())
+                parsed_tag, is_matched = check(tag)
+
+                # 매칭된게 없다면 목록에 등록하고, 예상되는 원문 "{{parsed_tag}}" 로 되돌림
+                if not is_matched:
+                    mismatch.append(parsed_tag)
+                else:
+                    # 매칭된게 있는경우, 변경된 내용이 또 다른 태그를 가지고 있는지 판단함
+                    parsed_tag, inner_mismatch = parse_cbs(parsed_tag, check)
+                    mismatch.extend(inner_mismatch)
+
+                # 빌드중인 태그가 없다면 결과물에, 아니라면 가장 마지막 위치에 있는 tag에 빌드된 문장을 전송
+                if len(building_tag) == 0:
+                    building_text.append(parsed_tag)
+                else:
+                    building_tag[-1].append(parsed_tag)
+                previous_encounter_end = False
+            else:
+                previous_encounter_end = True
+            continue
+
+        if previous_encounter_end:
+            # 위와 동일하게 설레발을 친게 있다면 복구
+            previous_encounter_end = False
+            building_text.append('}')
+
+        ### PROCESS LEFTOVER
+        if len(building_tag) > 0:
+            building_tag[-1].append(c)
         else:
-            return text
+            building_text.append(c)
 
-    return process_content(text), mismatch
+    while len(building_tag) > 0:
+        # 닫히지 않은 태그는 올바른 CBS 태그가 아니므로 원문을 보내기
+        building_text.append("{{" + ''.join(building_tag.pop(0)))
+
+    return ''.join(building_text), mismatch
 
 
 def parse_prompt(prompt: str, cbs: CBSHelper, wrapper: Optional[RequestWrapper] = None) -> tuple[str, list]:
@@ -55,19 +87,10 @@ def parse_prompt(prompt: str, cbs: CBSHelper, wrapper: Optional[RequestWrapper] 
     filtered_lines = [line for line in lines if not line.startswith('//YUME')]
     parsed = '\n'.join(filtered_lines)
 
-    parsed, mismatch = parse_tag(parsed, cbs.check, "{{", "}}")
-    parsed, _ = parse_tag(parsed, yume_cutter_check, '[[', ']]')
+    parsed, mismatch = parse_cbs(parsed, cbs.check)
 
-    # It's legacy check for <user> and <char>
-    def legacy_check(content):
-        if content == "user":
-            return cbs.user, True
-        if content == "char":
-            return cbs.char, True
-        return content, False
-
-    parsed, _ = parse_tag(parsed, legacy_check, "<", ">")
-    parsed, _ = parse_tag(parsed, yume_legacy_check, "[[YUME", "]]")
+    # Small fallback for <user> and <char>
+    parsed = parsed.replace("<user>", cbs.user).replace("<char>", cbs.char)
 
     def client_filter(value: str):
         if value.startswith("img"):

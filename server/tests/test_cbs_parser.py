@@ -14,6 +14,9 @@ def check_func_for_test(inner: str):
     if inner == "generate_tag":
         return "{{love}}", True
 
+    if inner == "hatsune miku is great":
+        return "1", True
+
     return inner, False
 
 
@@ -43,3 +46,27 @@ def test_parse_cbs_incomplete_deep():
 
 def test_parse_cbs_with_generate_tag():
     assert parse_cbs('{{generate_tag}}', check_func_for_test) == ('mepi', [])
+
+
+def test_parse_cbs_with_if_true():
+    assert parse_cbs('{{#if 1}}Test{{/if}}', check_func_for_test) == ('Test', [])
+
+
+def test_parse_cbs_with_if_false():
+    assert parse_cbs('{{#if 0}}Test{{/if}}', check_func_for_test) == ('', [])
+
+
+def test_parse_cbs_with_if_nested():
+    assert parse_cbs('{{#if 1}}{{#if 1}}Test{{/if}}{{/if}}', check_func_for_test) == ('Test', [])
+
+
+def test_parse_cbs_with_if_nested_false():
+    assert parse_cbs('{{#if 0}}{{#if 1}}Test{{/if}}{{/if}}', check_func_for_test) == ('', [])
+
+
+def test_parse_cbs_with_if_true_and_false():
+    assert parse_cbs('{{#if 1}}Show{{#if 0}}Hide{{/if}}{{/if}}', check_func_for_test) == ('Show', [])
+
+
+def test_parse_cbs_with_if_cbs():
+    assert parse_cbs('{{#if {{hatsune miku is great}}}}Right!{{/if}}', check_func_for_test) == ('Right!', [])

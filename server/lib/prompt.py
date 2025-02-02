@@ -1,9 +1,16 @@
 from collections.abc import Callable
+from enum import Enum
 from typing import Optional
 
 from api.common import RequestWrapper
 from database.sql_model import Prompt
 from lib.cbs import CBSHelper
+
+
+class BlockType(Enum):
+    IF_BLOCK = 0
+    IF_TRUE = 1
+    IF_FALSE = 2
 
 
 def parse_cbs(text: str, check: Callable[[str], [[str, bool]]]):
@@ -16,11 +23,40 @@ def parse_cbs(text: str, check: Callable[[str], [[str, bool]]]):
     # 분석중인 태그, 중첩될 수 있으므로 list 자료형으로 구현
     building_tag: list[list] = []
 
+    # 등록된 블럭 정보
+    registered_block: list[BlockType] = []
+
+    def check_if_false():
+        return len(registered_block) != 0 and registered_block[-1] == BlockType.IF_FALSE
+
+    def pop_last_block(check_type: BlockType):
+        for i in range(len(registered_block) - 1, -1, -1):
+            target_type = registered_block[i]
+            if check_type == BlockType.IF_BLOCK:
+                if target_type == BlockType.IF_TRUE or target_type == BlockType.IF_FALSE:
+                    del registered_block[i]
+                    return True
+            elif target_type == check_type:
+                del registered_block[i]
+                return True
+
+        return False
+
     # 전에 시작 태그 '{' 를 만났는지의 여부
     previous_encounter_start = False
 
     # 전에 종료 태그 '}' 를 만났는지의 여부
     previous_encounter_end = False
+
+    def process_leftover(leftover: str):
+        # 마지막에 등록된 if 블럭이 실패한경우, 문자열 등록을 방지
+        if check_if_false():
+            return
+
+        if len(building_tag) > 0:
+            building_tag[-1].append(leftover)
+        else:
+            building_text.append(leftover)
 
     for c in text:
         ### CHECK FOR START
@@ -37,13 +73,35 @@ def parse_cbs(text: str, check: Callable[[str], [[str, bool]]]):
         if previous_encounter_start:
             # 이전에 만난 { 가 완전히 열리지 않았으므로 설레발을 멈추고 보류했던 { 를 등록함
             previous_encounter_start = False
-            building_text.append('{')
+            process_leftover('{')
 
         ### CHECK FOR END
         if c == '}' and len(building_tag) > 0:
             if previous_encounter_end:
+                previous_encounter_end = False
                 # 태그가 닫혔다면, 마지막 태그를 열어 check 함수를 통해 처리
                 tag = ''.join(building_tag.pop())
+
+                if tag.startswith("/if"):
+                    pop_last_block(BlockType.IF_BLOCK)
+                    continue
+
+                # if-false 상태에서 블럭을 닫는게 아니였는데 /if 태그도 아니였다면
+                # 어차피 등록되지 않을 내용이니 내부를 추가 분석할 필요가 없음
+                if check_if_false():
+                    continue
+
+                if tag.startswith("#if "):
+                    condition = tag[4:]
+                    parsed_condition, inner_mismatch = parse_cbs(condition, check)
+                    if inner_mismatch:
+                        mismatch.extend(inner_mismatch)
+                    if parsed_condition == '1':
+                        registered_block.append(BlockType.IF_TRUE)
+                    else:
+                        registered_block.append(BlockType.IF_FALSE)
+                    continue
+
                 parsed_tag, is_matched = check(tag)
 
                 # 매칭된게 없다면 목록에 등록하고, 예상되는 원문 "{{parsed_tag}}" 로 되돌림
@@ -59,7 +117,6 @@ def parse_cbs(text: str, check: Callable[[str], [[str, bool]]]):
                     building_text.append(parsed_tag)
                 else:
                     building_tag[-1].append(parsed_tag)
-                previous_encounter_end = False
             else:
                 previous_encounter_end = True
             continue
@@ -67,13 +124,9 @@ def parse_cbs(text: str, check: Callable[[str], [[str, bool]]]):
         if previous_encounter_end:
             # 위와 동일하게 설레발을 친게 있다면 복구
             previous_encounter_end = False
-            building_text.append('}')
+            process_leftover('}')
 
-        ### PROCESS LEFTOVER
-        if len(building_tag) > 0:
-            building_tag[-1].append(c)
-        else:
-            building_text.append(c)
+        process_leftover(c)
 
     while len(building_tag) > 0:
         # 닫히지 않은 태그는 올바른 CBS 태그가 아니므로 원문을 보내기

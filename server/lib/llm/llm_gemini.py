@@ -130,6 +130,9 @@ async def perform_prompt(prompt_value: Prompt, cbs: CBSHelper, wrapper: RequestW
     response = await client.aio.models.generate_content(model=config.model, contents=contents,
                                                         config=generate_config)
 
+    if response.candidates is None:
+        raise Exception(response.prompt_feedback.block_reason)
+
     from lib.llm.llm_common import messages_dump
     result, _ = process_content(response.candidates[0].content, True)
 
@@ -147,6 +150,8 @@ async def stream_prompt(prompt_value: Prompt, cbs: CBSHelper, wrapper: RequestWr
 
     async for chunk in client.aio.models.generate_content_stream(model=config.model, contents=contents,
                                                                  config=generate_config):
+        if chunk.candidates is None:
+            raise Exception(chunk.prompt_feedback.block_reason)
         chunk_message = ''
         for candidate in chunk.candidates:
             chunk_message, in_cot = process_content(candidate.content, in_cot)

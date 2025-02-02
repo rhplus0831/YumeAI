@@ -18,6 +18,7 @@ import {OpenedLoreBook, readLoreBook} from "@/lib/data/lore/ReadLoreBook";
 import LoreBookReaderBox from "@/components/features/lore/LoreBookReaderBox";
 import LoreSelectButtonWithModal from "@/components/features/lore/LoreSelectButtonWithModal";
 import EditableFilterList from "@/components/features/filter/EditableFilterList";
+import ImageAssetGroupRenameButton from "@/components/features/bot/ImageAssetGroupRenameButton";
 
 function simpleStringHash(str: string) {
     var hash = 0,
@@ -315,14 +316,17 @@ export default function BotViewer({startBot}: { startBot: Bot }) {
                     {getLoreBookDisplay()}
                 </Tab>
                 <Tab key={"image-asset"} title={"이미지 에셋"} className={"h-full"}>
-                    <ErrorPopover errorMessage={imageAssetUploadErrorMessage}>
-                        <Button isLoading={isInImageAssetUploading} className={"w-full"} onPress={async () => {
-                            setIsInImageAssetUploading(true)
-                            hiddenFileInput.current?.click()
-                        }}>
-                            업로드
-                        </Button>
-                    </ErrorPopover>
+                    <div className={"flex flex-col gap-2"}>
+                        <ErrorPopover errorMessage={imageAssetUploadErrorMessage}>
+                            <Button isLoading={isInImageAssetUploading} className={"w-full"} onPress={async () => {
+                                setIsInImageAssetUploading(true)
+                                hiddenFileInput.current?.click()
+                            }}>
+                                업로드
+                            </Button>
+                        </ErrorPopover>
+                        <ImageAssetGroupRenameButton imageAssets={imageAssets} bot={bot} setBot={setBot}/>
+                    </div>
                     <Accordion>
                         {imageAssets.map((imageAsset) => (
                             <AccordionItem key={imageAsset.imageId} title={imageAsset.name}>

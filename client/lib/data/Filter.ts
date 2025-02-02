@@ -6,7 +6,7 @@ export default interface Filter {
     replace: string
 }
 
-function dynamicRegexReplace(input: string, regex: string, replace: string): string {
+export function dynamicRegexReplace(input: string, regex: string, replace: string): string {
     // 1. 문자열 형태의 regex를 실제 JavaScript의 RegExp로 변환
     const re = new RegExp(regex, "g");
 

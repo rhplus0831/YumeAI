@@ -107,6 +107,7 @@ def parse_cbs(text: str, check: Callable[[str], Tuple[str, bool]]):
                 # 매칭된게 없다면 목록에 등록하고, 예상되는 원문 "{{parsed_tag}}" 로 되돌림
                 if not is_matched:
                     mismatch.append(parsed_tag)
+                    parsed_tag = "{{" + parsed_tag + "}}"
                 else:
                     # 매칭된게 있는경우, 변경된 내용이 또 다른 태그를 가지고 있는지 판단함
                     parsed_tag, inner_mismatch = parse_cbs(parsed_tag, check)

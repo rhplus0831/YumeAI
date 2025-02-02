@@ -70,3 +70,7 @@ def test_parse_cbs_with_if_true_and_false():
 
 def test_parse_cbs_with_if_cbs():
     assert parse_cbs('{{#if {{hatsune miku is great}}}}Right!{{/if}}', check_func_for_test) == ('Right!', [])
+
+
+def test_parse_cbs_with_mismatch():
+    assert parse_cbs('{{img::test}}', check_func_for_test) == ('{{img::test}}', ['img::test'])

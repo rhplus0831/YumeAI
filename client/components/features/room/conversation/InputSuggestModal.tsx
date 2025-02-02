@@ -3,7 +3,7 @@
 import {Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader} from "@nextui-org/react";
 import {UseDisclosureReturn} from "@nextui-org/use-disclosure";
 import Room, {suggestMessage} from "@/lib/data/Room";
-import {Input} from "@nextui-org/input";
+import {Textarea} from "@nextui-org/input";
 import AsyncProgressButton from "@/components/ui/AsyncProgressButton";
 import {useState} from "react";
 import SuggestedInputBox from "@/components/features/room/conversation/SuggestedInputBox";
@@ -51,7 +51,7 @@ export default function InputSuggestModal(props: InputSuggestModalProps) {
             return room.suggest_prompt.toggles.split("\n").map((toggle) => {
                 const [name, display] = toggle.split("=")
 
-                return <Input key={name} label={display} value={inputs[name]} onValueChange={(value) => {
+                return <Textarea minRows={1} key={name} label={display} value={inputs[name]} onValueChange={(value) => {
                     const newInputs = {...inputs}
                     newInputs[name] = value
                     setInputs(newInputs)

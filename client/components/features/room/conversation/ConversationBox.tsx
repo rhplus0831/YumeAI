@@ -265,15 +265,39 @@ export default function ConversationBox(props: ConversationBoxProps) {
 
     function applyImage(text: string) {
         return applyWithPattern(text, imgPattern, (assetName, i, result) => {
-            const asset = imageAssets.find(asset => {
+            const assets = imageAssets.filter(asset => {
                 if (asset.name === assetName) return true;
                 const alias = asset.alias.split(",").map(alias => alias.trim())
                 return alias.includes(assetName);
             });
-            if (!asset) {
+            if (assets.length === 0) {
                 result.push(<Chip className={"block"} key={`unknown_image_${i}`} size={"sm"}>{assetName} - 없는 이미지
                     에셋</Chip>)
             } else {
+                function seedRandom(seed: number) {
+                    let currentSeed = seed;
+
+                    // LCG 파라미터 (이 값들은 예시이며, 필요에 따라 조정 가능)
+                    const a = 1664525;
+                    const c = 1013904223;
+                    const m = Math.pow(2, 32); // 32비트
+
+                    currentSeed = (a * currentSeed + c) % m;
+                    return currentSeed / m; // 0과 1 사이의 난수 반환
+                }
+
+                function getRandomInt(max: number) {
+                    let seed = 0;
+                    if (conversation.user_message) {
+                        seed += conversation.user_message.length;
+                    }
+                    if (conversation.assistant_message) {
+                        seed += conversation.assistant_message.length;
+                    }
+                    return Math.floor(seedRandom(seed) * max);
+                }
+
+                const asset = assets[getRandomInt(assets.length)];
                 result.push(<img key={`img_${asset.name}_${i}`} src={buildImageLink(asset.imageId, 'display')}
                                  alt={asset.name}/>);
             }

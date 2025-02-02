@@ -78,13 +78,11 @@ interface CardV3LoreBookEntry {
 }
 
 export async function importBotFromFile(mime: string, arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void): Promise<string | undefined> {
-    if (mime.startsWith('application/zip')) {
-        return await importBotFromZip(arrayBuffer, setLoadingStatus)
-    }
     if (mime.startsWith('image/')) {
         return await importBotFromPng(arrayBuffer, setLoadingStatus)
     }
-    throw new Error("Invalid file type")
+    // try to extract as zip anyway
+    return await importBotFromZip(arrayBuffer, setLoadingStatus)
 }
 
 async function processCardJson(card: any, loadAsset: (uri: string) => Uint8Array | undefined, setLoadingStatus: (status: string) => void) {

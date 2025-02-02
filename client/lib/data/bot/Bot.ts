@@ -86,6 +86,8 @@ export async function importBotFromFile(mime: string, arrayBuffer: ArrayBuffer, 
 }
 
 async function processCardJson(card: any, loadAsset: (uri: string) => Uint8Array | undefined, setLoadingStatus: (status: string) => void) {
+    console.log(card)
+
     const isV3 = card['spec_version'].startsWith('3');
     const data = card['data'];
 
@@ -204,7 +206,6 @@ async function processCardJson(card: any, loadAsset: (uri: string) => Uint8Array
 
 async function importBotFromPng(arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void) {
     const chunks = await extractPngTextChunks(arrayBuffer)
-    console.log(chunks)
 
     function findChunk(keyword: string) {
         return chunks.find(chunk => chunk.keyword === keyword);
@@ -219,13 +220,16 @@ async function importBotFromPng(arrayBuffer: ArrayBuffer, setLoadingStatus: (sta
     }
 
     let cardJson: any
+
+    if (card.text.startsWith('rcc||')) {
+        throw new Error("RisuAI 전용 포맷으로 보입니다.")
+    }
+
     try {
         cardJson = JSON.parse(Buffer.from(card.text, 'base64').toString('utf8'))
     } catch {
         cardJson = JSON.parse(card.text)
     }
-
-    console.log(cardJson)
 
     if (cardJson['spec_version'].startsWith('3')) {
         function v3LoadAsset(uri: string) {

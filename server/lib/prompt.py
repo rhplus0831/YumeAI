@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from enum import Enum
-from typing import Optional
+from typing import Optional, Tuple
 
 from api.common import RequestWrapper
 from database.sql_model import Prompt
@@ -13,7 +13,7 @@ class BlockType(Enum):
     IF_FALSE = 2
 
 
-def parse_cbs(text: str, check: Callable[[str], [[str, bool]]]):
+def parse_cbs(text: str, check: Callable[[str], Tuple[str, bool]]):
     mismatch = []
     building_text = []
 

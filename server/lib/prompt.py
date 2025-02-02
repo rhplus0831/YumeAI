@@ -56,7 +56,7 @@ def parse_prompt(prompt: str, cbs: CBSHelper, wrapper: Optional[RequestWrapper] 
     parsed = '\n'.join(filtered_lines)
 
     parsed, mismatch = parse_tag(parsed, cbs.check, "{{", "}}")
-    parsed, _ = parse_tag(parsed, yume_cutter_check, '[[YUME', ']]')
+    parsed, _ = parse_tag(parsed, yume_cutter_check, '[[', ']]')
 
     # It's legacy check for <user> and <char>
     def legacy_check(content):

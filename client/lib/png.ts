@@ -1,18 +1,25 @@
 // 순도 90% 제미나이 산 코드
 // TODO: 성능 개선점 혹은 문제점 있나 확인하기
 
+export interface ParsedPng {
+    leftover: Uint8Array;
+    textChunks: TextChunk[];
+}
+
 export interface TextChunk {
     keyword: string;
     text: string;
 }
 
-export async function extractPngTextChunks(arrayBuffer: ArrayBuffer): Promise<TextChunk[]> {
+export async function extractPngChunks(arrayBuffer: ArrayBuffer): Promise<ParsedPng> {
     const byteArray = new Uint8Array(arrayBuffer);
     if (!isPng(byteArray)) {
         throw new Error('Not a PNG file');
     }
 
     const textChunks: TextChunk[] = [];
+    let leftoverChunks: Uint8Array[] = [];
+    leftoverChunks.push(byteArray.subarray(0, 8))
     let offset = 8; // PNG 시그니처 이후부터 시작
 
     while (offset < byteArray.length) {
@@ -22,17 +29,45 @@ export async function extractPngTextChunks(arrayBuffer: ArrayBuffer): Promise<Te
         offset += 4;
         const chunkData = byteArray.subarray(offset, offset + length);
         offset += length;
-        offset += 4; // CRC (무시)
+        const crc = byteArray.subarray(offset, offset + 4);
+        offset += 4; // CRC
 
         if (chunkType === 'tEXt') {
             textChunks.push(processTextChunk(chunkData));
+        } else {
+            const fullChunk = new Uint8Array(8 + length + 4); // length(4) + type(4) + data + crc(4)
+            fullChunk.set(new Uint8Array([length >>> 24, length >>> 16 & 0xff, length >>> 8 & 0xff, length & 0xff]), 0); // length
+            fullChunk.set(new TextEncoder().encode(chunkType), 4); // chunkType
+            fullChunk.set(chunkData, 8); // chunkData
+            fullChunk.set(crc, 8 + length); // crc
+            leftoverChunks.push(fullChunk);
         }
 
         if (chunkType === 'IEND') { // IEND chunk를 만나면 종료 (선택 사항)
             break;
         }
     }
-    return textChunks;
+
+    const leftover = leftoverChunks.length > 0
+        ? mergeUint8Arrays(leftoverChunks)
+        : new Uint8Array();
+
+    return {
+        leftover: leftover,
+        textChunks: textChunks
+    };
+}
+
+// Uint8Array 배열을 하나의 Uint8Array로 병합하는 유틸리티 함수
+function mergeUint8Arrays(arrays: Uint8Array[]): Uint8Array {
+    const totalLength = arrays.reduce((acc, array) => acc + array.length, 0);
+    const mergedArray = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const array of arrays) {
+        mergedArray.set(array, offset);
+        offset += array.length;
+    }
+    return mergedArray;
 }
 
 function isPng(byteArray: Uint8Array): boolean {

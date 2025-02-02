@@ -11,7 +11,7 @@ import * as fflate from "fflate";
 import {createChapter} from "@/lib/data/lore/LoreChapter";
 import {createLore, updateLore} from "@/lib/data/lore/Lore";
 import {getLoreBook} from "@/lib/data/lore/LoreBook";
-import {extractPngTextChunks} from "@/lib/png";
+import {extractPngChunks} from "@/lib/png";
 
 export default interface Bot extends Persona, BaseData, ProfileImage {
     filters: string | undefined
@@ -205,7 +205,8 @@ async function processCardJson(card: any, loadAsset: (uri: string) => Uint8Array
 }
 
 async function importBotFromPng(arrayBuffer: ArrayBuffer, setLoadingStatus: (status: string) => void) {
-    const chunks = await extractPngTextChunks(arrayBuffer)
+    const png = await extractPngChunks(arrayBuffer)
+    const chunks = png.textChunks;
 
     function findChunk(keyword: string) {
         return chunks.find(chunk => chunk.keyword === keyword);
@@ -234,7 +235,7 @@ async function importBotFromPng(arrayBuffer: ArrayBuffer, setLoadingStatus: (sta
     if (cardJson['spec_version'].startsWith('3')) {
         function v3LoadAsset(uri: string) {
             if (uri.startsWith('ccdefault')) {
-                return new Uint8Array(arrayBuffer);
+                return png.leftover;
             }
 
             //in chunk: chara-ext-asset_:0
@@ -253,7 +254,7 @@ async function importBotFromPng(arrayBuffer: ArrayBuffer, setLoadingStatus: (sta
     } else {
         function v2LoadAsset(uri: string) {
             if (uri.startsWith('ccdefault')) {
-                return new Uint8Array(arrayBuffer);
+                return png.leftover;
             }
 
             //in chunk: chara-ext-asset_47
